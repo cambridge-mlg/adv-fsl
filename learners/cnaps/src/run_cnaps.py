@@ -58,7 +58,9 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)  # Quiet TensorFl
 # from art.attacks import ProjectedGradientDescent, FastGradientMethod
 # from art.classifiers import PyTorchClassifier
 from PIL import Image
-from attacks import ProjectedGradientDescent
+import sys
+#sys.path.append(os.path.abspath('attacks'))
+from attacks.projected_gradient_descent import ProjectedGradientDescent
 
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
@@ -159,7 +161,7 @@ class Learner:
                             default=["ilsvrc_2012", "omniglot", "aircraft", "cu_birds", "dtd", "quickdraw", "fungi",
                                      "vgg_flower", "traffic_sign", "mscoco", "mnist", "cifar10", "cifar100"])
         parser.add_argument("--data_path", default="../datasets", help="Path to dataset records.")
-        parser.add_argument("--pretrained_resnet_path", default="../models/pretrained_resnet.pt.tar",
+        parser.add_argument("--pretrained_resnet_path", default="learners/cnaps/models/pretrained_resnet.pt.tar",
                             help="Path to pretrained feature extractor model.")
         parser.add_argument("--mode", choices=["train", "test", "train_test", "attack"], default="train_test",
                             help="Whether to run training only, testing only, or both training and testing.")

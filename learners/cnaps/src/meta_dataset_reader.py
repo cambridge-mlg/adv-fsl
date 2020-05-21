@@ -4,7 +4,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Quiet the TensorFlow warnings
 import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)  # Quiet the TensorFlow warnings
 import sys
-sys.path.append(os.path.abspath(os.environ['META_DATASET_ROOT']))
+sys.path.append(os.path.abspath('libs/meta-dataset'))
 from meta_dataset.data import dataset_spec as dataset_spec_lib
 from meta_dataset.data import learning_spec
 from meta_dataset.data import pipeline
@@ -21,7 +21,7 @@ class MetaDatasetReader:
         self.train_dataset_next_task = None
         self.validation_set_dict = {}
         self.test_set_dict = {}
-        gin.parse_config_file('./meta_dataset_config.gin')
+        gin.parse_config_file('learners/cnaps/src/meta_dataset_config.gin')
 
         if mode == 'train' or mode == 'train_test':
             train_episode_description = self._get_train_episode_description(max_way_train, max_support_train)
@@ -152,7 +152,7 @@ class SingleDatasetReader:
         self.train_next_task = None
         self.validation_next_task = None
         self.test_next_task = None
-        gin.parse_config_file('./meta_dataset_config.gin')
+        gin.parse_config_file('learners/cnaps/src/meta_dataset_config.gin')
 
         fixed_way_shot_train = config.EpisodeDescriptionConfig(num_ways=way, num_support=shot, num_query=query_train)
         fixed_way_shot_test = config.EpisodeDescriptionConfig(num_ways=way, num_support=shot, num_query=query_test)
