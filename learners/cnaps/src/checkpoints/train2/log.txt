@@ -1,0 +1,1550 @@
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='train_test', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path=None, training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+Task [1000/5000], Train Loss: 2.1726334, Train Accuracy: 0.9066797
+Task [2000/5000], Train Loss: 0.2977957, Train Accuracy: 0.9674998
+Task [3000/5000], Train Loss: 0.1966282, Train Accuracy: 0.9786599
+Task [4000/5000], Train Loss: 0.1405407, Train Accuracy: 0.9839199
+Task [5000/5000], Train Loss: 0.1113580, Train Accuracy: 0.9874799
+
+Testing model ./checkpoints/train2\fully_trained.pt: 
+omniglot: 96.9+/-0.3
+
+Testing model ./checkpoints/train2\best_validation.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=1, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=10, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.18000000715255737
+Task = 0, Class = 1 	 Diff = 0.19999998807907104
+Task = 0, Class = 2 	 Diff = 0.19999998807907104
+Task = 0, Class = 3 	 Diff = 0.12000000476837158
+Task = 0, Class = 4 	 Diff = 0.19999998807907104
+Accuracy before 0.7799999713897705
+Accuracy after 0.5199999809265137
+Options: Namespace(attack_tasks=10, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=10, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.18000000715255737
+Options: Namespace(attack_tasks=10, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=20)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=10, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=10)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=10, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.04000002145767212
+Options: Namespace(attack_tasks=10, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.18000000715255737
+Task = 0, Class = 1 	 Diff = 0.18000000715255737
+Task = 0, Class = 2 	 Diff = 0.18000000715255737
+Options: Namespace(attack_tasks=10, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=1, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.20000004768371582
+Task = 0, Class = 1 	 Diff = 0.20000004768371582
+Task = 0, Class = 2 	 Diff = 0.2200000286102295
+Task = 0, Class = 3 	 Diff = 0.20000004768371582
+Options: Namespace(attack_tasks=10, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=1, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=2)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.5
+Task = 0, Class = 1 	 Diff = 0.3999999761581421
+Accuracy before 0.6000000238418579
+Accuracy after 0.5
+Task = 1, Class = 0 	 Diff = 0.40000003576278687
+Task = 1, Class = 1 	 Diff = 0.40000003576278687
+Accuracy before 0.5
+Accuracy after 0.5
+Task = 2, Class = 0 	 Diff = 0.5
+Task = 2, Class = 1 	 Diff = 0.5
+Accuracy before 0.5
+Accuracy after 0.25
+Task = 3, Class = 0 	 Diff = 0.5
+Task = 3, Class = 1 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.5
+Task = 4, Class = 0 	 Diff = 0.5
+Task = 4, Class = 1 	 Diff = 0.5
+Accuracy before 0.5
+Accuracy after 0.05000000074505806
+Task = 5, Class = 0 	 Diff = 0.5
+Task = 5, Class = 1 	 Diff = 0.5
+Accuracy before 0.5
+Accuracy after 0.20000000298023224
+Task = 6, Class = 0 	 Diff = 0.5
+Task = 6, Class = 1 	 Diff = 0.6500000059604645
+Accuracy before 0.3499999940395355
+Accuracy after 0.5
+Task = 7, Class = 0 	 Diff = 0.40000003576278687
+Task = 7, Class = 1 	 Diff = 0.40000003576278687
+Accuracy before 0.5
+Accuracy after 0.550000011920929
+Task = 8, Class = 0 	 Diff = 0.44999998807907104
+Task = 8, Class = 1 	 Diff = 0.44999998807907104
+Accuracy before 0.5
+Accuracy after 0.5
+Task = 9, Class = 0 	 Diff = 0.5
+Task = 9, Class = 1 	 Diff = 0.5
+Accuracy before 0.5
+Accuracy after 0.3499999940395355
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=1, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=2)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.5
+Task = 0, Class = 1 	 Diff = 0.5
+Accuracy before 0.5
+Accuracy after 0.20000000298023224
+Task = 1, Class = 0 	 Diff = 0.5
+Task = 1, Class = 1 	 Diff = 0.5
+Accuracy before 0.5
+Accuracy after 0.5
+Task = 2, Class = 0 	 Diff = 0.30000001192092896
+Task = 2, Class = 1 	 Diff = 0.30000001192092896
+Accuracy before 0.5
+Accuracy after 0.4000000059604645
+Task = 3, Class = 0 	 Diff = 0.5
+Task = 3, Class = 1 	 Diff = 0.5
+Accuracy before 0.5
+Accuracy after 0.45000001788139343
+Task = 4, Class = 0 	 Diff = 0.050000011920928955
+Task = 4, Class = 1 	 Diff = 0.5
+Accuracy before 0.5
+Accuracy after 0.5
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=1, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=2)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.40000003576278687
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.1799999475479126
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=3)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.3333333134651184
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=3)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.2666667103767395
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.19999998807907104
+Task = 0, Class = 1 	 Diff = 0.19999998807907104
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.020000040531158447
+Task = 0, Class = 1 	 Diff = -0.019999980926513672
+Task = 0, Class = 2 	 Diff = 0.0
+Task = 0, Class = 3 	 Diff = 0.0
+Task = 0, Class = 4 	 Diff = 0.0
+Accuracy before 0.8799999952316284
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.0
+Task = 0, Class = 1 	 Diff = 0.0
+Task = 0, Class = 2 	 Diff = 0.09999996423721313
+Task = 0, Class = 3 	 Diff = 0.039999961853027344
+Task = 0, Class = 4 	 Diff = 0.06000000238418579
+Accuracy before 0.9199999570846558
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.0
+Task = 0, Class = 1 	 Diff = 0.0
+Task = 0, Class = 2 	 Diff = 0.0
+Task = 0, Class = 3 	 Diff = 0.039999961853027344
+Task = 0, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.9799999594688416
+Task = 1, Class = 0 	 Diff = 0.0
+Task = 1, Class = 1 	 Diff = -0.039999961853027344
+Task = 1, Class = 2 	 Diff = 0.0
+Task = 1, Class = 3 	 Diff = 0.06000000238418579
+Task = 1, Class = 4 	 Diff = 0.06000000238418579
+Accuracy before 0.8799999952316284
+Accuracy after 0.9199999570846558
+Task = 2, Class = 0 	 Diff = 0.0
+Task = 2, Class = 1 	 Diff = 0.0
+Task = 2, Class = 2 	 Diff = -0.019999980926513672
+Task = 2, Class = 3 	 Diff = 0.0
+Task = 2, Class = 4 	 Diff = 0.0
+Accuracy before 0.9599999785423279
+Accuracy after 0.9799999594688416
+Task = 3, Class = 0 	 Diff = 0.0
+Task = 3, Class = 1 	 Diff = 0.0
+Task = 3, Class = 2 	 Diff = 0.0
+Task = 3, Class = 3 	 Diff = -0.019999980926513672
+Task = 3, Class = 4 	 Diff = 0.10000002384185791
+Accuracy before 0.85999995470047
+Accuracy after 0.9399999976158142
+Task = 4, Class = 0 	 Diff = 0.0
+Task = 4, Class = 1 	 Diff = 0.0
+Task = 4, Class = 2 	 Diff = 0.0
+Task = 4, Class = 3 	 Diff = 0.04000002145767212
+Task = 4, Class = 4 	 Diff = 0.020000040531158447
+Accuracy before 0.9799999594688416
+Accuracy after 0.9799999594688416
+Task = 5, Class = 0 	 Diff = 0.0
+Task = 5, Class = 1 	 Diff = 0.0
+Task = 5, Class = 2 	 Diff = 0.0
+Task = 5, Class = 3 	 Diff = 0.04000002145767212
+Task = 5, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 1.0
+Task = 6, Class = 0 	 Diff = 0.0
+Task = 6, Class = 1 	 Diff = 0.06000000238418579
+Task = 6, Class = 2 	 Diff = 0.020000040531158447
+Task = 6, Class = 3 	 Diff = -0.019999980926513672
+Task = 6, Class = 4 	 Diff = 0.0
+Accuracy before 0.9399999976158142
+Accuracy after 0.9399999976158142
+Task = 7, Class = 0 	 Diff = 0.0
+Task = 7, Class = 1 	 Diff = 0.0
+Task = 7, Class = 2 	 Diff = 0.039999961853027344
+Task = 7, Class = 3 	 Diff = -0.020000040531158447
+Task = 7, Class = 4 	 Diff = 0.13999998569488525
+Accuracy before 0.8399999737739563
+Accuracy after 0.9399999976158142
+Task = 8, Class = 0 	 Diff = 0.12000000476837158
+Task = 8, Class = 1 	 Diff = 0.09999996423721313
+Task = 8, Class = 2 	 Diff = 0.0
+Task = 8, Class = 3 	 Diff = 0.0
+Task = 8, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.8999999761581421
+Accuracy after 0.9199999570846558
+Task = 9, Class = 0 	 Diff = 0.04000002145767212
+Task = 9, Class = 1 	 Diff = 0.020000040531158447
+Task = 9, Class = 2 	 Diff = 0.0
+Task = 9, Class = 3 	 Diff = 0.0
+Task = 9, Class = 4 	 Diff = 0.06000000238418579
+Accuracy before 0.9399999976158142
+Accuracy after 1.0
+Task = 10, Class = 0 	 Diff = 0.019999980926513672
+Task = 10, Class = 1 	 Diff = 0.0
+Task = 10, Class = 2 	 Diff = 0.0
+Task = 10, Class = 3 	 Diff = 0.019999980926513672
+Task = 10, Class = 4 	 Diff = 0.0
+Accuracy before 0.9599999785423279
+Accuracy after 0.9599999785423279
+Task = 11, Class = 0 	 Diff = 0.0
+Task = 11, Class = 1 	 Diff = 0.09999996423721313
+Task = 11, Class = 2 	 Diff = 0.039999961853027344
+Task = 11, Class = 3 	 Diff = 0.0
+Task = 11, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.8799999952316284
+Task = 12, Class = 0 	 Diff = 0.0
+Task = 12, Class = 1 	 Diff = 0.04000002145767212
+Task = 12, Class = 2 	 Diff = 0.0
+Task = 12, Class = 3 	 Diff = 0.0
+Task = 12, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 1.0
+Task = 13, Class = 0 	 Diff = 0.0
+Task = 13, Class = 1 	 Diff = 0.0
+Task = 13, Class = 2 	 Diff = 0.0
+Task = 13, Class = 3 	 Diff = 0.0
+Task = 13, Class = 4 	 Diff = -0.04000002145767212
+Accuracy before 0.9599999785423279
+Accuracy after 0.8999999761581421
+Task = 14, Class = 0 	 Diff = 0.0
+Task = 14, Class = 1 	 Diff = 0.039999961853027344
+Task = 14, Class = 2 	 Diff = 0.07999998331069946
+Task = 14, Class = 3 	 Diff = 0.019999980926513672
+Task = 14, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.9799999594688416
+Task = 15, Class = 0 	 Diff = 0.04000002145767212
+Task = 15, Class = 1 	 Diff = 0.08000004291534424
+Task = 15, Class = 2 	 Diff = 0.0
+Task = 15, Class = 3 	 Diff = -0.019999980926513672
+Task = 15, Class = 4 	 Diff = 0.0
+Accuracy before 0.8799999952316284
+Accuracy after 0.8999999761581421
+Task = 16, Class = 0 	 Diff = 0.0
+Task = 16, Class = 1 	 Diff = 0.0
+Task = 16, Class = 2 	 Diff = 0.0
+Task = 16, Class = 3 	 Diff = 0.020000040531158447
+Task = 16, Class = 4 	 Diff = 0.08000004291534424
+Accuracy before 0.9199999570846558
+Accuracy after 0.9599999785423279
+Task = 17, Class = 0 	 Diff = 0.019999980926513672
+Task = 17, Class = 1 	 Diff = 0.0
+Task = 17, Class = 2 	 Diff = 0.06000000238418579
+Task = 17, Class = 3 	 Diff = 0.0
+Task = 17, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.9799999594688416
+Task = 18, Class = 0 	 Diff = 0.0
+Task = 18, Class = 1 	 Diff = 0.0
+Task = 18, Class = 2 	 Diff = 0.07999998331069946
+Task = 18, Class = 3 	 Diff = -0.020000040531158447
+Task = 18, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.9599999785423279
+Accuracy after 0.9799999594688416
+Task = 19, Class = 0 	 Diff = 0.039999961853027344
+Task = 19, Class = 1 	 Diff = 0.039999961853027344
+Task = 19, Class = 2 	 Diff = 0.0
+Task = 19, Class = 3 	 Diff = 0.039999961853027344
+Task = 19, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.9599999785423279
+Accuracy after 0.9799999594688416
+Task = 20, Class = 0 	 Diff = 0.020000040531158447
+Task = 20, Class = 1 	 Diff = 0.06000000238418579
+Task = 20, Class = 2 	 Diff = 0.0
+Task = 20, Class = 3 	 Diff = 0.0
+Task = 20, Class = 4 	 Diff = 0.04000002145767212
+Accuracy before 0.8999999761581421
+Accuracy after 0.9199999570846558
+Task = 21, Class = 0 	 Diff = 0.0
+Task = 21, Class = 1 	 Diff = 0.0
+Task = 21, Class = 2 	 Diff = 0.06000000238418579
+Task = 21, Class = 3 	 Diff = 0.0
+Task = 21, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.9599999785423279
+Task = 22, Class = 0 	 Diff = 0.020000040531158447
+Task = 22, Class = 1 	 Diff = 0.0
+Task = 22, Class = 2 	 Diff = 0.0
+Task = 22, Class = 3 	 Diff = 0.020000040531158447
+Task = 22, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.9799999594688416
+Task = 23, Class = 0 	 Diff = 0.019999980926513672
+Task = 23, Class = 1 	 Diff = -0.04000002145767212
+Task = 23, Class = 2 	 Diff = 0.019999980926513672
+Task = 23, Class = 3 	 Diff = 0.0
+Task = 23, Class = 4 	 Diff = 0.0
+Accuracy before 0.9599999785423279
+Accuracy after 0.9599999785423279
+Task = 24, Class = 0 	 Diff = 0.0
+Task = 24, Class = 1 	 Diff = 0.0
+Task = 24, Class = 2 	 Diff = 0.0
+Task = 24, Class = 3 	 Diff = 0.020000040531158447
+Task = 24, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 1.0
+Task = 25, Class = 0 	 Diff = 0.06000000238418579
+Task = 25, Class = 1 	 Diff = 0.020000040531158447
+Task = 25, Class = 2 	 Diff = 0.0
+Task = 25, Class = 3 	 Diff = 0.0
+Task = 25, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.9799999594688416
+Task = 26, Class = 0 	 Diff = 0.019999980926513672
+Task = 26, Class = 1 	 Diff = 0.0
+Task = 26, Class = 2 	 Diff = -0.04000002145767212
+Task = 26, Class = 3 	 Diff = 0.0
+Task = 26, Class = 4 	 Diff = 0.04000002145767212
+Accuracy before 0.9199999570846558
+Accuracy after 0.9399999976158142
+Task = 27, Class = 0 	 Diff = 0.0
+Task = 27, Class = 1 	 Diff = 0.019999980926513672
+Task = 27, Class = 2 	 Diff = 0.0
+Task = 27, Class = 3 	 Diff = 0.0
+Task = 27, Class = 4 	 Diff = 0.09999996423721313
+Accuracy before 0.8799999952316284
+Accuracy after 0.9799999594688416
+Task = 28, Class = 0 	 Diff = 0.09999996423721313
+Task = 28, Class = 1 	 Diff = 0.0
+Task = 28, Class = 2 	 Diff = -0.020000040531158447
+Task = 28, Class = 3 	 Diff = 0.0
+Task = 28, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.9599999785423279
+Task = 29, Class = 0 	 Diff = 0.039999961853027344
+Task = 29, Class = 1 	 Diff = 0.019999980926513672
+Task = 29, Class = 2 	 Diff = 0.019999980926513672
+Task = 29, Class = 3 	 Diff = 0.0
+Task = 29, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.9599999785423279
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.0
+Task = 0, Class = 1 	 Diff = 0.12000000476837158
+Task = 0, Class = 2 	 Diff = 0.10000002384185791
+Task = 0, Class = 3 	 Diff = 0.0
+Task = 0, Class = 4 	 Diff = 0.0
+Accuracy before 0.9399999976158142
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.019999980926513672
+Task = 0, Class = 1 	 Diff = 0.0
+Task = 0, Class = 2 	 Diff = 0.06000000238418579
+Task = 0, Class = 3 	 Diff = 0.019999980926513672
+Task = 0, Class = 4 	 Diff = -0.019999980926513672
+Accuracy before 0.9799999594688416
+Accuracy after 0.9799999594688416
+Task = 1, Class = 0 	 Diff = -0.019999980926513672
+Task = 1, Class = 1 	 Diff = 0.04000002145767212
+Task = 1, Class = 2 	 Diff = 0.0
+Task = 1, Class = 3 	 Diff = -0.019999980926513672
+Task = 1, Class = 4 	 Diff = 0.0
+Accuracy before 0.9399999976158142
+Accuracy after 0.9199999570846558
+Task = 2, Class = 0 	 Diff = 0.0
+Task = 2, Class = 1 	 Diff = 0.0
+Task = 2, Class = 2 	 Diff = 0.04000002145767212
+Task = 2, Class = 3 	 Diff = 0.0
+Task = 2, Class = 4 	 Diff = 0.06000000238418579
+Accuracy before 0.9399999976158142
+Accuracy after 0.9799999594688416
+Task = 3, Class = 0 	 Diff = 0.09999996423721313
+Task = 3, Class = 1 	 Diff = 0.07999998331069946
+Task = 3, Class = 2 	 Diff = -0.06000000238418579
+Task = 3, Class = 3 	 Diff = 0.06000000238418579
+Task = 3, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.8199999928474426
+Accuracy after 0.7400000095367432
+Task = 4, Class = 0 	 Diff = 0.020000040531158447
+Task = 4, Class = 1 	 Diff = 0.0
+Task = 4, Class = 2 	 Diff = 0.0
+Task = 4, Class = 3 	 Diff = 0.020000040531158447
+Task = 4, Class = 4 	 Diff = 0.020000040531158447
+Accuracy before 0.9799999594688416
+Accuracy after 1.0
+Task = 5, Class = 0 	 Diff = 0.13999998569488525
+Task = 5, Class = 1 	 Diff = 0.0
+Task = 5, Class = 2 	 Diff = -0.04000002145767212
+Task = 5, Class = 3 	 Diff = 0.0
+Task = 5, Class = 4 	 Diff = 0.13999998569488525
+Accuracy before 0.7799999713897705
+Accuracy after 0.9599999785423279
+Task = 6, Class = 0 	 Diff = 0.0
+Task = 6, Class = 1 	 Diff = 0.0
+Task = 6, Class = 2 	 Diff = 0.0
+Task = 6, Class = 3 	 Diff = 0.020000040531158447
+Task = 6, Class = 4 	 Diff = 0.020000040531158447
+Accuracy before 0.9199999570846558
+Accuracy after 0.9199999570846558
+Task = 7, Class = 0 	 Diff = 0.04000002145767212
+Task = 7, Class = 1 	 Diff = 0.0
+Task = 7, Class = 2 	 Diff = 0.0
+Task = 7, Class = 3 	 Diff = 0.0
+Task = 7, Class = 4 	 Diff = 0.0
+Accuracy before 0.9399999976158142
+Accuracy after 0.9399999976158142
+Task = 8, Class = 0 	 Diff = 0.09999996423721313
+Task = 8, Class = 1 	 Diff = 0.0
+Task = 8, Class = 2 	 Diff = 0.0
+Task = 8, Class = 3 	 Diff = 0.039999961853027344
+Task = 8, Class = 4 	 Diff = 0.12000000476837158
+Accuracy before 0.85999995470047
+Accuracy after 0.9799999594688416
+Task = 9, Class = 0 	 Diff = 0.0
+Task = 9, Class = 1 	 Diff = 0.0
+Task = 9, Class = 2 	 Diff = 0.039999961853027344
+Task = 9, Class = 3 	 Diff = 0.0
+Task = 9, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.9599999785423279
+Accuracy after 0.9799999594688416
+Task = 10, Class = 0 	 Diff = 0.0
+Task = 10, Class = 1 	 Diff = 0.019999980926513672
+Task = 10, Class = 2 	 Diff = 0.019999980926513672
+Task = 10, Class = 3 	 Diff = 0.019999980926513672
+Task = 10, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.9599999785423279
+Accuracy after 0.9399999976158142
+Task = 11, Class = 0 	 Diff = 0.0
+Task = 11, Class = 1 	 Diff = 0.0
+Task = 11, Class = 2 	 Diff = 0.039999961853027344
+Task = 11, Class = 3 	 Diff = 0.039999961853027344
+Task = 11, Class = 4 	 Diff = -0.06000000238418579
+Accuracy before 0.9799999594688416
+Accuracy after 0.9199999570846558
+Task = 12, Class = 0 	 Diff = 0.0
+Task = 12, Class = 1 	 Diff = 0.020000040531158447
+Task = 12, Class = 2 	 Diff = 0.0
+Task = 12, Class = 3 	 Diff = 0.0
+Task = 12, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 1.0
+Task = 13, Class = 0 	 Diff = 0.0
+Task = 13, Class = 1 	 Diff = 0.0
+Task = 13, Class = 2 	 Diff = 0.0
+Task = 13, Class = 3 	 Diff = 0.0
+Task = 13, Class = 4 	 Diff = 0.020000040531158447
+Accuracy before 0.9799999594688416
+Accuracy after 1.0
+Task = 14, Class = 0 	 Diff = 0.06000000238418579
+Task = 14, Class = 1 	 Diff = 0.0
+Task = 14, Class = 2 	 Diff = 0.0
+Task = 14, Class = 3 	 Diff = 0.0
+Task = 14, Class = 4 	 Diff = 0.0
+Accuracy before 0.9599999785423279
+Accuracy after 0.9599999785423279
+Task = 15, Class = 0 	 Diff = 0.020000040531158447
+Task = 15, Class = 1 	 Diff = 0.0
+Task = 15, Class = 2 	 Diff = 0.14000004529953003
+Task = 15, Class = 3 	 Diff = 0.1600000262260437
+Task = 15, Class = 4 	 Diff = -0.019999980926513672
+Accuracy before 0.9599999785423279
+Accuracy after 0.8799999952316284
+Task = 16, Class = 0 	 Diff = 0.15999996662139893
+Task = 16, Class = 1 	 Diff = 0.0
+Task = 16, Class = 2 	 Diff = 0.0
+Task = 16, Class = 3 	 Diff = 0.06000000238418579
+Task = 16, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.8999999761581421
+Task = 17, Class = 0 	 Diff = 0.0
+Task = 17, Class = 1 	 Diff = 0.0
+Task = 17, Class = 2 	 Diff = 0.019999980926513672
+Task = 17, Class = 3 	 Diff = 0.0
+Task = 17, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.9799999594688416
+Task = 18, Class = 0 	 Diff = 0.0
+Task = 18, Class = 1 	 Diff = 0.0
+Task = 18, Class = 2 	 Diff = 0.0
+Task = 18, Class = 3 	 Diff = 0.07999998331069946
+Task = 18, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.9599999785423279
+Accuracy after 0.9799999594688416
+Task = 19, Class = 0 	 Diff = 0.10000002384185791
+Task = 19, Class = 1 	 Diff = 0.04000002145767212
+Task = 19, Class = 2 	 Diff = 0.0
+Task = 19, Class = 3 	 Diff = 0.0
+Task = 19, Class = 4 	 Diff = 0.10000002384185791
+Accuracy before 0.7799999713897705
+Accuracy after 0.85999995470047
+Task = 20, Class = 0 	 Diff = 0.039999961853027344
+Task = 20, Class = 1 	 Diff = 0.0
+Task = 20, Class = 2 	 Diff = 0.019999980926513672
+Task = 20, Class = 3 	 Diff = -0.08000004291534424
+Task = 20, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.8399999737739563
+Accuracy after 0.8999999761581421
+Task = 21, Class = 0 	 Diff = 0.08000004291534424
+Task = 21, Class = 1 	 Diff = 0.08000004291534424
+Task = 21, Class = 2 	 Diff = 0.0
+Task = 21, Class = 3 	 Diff = 0.020000040531158447
+Task = 21, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 1.0
+Task = 22, Class = 0 	 Diff = 0.0
+Task = 22, Class = 1 	 Diff = 0.0
+Task = 22, Class = 2 	 Diff = 0.0
+Task = 22, Class = 3 	 Diff = 0.0
+Task = 22, Class = 4 	 Diff = 0.06000000238418579
+Accuracy before 0.9199999570846558
+Accuracy after 0.9599999785423279
+Task = 23, Class = 0 	 Diff = 0.0
+Task = 23, Class = 1 	 Diff = 0.019999980926513672
+Task = 23, Class = 2 	 Diff = 0.019999980926513672
+Task = 23, Class = 3 	 Diff = -0.020000040531158447
+Task = 23, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.9799999594688416
+Task = 24, Class = 0 	 Diff = 0.06000000238418579
+Task = 24, Class = 1 	 Diff = 0.019999980926513672
+Task = 24, Class = 2 	 Diff = 0.06000000238418579
+Task = 24, Class = 3 	 Diff = -0.019999980926513672
+Task = 24, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.9399999976158142
+Accuracy after 0.9399999976158142
+Task = 25, Class = 0 	 Diff = -0.020000040531158447
+Task = 25, Class = 1 	 Diff = 0.039999961853027344
+Task = 25, Class = 2 	 Diff = 0.019999980926513672
+Task = 25, Class = 3 	 Diff = 0.019999980926513672
+Task = 25, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.8999999761581421
+Accuracy after 0.9399999976158142
+Task = 26, Class = 0 	 Diff = 0.12000000476837158
+Task = 26, Class = 1 	 Diff = 0.0
+Task = 26, Class = 2 	 Diff = 0.0
+Task = 26, Class = 3 	 Diff = 0.06000000238418579
+Task = 26, Class = 4 	 Diff = -0.020000040531158447
+Accuracy before 1.0
+Accuracy after 0.9199999570846558
+Task = 27, Class = 0 	 Diff = 0.0
+Task = 27, Class = 1 	 Diff = -0.06000000238418579
+Task = 27, Class = 2 	 Diff = 0.04000002145767212
+Task = 27, Class = 3 	 Diff = 0.0
+Task = 27, Class = 4 	 Diff = 0.0
+Accuracy before 0.8799999952316284
+Accuracy after 0.8999999761581421
+Task = 28, Class = 0 	 Diff = 0.0
+Task = 28, Class = 1 	 Diff = 0.0
+Task = 28, Class = 2 	 Diff = 0.0
+Task = 28, Class = 3 	 Diff = 0.0
+Task = 28, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 1.0
+Task = 29, Class = 0 	 Diff = 0.0
+Task = 29, Class = 1 	 Diff = 0.0
+Task = 29, Class = 2 	 Diff = 0.0
+Task = 29, Class = 3 	 Diff = 0.0
+Task = 29, Class = 4 	 Diff = 0.06000000238418579
+Accuracy before 0.8799999952316284
+Accuracy after 0.9799999594688416
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+Options: Namespace(attack_tasks=30, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.14000004529953003
+Task = 0, Class = 1 	 Diff = 0.0
+Task = 0, Class = 2 	 Diff = 0.0
+Task = 0, Class = 3 	 Diff = 0.0
+Task = 0, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.7999999523162842
+Task = 1, Class = 0 	 Diff = 0.06000000238418579
+Task = 1, Class = 1 	 Diff = 0.0
+Task = 1, Class = 2 	 Diff = 0.0
+Task = 1, Class = 3 	 Diff = 0.0
+Task = 1, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.7999999523162842
+Task = 2, Class = 0 	 Diff = 0.10000002384185791
+Task = 2, Class = 1 	 Diff = 0.020000040531158447
+Task = 2, Class = 2 	 Diff = 0.06000000238418579
+Task = 2, Class = 3 	 Diff = 0.0
+Task = 2, Class = 4 	 Diff = 0.020000040531158447
+Accuracy before 0.85999995470047
+Accuracy after 0.7199999690055847
+Task = 3, Class = 0 	 Diff = 0.18000000715255737
+Task = 3, Class = 1 	 Diff = 0.0
+Task = 3, Class = 2 	 Diff = 0.0
+Task = 3, Class = 3 	 Diff = 0.0
+Task = 3, Class = 4 	 Diff = 0.07999998331069946
+Accuracy before 0.8999999761581421
+Accuracy after 0.7999999523162842
+Task = 4, Class = 0 	 Diff = 0.0
+Task = 4, Class = 1 	 Diff = 0.0
+Task = 4, Class = 2 	 Diff = 0.0
+Task = 4, Class = 3 	 Diff = 0.0
+Task = 4, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.9399999976158142
+Accuracy after 0.9599999785423279
+Task = 5, Class = 0 	 Diff = 0.20000004768371582
+Task = 5, Class = 1 	 Diff = 0.020000040531158447
+Task = 5, Class = 2 	 Diff = 0.0
+Task = 5, Class = 3 	 Diff = 0.0
+Task = 5, Class = 4 	 Diff = 0.020000040531158447
+Accuracy before 0.9799999594688416
+Accuracy after 0.7799999713897705
+Task = 6, Class = 0 	 Diff = 0.0
+Task = 6, Class = 1 	 Diff = 0.04000002145767212
+Task = 6, Class = 2 	 Diff = 0.0
+Task = 6, Class = 3 	 Diff = 0.020000040531158447
+Task = 6, Class = 4 	 Diff = 0.0
+Accuracy before 0.9399999976158142
+Accuracy after 0.9799999594688416
+Task = 7, Class = 0 	 Diff = 0.12000000476837158
+Task = 7, Class = 1 	 Diff = 0.0
+Task = 7, Class = 2 	 Diff = 0.0
+Task = 7, Class = 3 	 Diff = 0.019999980926513672
+Task = 7, Class = 4 	 Diff = 0.06000000238418579
+Accuracy before 0.9199999570846558
+Accuracy after 0.7999999523162842
+Task = 8, Class = 0 	 Diff = 0.12000000476837158
+Task = 8, Class = 1 	 Diff = 0.0
+Task = 8, Class = 2 	 Diff = 0.0
+Task = 8, Class = 3 	 Diff = 0.020000040531158447
+Task = 8, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.8199999928474426
+Task = 9, Class = 0 	 Diff = 0.19999998807907104
+Task = 9, Class = 1 	 Diff = 0.0
+Task = 9, Class = 2 	 Diff = 0.019999980926513672
+Task = 9, Class = 3 	 Diff = 0.0
+Task = 9, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.9599999785423279
+Accuracy after 0.7799999713897705
+Task = 10, Class = 0 	 Diff = 0.13999998569488525
+Task = 10, Class = 1 	 Diff = -0.019999980926513672
+Task = 10, Class = 2 	 Diff = 0.0
+Task = 10, Class = 3 	 Diff = 0.0
+Task = 10, Class = 4 	 Diff = -0.04000002145767212
+Accuracy before 1.0
+Accuracy after 0.8399999737739563
+Task = 11, Class = 0 	 Diff = 0.0
+Task = 11, Class = 1 	 Diff = 0.0
+Task = 11, Class = 2 	 Diff = 0.020000040531158447
+Task = 11, Class = 3 	 Diff = 0.0
+Task = 11, Class = 4 	 Diff = -0.039999961853027344
+Accuracy before 0.9199999570846558
+Accuracy after 0.8999999761581421
+Task = 12, Class = 0 	 Diff = 0.0
+Task = 12, Class = 1 	 Diff = 0.0
+Task = 12, Class = 2 	 Diff = 0.0
+Task = 12, Class = 3 	 Diff = 0.0
+Task = 12, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.9799999594688416
+Task = 13, Class = 0 	 Diff = 0.10000002384185791
+Task = 13, Class = 1 	 Diff = 0.0
+Task = 13, Class = 2 	 Diff = 0.0
+Task = 13, Class = 3 	 Diff = 0.0
+Task = 13, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.85999995470047
+Task = 14, Class = 0 	 Diff = 0.0
+Task = 14, Class = 1 	 Diff = 0.020000040531158447
+Task = 14, Class = 2 	 Diff = 0.0
+Task = 14, Class = 3 	 Diff = 0.0
+Task = 14, Class = 4 	 Diff = 0.0
+Accuracy before 0.9399999976158142
+Accuracy after 0.9399999976158142
+Task = 15, Class = 0 	 Diff = 0.18000000715255737
+Task = 15, Class = 1 	 Diff = 0.07999998331069946
+Task = 15, Class = 2 	 Diff = 0.019999980926513672
+Task = 15, Class = 3 	 Diff = 0.07999998331069946
+Task = 15, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.9599999785423279
+Accuracy after 0.7999999523162842
+Task = 16, Class = 0 	 Diff = 0.019999980926513672
+Task = 16, Class = 1 	 Diff = 0.0
+Task = 16, Class = 2 	 Diff = 0.0
+Task = 16, Class = 3 	 Diff = 0.019999980926513672
+Task = 16, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.9599999785423279
+Task = 17, Class = 0 	 Diff = 0.1600000262260437
+Task = 17, Class = 1 	 Diff = 0.0
+Task = 17, Class = 2 	 Diff = 0.08000004291534424
+Task = 17, Class = 3 	 Diff = 0.0
+Task = 17, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.7999999523162842
+Task = 18, Class = 0 	 Diff = 0.19999998807907104
+Task = 18, Class = 1 	 Diff = 0.039999961853027344
+Task = 18, Class = 2 	 Diff = 0.039999961853027344
+Task = 18, Class = 3 	 Diff = -0.020000040531158447
+Task = 18, Class = 4 	 Diff = 0.039999961853027344
+Accuracy before 0.8199999928474426
+Accuracy after 0.6200000047683716
+Task = 19, Class = 0 	 Diff = 0.1600000262260437
+Task = 19, Class = 1 	 Diff = 0.10000002384185791
+Task = 19, Class = 2 	 Diff = 0.020000040531158447
+Task = 19, Class = 3 	 Diff = 0.06000000238418579
+Task = 19, Class = 4 	 Diff = 0.04000002145767212
+Accuracy before 0.9599999785423279
+Accuracy after 0.7799999713897705
+Task = 20, Class = 0 	 Diff = 0.14000004529953003
+Task = 20, Class = 1 	 Diff = -0.019999980926513672
+Task = 20, Class = 2 	 Diff = 0.0
+Task = 20, Class = 3 	 Diff = -0.019999980926513672
+Task = 20, Class = 4 	 Diff = 0.0
+Accuracy before 0.9399999976158142
+Accuracy after 0.7799999713897705
+Task = 21, Class = 0 	 Diff = 0.0
+Task = 21, Class = 1 	 Diff = 0.0
+Task = 21, Class = 2 	 Diff = 0.0
+Task = 21, Class = 3 	 Diff = 0.0
+Task = 21, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.9799999594688416
+Task = 22, Class = 0 	 Diff = 0.18000000715255737
+Task = 22, Class = 1 	 Diff = 0.0
+Task = 22, Class = 2 	 Diff = 0.039999961853027344
+Task = 22, Class = 3 	 Diff = 0.0
+Task = 22, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.7999999523162842
+Task = 23, Class = 0 	 Diff = 0.1600000262260437
+Task = 23, Class = 1 	 Diff = 0.0
+Task = 23, Class = 2 	 Diff = 0.0
+Task = 23, Class = 3 	 Diff = 0.019999980926513672
+Task = 23, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.9399999976158142
+Accuracy after 0.7999999523162842
+Task = 24, Class = 0 	 Diff = 0.0
+Task = 24, Class = 1 	 Diff = 0.04000002145767212
+Task = 24, Class = 2 	 Diff = 0.0
+Task = 24, Class = 3 	 Diff = 0.06000000238418579
+Task = 24, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 1.0
+Task = 25, Class = 0 	 Diff = 0.20000004768371582
+Task = 25, Class = 1 	 Diff = 0.0
+Task = 25, Class = 2 	 Diff = 0.04000002145767212
+Task = 25, Class = 3 	 Diff = 0.0
+Task = 25, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.7999999523162842
+Task = 26, Class = 0 	 Diff = 0.0
+Task = 26, Class = 1 	 Diff = 0.0
+Task = 26, Class = 2 	 Diff = 0.0
+Task = 26, Class = 3 	 Diff = 0.0
+Task = 26, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 1.0
+Task = 27, Class = 0 	 Diff = 0.0
+Task = 27, Class = 1 	 Diff = 0.0
+Task = 27, Class = 2 	 Diff = 0.0
+Task = 27, Class = 3 	 Diff = 0.06000000238418579
+Task = 27, Class = 4 	 Diff = 0.020000040531158447
+Accuracy before 0.9799999594688416
+Accuracy after 0.9599999785423279
+Task = 28, Class = 0 	 Diff = 0.1600000262260437
+Task = 28, Class = 1 	 Diff = 0.0
+Task = 28, Class = 2 	 Diff = 0.06000000238418579
+Task = 28, Class = 3 	 Diff = 0.0
+Task = 28, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.7999999523162842
+Task = 29, Class = 0 	 Diff = 0.19999998807907104
+Task = 29, Class = 1 	 Diff = 0.0
+Task = 29, Class = 2 	 Diff = 0.019999980926513672
+Task = 29, Class = 3 	 Diff = 0.0
+Task = 29, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.7599999904632568
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.18000000715255737
+Task = 0, Class = 1 	 Diff = 0.019999980926513672
+Task = 0, Class = 2 	 Diff = 0.039999961853027344
+Task = 0, Class = 3 	 Diff = 0.039999961853027344
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.20000004768371582
+Task = 0, Class = 1 	 Diff = 0.0
+Task = 0, Class = 2 	 Diff = 0.08000004291534424
+Task = 0, Class = 3 	 Diff = 0.04000002145767212
+Task = 0, Class = 4 	 Diff = 0.04000002145767212
+Accuracy before 0.9599999785423279
+Accuracy after 0.7799999713897705
+Task = 1, Class = 0 	 Diff = 0.0
+Task = 1, Class = 1 	 Diff = 0.0
+Task = 1, Class = 2 	 Diff = 0.0
+Task = 1, Class = 3 	 Diff = 0.0
+Task = 1, Class = 4 	 Diff = 0.0
+Accuracy before 0.9599999785423279
+Accuracy after 0.9599999785423279
+Task = 2, Class = 0 	 Diff = 0.0
+Task = 2, Class = 1 	 Diff = 0.0
+Task = 2, Class = 2 	 Diff = 0.0
+Task = 2, Class = 3 	 Diff = 0.0
+Task = 2, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 1.0
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.18000000715255737
+Task = 0, Class = 1 	 Diff = 0.020000040531158447
+Task = 0, Class = 2 	 Diff = 0.0
+Task = 0, Class = 3 	 Diff = 0.020000040531158447
+Task = 0, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.7999999523162842
+Task = 1, Class = 0 	 Diff = 0.04000002145767212
+Task = 1, Class = 1 	 Diff = 0.0
+Task = 1, Class = 2 	 Diff = 0.0
+Task = 1, Class = 3 	 Diff = 0.0
+Task = 1, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.8399999737739563
+Task = 2, Class = 0 	 Diff = 0.18000000715255737
+Task = 2, Class = 1 	 Diff = 0.1600000262260437
+Task = 2, Class = 2 	 Diff = 0.019999980926513672
+Task = 2, Class = 3 	 Diff = 0.0
+Task = 2, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.9399999976158142
+Accuracy after 0.7599999904632568
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.13999998569488525
+Task = 0, Class = 1 	 Diff = 0.0
+Task = 0, Class = 2 	 Diff = 0.039999961853027344
+Task = 0, Class = 3 	 Diff = 0.0
+Task = 0, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.7999999523162842
+Task = 1, Class = 0 	 Diff = 0.12000000476837158
+Task = 1, Class = 1 	 Diff = 0.0
+Task = 1, Class = 2 	 Diff = -0.020000040531158447
+Task = 1, Class = 3 	 Diff = -0.020000040531158447
+Task = 1, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.8199999928474426
+Task = 2, Class = 0 	 Diff = 0.14000004529953003
+Task = 2, Class = 1 	 Diff = 0.020000040531158447
+Task = 2, Class = 2 	 Diff = 0.0
+Task = 2, Class = 3 	 Diff = 0.0
+Task = 2, Class = 4 	 Diff = 0.0
+Accuracy before 1.0
+Accuracy after 0.8199999928474426
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0
+Task = 1, Class = 0 	 Diff = 0
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0
+Task = 1, Class = 0 	 Diff = 0
+Task = 2, Class = 0 	 Diff = 0
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0
+Task = 1, Class = 0 	 Diff = 0
+Task = 2, Class = 0 	 Diff = 0
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0.039999961853027344
+Task = 0, Class = 1 	 Diff = 0.09999996423721313
+Task = 0, Class = 2 	 Diff = 0.019999980926513672
+Task = 0, Class = 3 	 Diff = 0.0
+Task = 0, Class = 4 	 Diff = 0.019999980926513672
+Accuracy before 0.9599999785423279
+Accuracy after 0.9599999785423279
+Task = 1, Class = 0 	 Diff = 0.0
+Task = 1, Class = 1 	 Diff = 0.06000000238418579
+Task = 1, Class = 2 	 Diff = -0.020000040531158447
+Task = 1, Class = 3 	 Diff = 0.0
+Task = 1, Class = 4 	 Diff = 0.0
+Accuracy before 0.9799999594688416
+Accuracy after 0.9799999594688416
+Task = 2, Class = 0 	 Diff = -0.06000000238418579
+Task = 2, Class = 1 	 Diff = 0.06000000238418579
+Task = 2, Class = 2 	 Diff = 0.0
+Task = 2, Class = 3 	 Diff = 0.07999998331069946
+Task = 2, Class = 4 	 Diff = 0.0
+Accuracy before 0.9199999570846558
+Accuracy after 0.8799999952316284
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0
+Task = 1, Class = 0 	 Diff = 0
+Task = 2, Class = 0 	 Diff = 0
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0
+Task = 1, Class = 0 	 Diff = 0
+Task = 2, Class = 0 	 Diff = 0
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0
+Task = 1, Class = 0 	 Diff = 0
+Task = 2, Class = 0 	 Diff = 0
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0
+Task = 1, Class = 0 	 Diff = 0
+Task = 2, Class = 0 	 Diff = 0
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0
+Task = 1, Class = 0 	 Diff = 0
+Task = 2, Class = 0 	 Diff = 0
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0
+Task = 1, Class = 0 	 Diff = 0
+Task = 2, Class = 0 	 Diff = 0
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Class = 0 	 Diff = 0
+Task = 1, Class = 0 	 Diff = 0
+Task = 2, Class = 0 	 Diff = 0
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Diff = 0.699999988079071
+Task = 1, Diff = 0.8400000035762787
+Task = 2, Diff = 0.7400000095367432
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Diff = 0.4599999785423279
+Task = 1, Diff = 0.30000001192092896
+Task = 2, Diff = 0.6400000154972076
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Diff = 0.020000040531158447
+Task = 1, Diff = 0.039999961853027344
+Task = 2, Diff = 0.06000000238418579
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Diff = 0.0
+Task = 1, Diff = 0.07999998331069946
+Task = 2, Diff = -0.019999980926513672
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Diff = 0.07999998331069946
+Task = 1, Diff = 0.019999980926513672
+Task = 2, Diff = 0.0
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Diff = 0.6200000047683716
+Task = 1, Diff = 0.6399999558925629
+Task = 2, Diff = 0.6199999749660492
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Diff = 0.18000000715255737
+Task = 1, Diff = -0.019999980926513672
+Task = 2, Diff = 0.06000000238418579
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Diff = 0.14000004529953003
+Task = 1, Diff = 0.30000001192092896
+Task = 2, Diff = 0.0
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Diff = 0.5200000107288361
+Task = 1, Diff = 0.6000000238418579
+Task = 2, Diff = 0.760000005364418
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Diff = 0.7799999564886093
+Task = 1, Diff = 0.5600000023841858
+Task = 2, Diff = 0.5200000107288361
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
+Task = 0, Diff = 0.13999998569488525
+Task = 1, Diff = 0.12000000476837158
+Task = 2, Diff = 0.25999999046325684
+Options: Namespace(attack_tasks=3, batch_normalization='basic', checkpoint_dir='./checkpoints/train2', data_path='E:/data/tf-meta-dataset/records', dataset='omniglot', feature_adaptation='film', learning_rate=0.0005, max_support_test=500, max_support_train=400, max_way_test=50, max_way_train=40, mode='attack', pretrained_resnet_path='../models/pretrained_resnet.pt.tar', query_test=10, query_train=10, resume_from_checkpoint=False, shot=5, tasks_per_batch=16, test_datasets=['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower', 'traffic_sign', 'mscoco', 'mnist', 'cifar10', 'cifar100'], test_model_path='./checkpoints/train2/fully_trained.pt', training_iterations=5000, val_freq=10000, way=5)
+
+Checkpoint Directory: ./checkpoints/train2
+
+
+Attacking model ./checkpoints/train2/fully_trained.pt: 
