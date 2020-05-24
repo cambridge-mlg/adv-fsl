@@ -60,7 +60,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)  # Quiet TensorFl
 from PIL import Image
 import sys
 #sys.path.append(os.path.abspath('attacks'))
-from attacks.projected_gradient_descent import ProjectedGradientDescent
+from attacks.attack_helpers import create_attack
 
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
@@ -163,6 +163,7 @@ class Learner:
         parser.add_argument("--data_path", default="../datasets", help="Path to dataset records.")
         parser.add_argument("--pretrained_resnet_path", default="learners/cnaps/models/pretrained_resnet.pt.tar",
                             help="Path to pretrained feature extractor model.")
+        parser.add_argument("--attack_config_path", help="Path to attack config file in yaml format.")
         parser.add_argument("--mode", choices=["train", "test", "train_test", "attack"], default="train_test",
                             help="Whether to run training only, testing only, or both training and testing.")
         parser.add_argument("--learning_rate", "-lr", type=float, default=5e-4, help="Learning rate.")
@@ -321,7 +322,8 @@ class Learner:
         self.model = self.init_model()
         self.model.load_state_dict(torch.load(path))
 
-        fgm_attack = ProjectedGradientDescent()
+        attack = create_attack(self.args.attack_config_path)
+        #fgm_attack = ProjectedGradientDescent()
 
         for item in self.test_set:
 
@@ -331,7 +333,7 @@ class Learner:
                 context_images, target_images, context_labels, target_labels, context_images_np = self.prepare_task(
                     task_dict, shuffle=False)
 
-                adv_context_images, adv_context_indices = fgm_attack.generate(
+                adv_context_images, adv_context_indices = attack.generate(
                     context_images,
                     context_labels,
                     target_images,
