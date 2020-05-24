@@ -169,3 +169,4 @@ class ProjectedGradientDescent:
             raise NotImplementedError("Norm {} not supported".format(norm))
 
         return res
+
