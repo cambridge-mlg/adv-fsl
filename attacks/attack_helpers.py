@@ -17,7 +17,7 @@ def create_attack(attack_config_path):
                 class_fraction=attack_params['class_fraction'],
                 shot_fraction=attack_params['shot_fraction'],
                 clip_max=attack_params['clip_max'],
-                clip_min=-attack_params['clip_min']
+                clip_min=attack_params['clip_min']
             )
 
         return attack

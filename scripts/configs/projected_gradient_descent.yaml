@@ -5,7 +5,7 @@ num_iterations: 10
 epsilon_step: 0.1
 project_step: True
 attack_mode: context
-class_fraction: 1.0
-shot_fraction: 1.0
+class_fraction: 0.4
+shot_fraction: 0.4
 clip_max: 1.0
 clip_min: -1.0
