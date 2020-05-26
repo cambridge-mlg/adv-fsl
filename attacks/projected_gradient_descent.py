@@ -2,7 +2,6 @@ import torch.nn as nn
 import torch
 import math
 import torch.distributions.uniform as uniform
-from utils import extract_class_indices
 import numpy as np
 from attacks.attack_utils import convert_labels
 
@@ -35,7 +34,7 @@ class ProjectedGradientDescent:
         adv_context_indices = self._generate_context_attack_indices(context_labels)
         adv_context_images = context_images.clone()
 
-        #Initial projection step
+        # Initial projection step
         size = adv_context_images.size()
         m = size[1] * size[2] * size[3]
         initial_perturb = self.random_sphere(len(adv_context_indices), m, self.epsilon, self.norm).reshape((len(adv_context_indices), size[1], size[2], size[3])).to(model.device)
@@ -73,23 +72,7 @@ class ProjectedGradientDescent:
             adv_context_images.requires_grad = True
             del logits
 
-
         return adv_context_images, adv_context_indices
-
-    # Potentially cache class distribution later
-    def _generate_context_attack_indices(self, class_labels,):
-        indices = []
-        classes = torch.unique(class_labels)
-        num_classes = len(classes)
-        num_classes_to_attack = max(1, math.ceil(self.class_fraction * num_classes))
-        for c in range(num_classes_to_attack):
-            shot_indices = extract_class_indices(class_labels, c)
-            num_shots_in_class = len(shot_indices)
-            num_shots_to_attack = max(1, math.ceil(self.shot_fraction * num_shots_in_class))
-            attack_indices = shot_indices[0:num_shots_to_attack]
-            for index in attack_indices:
-                indices.append(index)
-        return indices
 
     @staticmethod
     def projection(values, eps, norm_p, device):
