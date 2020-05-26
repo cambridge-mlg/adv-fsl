@@ -32,6 +32,56 @@ class ProjectedGradientDescent:
         self.loss = nn.CrossEntropyLoss()
 
     def generate(self, context_images, context_labels, target_images, model):
+        if self.attack_mode == 'target':
+            return self._generate_target(context_images, context_labels, target_images, model)
+        else:  # context
+            return self._generate_context(context_images, context_labels, target_images, model)
+
+    def _generate_target(self, context_images, context_labels, target_images, model):
+        # get the predicted target labels
+        logits = model(context_images, context_labels, target_images)
+        labels = convert_labels(logits[0])
+
+        adv_target_images = target_images.clone()
+
+        # Initial projection step
+        target_size = adv_target_images.size()
+        m = target_size[1] * target_size[2] * target_size[3]
+        num_target_images = target_size[0]
+        initial_perturb = self.random_sphere(num_target_images, m, self.epsilon, self.norm).reshape(
+            (num_target_images, target_size[1], target_size[2], target_size[3])).to(model.device)
+
+        adv_target_images = torch.clamp(adv_target_images + initial_perturb, self.clip_min, self.clip_max)
+        adv_target_images.requires_grad = True
+
+        for _ in range(self.num_iterations):
+            logits = model(context_images, context_labels, adv_target_images)
+            # compute loss
+            loss = self.loss(logits[0], labels)
+            model.zero_grad()
+
+            # compute gradient
+            loss.backward()
+            grad = adv_target_images.grad
+
+            # apply norm bound
+            if self.norm == 'inf':
+                perturbation = torch.sign(grad)
+
+            adv_target_images = torch.clamp(adv_target_images + self.epsilon_step * perturbation, self.clip_min,
+                                            self.clip_max)
+
+            diff = adv_target_images - target_images
+            new_perturbation = self.projection(diff, self.epsilon, self.norm, model.device)
+            adv_target_images = target_images + new_perturbation
+
+            adv_target_images = adv_target_images.detach()
+            adv_target_images.requires_grad = True
+            del logits
+
+        return adv_target_images
+
+    def _generate_context(self, context_images, context_labels, target_images, model):
         adv_context_indices = self._generate_context_attack_indices(context_labels)
         adv_context_images = context_images.clone()
 
@@ -73,8 +123,10 @@ class ProjectedGradientDescent:
             adv_context_images.requires_grad = True
             del logits
 
-
         return adv_context_images, adv_context_indices
+
+    def get_attack_mode(self):
+        return self.attack_mode
 
     # Potentially cache class distribution later
     def _generate_context_attack_indices(self, class_labels,):
