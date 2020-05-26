@@ -8,6 +8,17 @@ def create_attack(attack_config_path):
         attack_params = yaml.load(f, Loader=yaml.FullLoader)
 
         if attack_params['attack'] == 'projected_gradient_descent':
+
+            # deal with parameters not required for attack_mode == target
+            class_fraction = 0.0
+            if 'class_fraction' in attack_params.keys():
+                class_fraction = attack_params['class_fraction']
+
+            shot_fraction = 0.0
+            if 'shot_fraction' in attack_params.keys():
+                shot_fraction = attack_params['shot_fraction']
+
+            # create the attack
             attack = ProjectedGradientDescent(
                 norm=attack_params['norm'],
                 epsilon=attack_params['epsilon'],
@@ -15,8 +26,8 @@ def create_attack(attack_config_path):
                 epsilon_step=attack_params['epsilon_step'],
                 project_step=attack_params['project_step'],
                 attack_mode=attack_params['attack_mode'],
-                class_fraction=attack_params['class_fraction'],
-                shot_fraction=attack_params['shot_fraction'],
+                class_fraction=class_fraction,
+                shot_fraction=shot_fraction,
                 clip_max=attack_params['clip_max'],
                 clip_min=attack_params['clip_min']
             )

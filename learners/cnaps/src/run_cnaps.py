@@ -326,33 +326,45 @@ class Learner:
         #fgm_attack = ProjectedGradientDescent()
 
         for item in self.test_set:
-
             for t in range(self.args.attack_tasks):
-
                 task_dict = self.dataset.get_test_task(item, session)
-                context_images, target_images, context_labels, target_labels, context_images_np = self.prepare_task(
-                    task_dict, shuffle=False)
+                context_images, target_images, context_labels, target_labels, context_images_np, target_images_np =\
+                    self.prepare_task(task_dict, shuffle=False)
 
-                adv_context_images, adv_context_indices = attack.generate(
-                    context_images,
-                    context_labels,
-                    target_images,
-                    self.model)
+                if attack.get_attack_mode() == 'context':
+                    adv_context_images, adv_context_indices = attack.generate(
+                        context_images,
+                        context_labels,
+                        target_images,
+                        self.model)
 
-                for index in adv_context_indices:
-                    save_image(adv_context_images[index].cpu().detach().numpy(),
-                               os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(t, index)))
-                    save_image(context_images_np[index],
-                               os.path.join(self.checkpoint_dir,'in_task_{}_index_{}.png'.format(t, index)))
+                    for index in adv_context_indices:
+                        save_image(adv_context_images[index].cpu().detach().numpy(),
+                                   os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(t, index)))
+                        save_image(context_images_np[index],
+                                   os.path.join(self.checkpoint_dir,'in_task_{}_index_{}.png'.format(t, index)))
 
-                with torch.no_grad():
-                    logits_adv = self.model(adv_context_images, context_labels, target_images)
-                    acc_after = torch.mean(torch.eq(target_labels, torch.argmax(logits_adv, dim=-1)).float()).item()
-                    del logits_adv
+                    with torch.no_grad():
+                        logits_adv = self.model(adv_context_images, context_labels, target_images)
+                        acc_after = torch.mean(torch.eq(target_labels, torch.argmax(logits_adv, dim=-1)).float()).item()
+                        del logits_adv
 
-                    logits = self.model(context_images, context_labels, target_images)
-                    acc_before = torch.mean(torch.eq(target_labels, torch.argmax(logits, dim=-1)).float()).item()
-                    del logits
+                else:  # target
+                    adv_target_images = attack.generate(context_images, context_labels, target_images, self.model)
+                    for i in range(len(target_images)):
+                        save_image(adv_target_images[i].cpu().detach().numpy(),
+                                   os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(t, i)))
+                        save_image(target_images_np[i],
+                                   os.path.join(self.checkpoint_dir,'in_task_{}_index_{}.png'.format(t, i)))
+
+                    with torch.no_grad():
+                        logits_adv = self.model(context_images, context_labels, adv_target_images)
+                        acc_after = torch.mean(torch.eq(target_labels, torch.argmax(logits_adv, dim=-1)).float()).item()
+                        del logits_adv
+
+                logits = self.model(context_images, context_labels, target_images)
+                acc_before = torch.mean(torch.eq(target_labels, torch.argmax(logits, dim=-1)).float()).item()
+                del logits
 
                 diff = acc_before - acc_after
                 print_and_log(self.logfile, "Task = {}, Diff = {}".format(t, diff))
@@ -438,7 +450,7 @@ class Learner:
         context_labels = context_labels.to(self.device)
         target_labels = target_labels.type(torch.LongTensor).to(self.device)
 
-        return context_images, target_images, context_labels, target_labels, context_images_np
+        return context_images, target_images, context_labels, target_labels, context_images_np, target_images_np
 
     def loss_fn(self, test_logits_sample, test_labels):
         """

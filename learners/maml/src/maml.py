@@ -125,7 +125,7 @@ class MAML(nn.Module):
                                         y_context,
                                         self.gradient_steps)
         y_ = self(x_target, phi_t)
-        loss = F.cross_entropy(y_, y_target, reduction='sum')
+        loss = F.cross_entropy(y_, y_target)
         
         # Compute target set accuracy
         if accuracy:
@@ -213,14 +213,13 @@ class MAML(nn.Module):
         # Apply convolution with max-pooling / down-sampling
         if self.max_pool:
             h = F.conv2d(input=x, weight=w, bias=b, padding=1)
+            # Conv ReLU BN (PyTorch codebase)
+            h = bn(self.relu(h))
+            h = F.max_pool2d(h, kernel_size=2, stride=2)
         else:
             h = F.conv2d(input=x, weight=w, bias=b, stride=2, padding=1)
-        # Conv ReLU BN (PyTorch codebase)
-        h = bn(self.relu(h))
-        # Conv BN ReLU (Original MAML)
-        # h = self.relu(bn(h))
-        if self.max_pool:
-            h = F.max_pool2d(h, kernel_size=2, stride=2)
+            # Conv BN ReLU (Original MAML)
+            h = self.relu(bn(h))
 
         return h
 
