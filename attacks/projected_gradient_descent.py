@@ -32,16 +32,16 @@ class ProjectedGradientDescent:
         self.loss = nn.CrossEntropyLoss()
 
     def generate(self, context_images, context_labels, target_images, model):
-        if self.attack_mode == 'target':
-            return self._generate_target(context_images, context_labels, target_images, model)
-        else:  # context
-            return self._generate_context(context_images, context_labels, target_images, model)
-
-    def _generate_target(self, context_images, context_labels, target_images, model):
         # get the predicted target labels
         logits = model(context_images, context_labels, target_images)
         labels = convert_labels(logits[0])
 
+        if self.attack_mode == 'target':
+            return self._generate_target(context_images, context_labels, target_images, labels, model)
+        else:  # context
+            return self._generate_context(context_images, context_labels, target_images, labels, model)
+
+    def _generate_target(self, context_images, context_labels, target_images, labels, model):
         adv_target_images = target_images.clone()
 
         # Initial projection step
@@ -81,24 +81,23 @@ class ProjectedGradientDescent:
 
         return adv_target_images
 
-    def _generate_context(self, context_images, context_labels, target_images, model):
+    def _generate_context(self, context_images, context_labels, target_images, labels, model):
         adv_context_indices = self._generate_context_attack_indices(context_labels)
         adv_context_images = context_images.clone()
 
         #Initial projection step
         size = adv_context_images.size()
         m = size[1] * size[2] * size[3]
-        initial_perturb = self.random_sphere(len(adv_context_indices), m, self.epsilon, self.norm).reshape((len(adv_context_indices), size[1], size[2], size[3])).to(model.device)
+        initial_perturb = self.random_sphere(len(adv_context_indices), m, self.epsilon, self.norm).reshape(
+            (len(adv_context_indices), size[1], size[2], size[3])).to(model.device)
 
         for i, index in enumerate(adv_context_indices):
-            adv_context_images[index] = torch.clamp(adv_context_images[index] +
-                                                     initial_perturb[i], self.clip_min,
+            adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], self.clip_min,
                                                     self.clip_max)
 
         adv_context_images.requires_grad = True
         for i in range(0, self.num_iterations):
             logits = model(adv_context_images, context_labels, target_images)
-            labels = convert_labels(logits[0])
             # compute loss
             loss = self.loss(logits[0], labels)
             model.zero_grad()
