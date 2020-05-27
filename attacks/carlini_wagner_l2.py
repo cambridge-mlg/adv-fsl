@@ -284,7 +284,6 @@ class CarliniWagnerL2(object):
         o_best_l2 = torch.ones(input_size, device=model.device) * 1e4  # placeholder for inf
         o_best_l2_ppred = -torch.ones(input_size, device=model.device)
         o_best_advx = context_images.clone()
-
         ## Necessary conversions of the inputs into tanh space
         # convert `inputs` to tanh-space
         context_images_tanh = self._to_tanh_space(context_images)  # type: torch.FloatTensor
@@ -294,9 +293,7 @@ class CarliniWagnerL2(object):
         context_images_tanh.requires_grad = False
 
         # Make one-hot encoding for target_labels
-        targets_labels_oh = one_hot_embedding(target_labels, num_classes).to(model.device)
-        # Now that we have a one hot encoding, we can convert to floats for later use
-        target_labels = target_labels.float()
+        target_labels_oh = one_hot_embedding(target_labels, num_classes).to(model.device)
 
         # the perturbation variable to optimize.
         # `pert_tanh` is essentially the adversarial perturbation in tanh-space.
@@ -335,7 +332,7 @@ class CarliniWagnerL2(object):
 
                 batch_loss, pert_norms, pert_outputs, adv_context_images = \
                     self._optimize(adv_context_candidates, context_images, context_labels, target_images,
-                                   targets_labels_oh, scale_consts, model, optimizer)
+                                   target_labels_oh, scale_consts, model, optimizer)
                 if optim_step % 10 == 0: print('batch [{}] loss: {}'.format(optim_step, batch_loss))
 
                 if self.abort_early and not optim_step % (self.max_iterations // 10):
@@ -347,14 +344,14 @@ class CarliniWagnerL2(object):
                 pert_predictions = torch.argmax(pert_outputs, dim=1)
                 comp_pert_predictions = torch.argmax(
                     self._compensate_confidence(pert_outputs,
-                                                target_labels_oh),
+                                                target_labels),
                     dim=1)
 
                 for i in range(input_size):
                     l2 = pert_norms[i]
                     cppred = comp_pert_predictions[i]
                     ppred = pert_predictions[i]
-                    tlabel = target_labels[i]
+                    tlabel = float(target_labels[i])
                     ax = adv_context_images[i]
                     if self._attack_successful(cppred, tlabel):
                         assert cppred == ppred
@@ -367,15 +364,11 @@ class CarliniWagnerL2(object):
                             o_best_advx[i] = ax
 
             # binary search of `scale_const`
-            import pdb; pdb.set_trace()
             for i in range(input_size):
-                if type(best_l2_ppred[i]) != type(target_labels[i]):
-                   import pdb; pdb.set_trace()
-                   print("Not matching")
                 assert best_l2_ppred[i] == -1 or \
-                       self._attack_successful(best_l2_ppred[i], target_labels[i])
+                       self._attack_successful(best_l2_ppred[i], target_labels[i].float())
                 assert o_best_l2_ppred[i] == -1 or \
-                       self._attack_successful(o_best_l2_ppred[i], target_labels[i])
+                       self._attack_successful(o_best_l2_ppred[i], target_labels[i].float())
                 if best_l2_ppred[i] != -1:
                     # successful; attempt to lower `scale_const` by halving it
                     if scale_consts_np[i] < upper_bounds_np[i]:
@@ -396,7 +389,7 @@ class CarliniWagnerL2(object):
                     else:
                         scale_consts_np[i] *= 10
 
-        return o_best_advx
+        return o_best_advx, np.arange(o_best_advx.shape[0])
 
     #    def _optimize(self, model, optimizer, inputs_tanh_var, pert_tanh_var,
     #                 targets_oh_var, c_var):
