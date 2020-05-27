@@ -211,7 +211,6 @@ class CarliniWagnerL2(object):
         (https://github.com/rwightman/pytorch-nips2017-attack-example.git),
         though, the learning rate is set to 5e-4.
         """
-        import pdb; pdb.set_trace()
         if c_lower >= c_upper:
             raise ValueError('c_range lower bound ({}) is expected to be less '
                              'than c_range upper bound ({})'.format(c_lower, c_upper))
@@ -219,13 +218,13 @@ class CarliniWagnerL2(object):
             raise ValueError('box lower bound ({}) is expected to be less than '
                              'box upper bound ({})'.format(box_lower, box_upper))
         self.targeted = targeted
-        self.confidence = float(confidence)
-        self.c_range = (float(c_lower), float(c_upper))
+        self.confidence = confidence
+        self.c_range = (c_lower, c_upper)
         self.binary_search_steps = binary_search_steps
         self.max_iterations = max_iterations
         self.abort_early = abort_early
         self.ae_tol = 1e-4  # tolerance of early abort
-        self.box = (float(box_lower), float(box_upper))
+        self.box = (box_lower, box_upper)
         self.optimizer_lr = optimizer_lr
 
         # `self.init_rand` is not in Carlini's code, it's an attempt in the
@@ -282,8 +281,8 @@ class CarliniWagnerL2(object):
         #    perturbations with the least L2 norms
         # - `o_best_advx`: the underlying adversarial example of `o_best_l2_ppred`
 
-        o_best_l2 = torch.ones(input_size) * 1e4  # placeholder for inf
-        o_best_l2_ppred = -torch.ones(input_size)
+        o_best_l2 = torch.ones(input_size, device=model.device) * 1e4  # placeholder for inf
+        o_best_l2_ppred = -torch.ones(input_size, device=model.device)
         o_best_advx = context_images.clone()
 
         ## Necessary conversions of the inputs into tanh space
@@ -294,16 +293,15 @@ class CarliniWagnerL2(object):
         # when we change this to only attack a subset of the context set
         context_images_tanh.requires_grad = False
 
-        ## Make one-hot encoding for target_labels
-        # the one-hot encoding of `target_labels`
-        targets_labels_oh = one_hot_embedding(target_labels, num_classes)
-        import pdb;
-        pdb.set_trace()
+        # Make one-hot encoding for target_labels
+        targets_labels_oh = one_hot_embedding(target_labels, num_classes).to(model.device)
+        # Now that we have a one hot encoding, we can convert to floats for later use
+        target_labels = target_labels.float()
 
         # the perturbation variable to optimize.
         # `pert_tanh` is essentially the adversarial perturbation in tanh-space.
         # In Carlini's code it's denoted as `modifier`
-        pert_tanh = torch.zeros(input_size)  # type: torch.FloatTensor
+        pert_tanh = torch.zeros(context_images.size(), device=model.device)  # type: torch.FloatTensor
         if self.init_rand:
             nn.init.normal(pert_tanh, mean=0, std=1e-3)
         pert_tanh.requires_grad = True
@@ -315,15 +313,13 @@ class CarliniWagnerL2(object):
             scale_consts = torch.from_numpy(np.copy(scale_consts_np)).float().to(
                 model.device)  # type: torch.FloatTensor
             # TODO: Check scale_consts doesn't require grad
-            import pdb;
-            pdb.set_trace()
             print('Using scale consts:', list(scale_consts_np))
 
             # the minimum L2 norms of perturbations found during optimization
-            best_l2 = torch.ones(input_size) * 1e4  # As placeholder for np.inf
+            best_l2 = torch.ones(input_size, device=model.device) * 1e4  # As placeholder for np.inf
             # the perturbed predictions corresponding to `best_l2`, to be used
             # in binary search of `scale_const`
-            best_l2_ppred = -torch.ones(input_size)
+            best_l2_ppred = -torch.ones(input_size, device=model.device)
             # previous (summed) batch loss, to be used in early stopping policy
             prev_batch_loss = 1e4  # as placeholder for infinity, type: float
 
@@ -351,7 +347,7 @@ class CarliniWagnerL2(object):
                 pert_predictions = torch.argmax(pert_outputs, dim=1)
                 comp_pert_predictions = torch.argmax(
                     self._compensate_confidence(pert_outputs,
-                                                target_labels),
+                                                target_labels_oh),
                     dim=1)
 
                 for i in range(input_size):
@@ -371,7 +367,11 @@ class CarliniWagnerL2(object):
                             o_best_advx[i] = ax
 
             # binary search of `scale_const`
+            import pdb; pdb.set_trace()
             for i in range(input_size):
+                if type(best_l2_ppred[i]) != type(target_labels[i]):
+                   import pdb; pdb.set_trace()
+                   print("Not matching")
                 assert best_l2_ppred[i] == -1 or \
                        self._attack_successful(best_l2_ppred[i], target_labels[i])
                 assert o_best_l2_ppred[i] == -1 or \
@@ -426,7 +426,7 @@ class CarliniWagnerL2(object):
                  [B]), the adversarial examples (of dimension [B x C x H x W])
         """
         # The perturbed activation before softmax/logits
-        pert_outputs = model(adv_context_images, context_labels, target_images)
+        pert_outputs = model(adv_context_images, context_labels, target_images)[0]
 
         perts_norm = torch.pow(adv_context_images - context_images, 2)
         perts_norm = torch.sum(perts_norm.view(
@@ -469,7 +469,7 @@ class CarliniWagnerL2(object):
             f_eval = torch.clamp(target_active - max_other_active
                                  + self.confidence, min=0.0)
         # the total loss of current batch, should be of dimension [1]
-        combined_loss = torch.sum(perts_norm + c * f_eval)
+        combined_loss = torch.sum(perts_norm + c* torch.sum(f_eval))
 
         # Do optimization for one step
         optimizer.zero_grad()
@@ -510,7 +510,7 @@ class CarliniWagnerL2(object):
         :return: the compensated weighted sum of dimension [B x M]
         :rtype: Tensor
         """
-        outputs_comp = outputs.copy()
+        outputs_comp = outputs.clone()
         rng = np.arange(targets.shape[0])
         if self.targeted:
             # for each image $i$:
