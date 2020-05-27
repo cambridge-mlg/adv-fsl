@@ -34,19 +34,19 @@ def create_attack(attack_config_path):
         elif attack_params['attack'] == 'carlini_wagner':
             attack = CarliniWagnerL2(
                 targeted=attack_params['targeted'],
-                confidence=attack_params['confidence'],
-                c_lower=attack_params['c_lower'],
-                c_upper=attack_params['c_upper'],
-                binary_search_steps=attack_params['binary_search_steps'],
-                max_iterations=attack_params['max_iterations'],
+                confidence=float(attack_params['confidence']),
+                c_lower=float(attack_params['c_lower']),
+                c_upper=float(attack_params['c_upper']),
+                binary_search_steps=int(attack_params['binary_search_steps']),
+                max_iterations=int(attack_params['max_iterations']),
                 abort_early=attack_params['abort_early'],
-                box_lower=attack_params['box_lower'],
-                box_upper=attack_params['box_upper'],
-                optimizer_lr=attack_params['optimizer_lr'],
+                box_lower=float(attack_params['box_lower']),
+                box_upper=float(attack_params['box_upper']),
+                optimizer_lr=float(attack_params['optimizer_lr']),
                 init_rand=attack_params['init_rand'],
                 attack_mode=attack_params['attack_mode'],
-                class_fraction=attack_params['class_fraction'],
-                shot_fraction=attack_params['shot_fraction'],
+                class_fraction=float(attack_params['class_fraction']),
+                shot_fraction=float(attack_params['shot_fraction']),
             )
 
         return attack
