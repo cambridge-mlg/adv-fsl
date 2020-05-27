@@ -159,22 +159,27 @@ class CarliniWagnerL2(object):
         :type targeted: bool
         :param confidence: the confidence constant, i.e. the $\\kappa$ in paper
         :type confidence: float
-        :param c_range: the search range of the constant :math:`c`; should be a
-               tuple of form (lower_bound, upper_bound).
+        :param c_lower: lower bound for the search range of the constant :math:`c`
                Note that we start searching for c at ``lower_bound'' and work our
                way upward as necessary to larger c
-        :type c_range: Tuple[float, float]
-        :param search_steps: the number of steps to perform binary search of
-               the constant :math:`c` over ``c_range``
-        :type search_steps: int
+        :type c_lower: float
+        :param c_upper: upper bound for the search range of the constant :math:`c`
+               Note that we start searching for c at ``lower_bound'' and work our
+               way upward as necessary to larger c
+        :type c_lower: float
+        :param binary_search_steps: the number of steps to perform binary search of
+               the constant :math:`c` over c_range=[``c_lower``, ``c_upper'']
+        :type binary_search_steps: int
         :param max_iterations: the maximum number of optimization steps for each
                constant :math:`c`
         :type max_iterations: int
         :param abort_early: ``True`` to abort early in process of searching for
                :math:`c` when the loss virtually stops increasing
         :type abort_early: bool
-        :param box: a tuple of lower bound and upper bound of the box
-        :type box: Tuple[float, float]
+        :param box_lower: lower bound of the box in which we do optimization
+        :type box_lower: float
+        :param box_upper: upper bound of the box in which we do optimization
+        :type box_upper: float
         :param optimizer_lr: the base learning rate of the Adam optimizer used
                over the adversarial perturbation in clipped space
         :type optimizer_lr: float
@@ -182,7 +187,13 @@ class CarliniWagnerL2(object):
                False is consistent with the original paper, where the
                perturbation is initialized to zero
         :type init_rand: bool
-        :rtype: None
+        :param attack_mode: can be either ``context'' to attack the context set or
+                ``target'' to attack the target set
+        :type attack_mode: string
+        :param class_fraction: fraction of classes to attack
+        :type class_fraction: float
+        :param shot_fraction: fraction of patterns to attack (per class)
+        :type shot_fraction: float
 
         Why to make ``box`` default to (-1., 1.) rather than (0., 1.)? TL;DR the
         domain of the problem in pytorch is [-1, 1] instead of [0, 1].
@@ -200,6 +211,7 @@ class CarliniWagnerL2(object):
         (https://github.com/rwightman/pytorch-nips2017-attack-example.git),
         though, the learning rate is set to 5e-4.
         """
+        import pdb; pdb.set_trace()
         if c_lower >= c_upper:
             raise ValueError('c_range lower bound ({}) is expected to be less '
                              'than c_range upper bound ({})'.format(c_lower, c_upper))
