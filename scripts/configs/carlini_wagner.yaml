@@ -1,7 +1,7 @@
-attack: projected_gradient_descent
+attack: carlini_wagner
 targeted: False
 confidence: 0.0
-c_lower:1e-3
+c_lower: 1e-3
 c_upper: 1e10
 binary_search_steps: 10
 max_iterations: 100

@@ -247,7 +247,9 @@ class CarliniWagnerL2(object):
             target_labels = convert_labels(initial_logits[0])
 
         ## Get the ``way'' from the model
-        num_classes = model.way
+
+        classes = torch.unique(context_labels)
+        num_classes = len(classes)
         ## Get the size of the context set, i.e. of the set w.r.t. which we're generating the attack
         input_size = context_images.shape[0]  # type: int
 
@@ -275,21 +277,16 @@ class CarliniWagnerL2(object):
         ## Necessary conversions of the inputs into tanh space
         # convert `inputs` to tanh-space
         context_images_tanh = self._to_tanh_space(context_images)  # type: torch.FloatTensor
-        ## Hmm, why do these not require gradient?
-        ## At any rate, Variable is deprecated and we can just turn the gradients off on the tensor directly instead
+
+        # Turning off gradients isn't really necessary because it's already false. But this may be semantically useful
+        # when we change this to only attack a subset of the context set
         context_images_tanh.requires_grad = False
-        # inputs_tanh_var = Variable(inputs_tanh, requires_grad=False)
 
         ## Make one-hot encoding for target_labels
         # the one-hot encoding of `target_labels`
         targets_labels_oh = one_hot_embedding(target_labels, num_classes)
-        ## Should be able to remove stuff below, just leave it in to double check when stepping through that we get the same thing.
-        ## Should be the same though
         import pdb;
         pdb.set_trace()
-        targets_labels_oh2 = torch.zeros(target_labels.size() + (num_classes,))  # type: torch.FloatTensor
-        targets_labels_oh2.scatter_(1, target_labels.unsqueeze(1), 1.0)
-        targets_labels_oh2 = Variable(targets_labels_oh2, requires_grad=False)
 
         # the perturbation variable to optimize.
         # `pert_tanh` is essentially the adversarial perturbation in tanh-space.
@@ -515,6 +512,9 @@ class CarliniWagnerL2(object):
             # by `self.confidence`
             outputs_comp[rng, targets] += self.confidence
         return outputs_comp
+
+    def get_attack_mode(self):
+        return self.attack_mode
 
     def _to_tanh_space(self, x):
         """
