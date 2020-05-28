@@ -1,14 +1,14 @@
 attack: carlini_wagner
 targeted: False
 confidence: 0.0
-c_lower: 1e-3
-c_upper: 1e10
+c_lower: 1.0e-3
+c_upper: 1.0e+10
 binary_search_steps: 10
 max_iterations: 100
 abort_early: True
 box_lower: -1.0
 box_upper: 1.0
-optimizer_lr: 1e-2
+optimizer_lr: 1.0e-2
 init_rand: False
 attack_mode: context
 class_fraction: 0.4
