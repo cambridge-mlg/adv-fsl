@@ -462,7 +462,7 @@ class CarliniWagnerL2(object):
             f_eval = torch.clamp(target_active - max_other_active
                                  + self.confidence, min=0.0)
         # the total loss of current batch, should be of dimension [1]
-        combined_loss = torch.sum(perts_norm + c* torch.sum(f_eval))
+        combined_loss = torch.sum(perts_norm + c* torch.mean(f_eval))
 
         # Do optimization for one step
         optimizer.zero_grad()
