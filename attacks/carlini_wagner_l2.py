@@ -322,7 +322,7 @@ class CarliniWagnerL2(object):
 
                 #loss_val is 1-D, pert_norms is [num_context], pert_outputs is [num_target], adv_context_images is [num_context C x W x H]
                 loss_val, pert_norms, pert_outputs, adv_context_images = \
-                    self._optimize(adv_context_set, context_images, context_labels, target_images,
+                    self._optimize(len(adv_context_indices), adv_context_set, context_images, context_labels, target_images,
                                    target_labels_oh, scale_const, model, optimizer)
                 if optim_step % 10 == 0: print('optim step [{}] loss: {}'.format(optim_step, loss_val))
 
@@ -387,7 +387,7 @@ class CarliniWagnerL2(object):
     #    def _optimize(self, model, optimizer, inputs_tanh_var, pert_tanh_var,
     #                 targets_oh_var, c_var):
     # Instead of passing in the tanh context_images and perturbation, pass in the adversarial image and the originals
-    def _optimize(self, adv_context_images, context_images, context_labels, target_images, target_labels_oh, c, model,
+    def _optimize(self, num_adv, adv_context_images, context_images, context_labels, target_images, target_labels_oh, c, model,
                   optimizer):
         """
         Optimize for one step.
@@ -455,7 +455,7 @@ class CarliniWagnerL2(object):
                                  + self.confidence, min=0.0)
         # the total loss of current batch, should be of dimension [1]
         # Upweight the last term, according to the number of adversarial context points
-        combined_loss = torch.sum(perts_norm + c* torch.mean(f_eval)) * float(perts_norm.shape[0])
+        combined_loss = torch.sum(perts_norm + c* torch.mean(f_eval)) * float(num_adv)
 
         # Do optimization for one step
         optimizer.zero_grad()
