@@ -271,12 +271,9 @@ class CarliniWagnerL2(object):
         # Set up holders for the optimal attacks and related info
         # The three "placeholders" are defined as:
         # - `o_best_l2`: The lowest L2 distance between the input and adversarial images
-        # - `o_best_l2_ppred`: the perturbed predictions made using the adversarial
-        #    context set with the least L2 norms
         # - `o_best_advx`: the best performing adversarial context set
         o_best_l2 = torch.ones(input_size, device=model.device) * 1e4  # placeholder for inf
         o_best_advx = context_images.clone()
-        o_best_l2_ppred = None
 
         # Necessary conversions of the inputs into tanh space
         # convert `inputs` to tanh-space
@@ -289,18 +286,16 @@ class CarliniWagnerL2(object):
         if self.init_rand:
             nn.init.normal(pert_tanh, mean=0, std=1e-3)
         pert_tanh.requires_grad = True
-
         optimizer = optim.Adam([pert_tanh], lr=self.optimizer_lr)
+
         for sstep in range(self.binary_search_steps):
             if self.repeat and sstep == self.binary_search_steps - 1:
                 scale_const = upper_bound
-
             print('Using scale const:', scale_const)
 
             # the minimum L2 norms of perturbations found during optimization
             best_l2 = torch.ones(input_size, device=model.device) * 1e4  # As placeholder for np.inf
-            # the perturbed predictions corresponding to `best_l2`, to be used
-            # in binary search of `scale_const`
+            # the perturbed predictions corresponding to `best_l2`, to be used in binary search of `scale_const`
             best_l2_ppred = None
 
             # previous (summed) batch loss, to be used in early stopping policy
@@ -309,19 +304,16 @@ class CarliniWagnerL2(object):
             for optim_step in range(self.max_iterations):
                 adv_context_set_tanh = context_images_tanh.clone()
                 for i, index in enumerate(adv_context_indices):
-                    #TODO Check: these should now inherit the requires_grad from pert_tanh
                     adv_context_set_tanh[index] = adv_context_set_tanh[index] + pert_tanh[i]
 
                 # Map examples back to image space
                 adv_context_set = self._from_tanh_space(adv_context_set_tanh)
-
                 #loss_val is 1-D, pert_norms is [num_context], pert_outputs is [num_target], adv_context_images is [num_context C x W x H]
                 loss_val, pert_norms, pert_outputs, adv_context_images = \
-                    self._optimize(len(adv_context_indices), adv_context_set, context_images, context_labels, target_images,
+                    self._optimize(adv_context_set, context_images, context_labels, target_images,
                                    target_labels_oh, scale_const, model, optimizer)
                 if optim_step % 10 == 0: print('optim step [{}] loss: {}'.format(optim_step, loss_val))
 
-                # TODO: Make sure this is sensible
                 if self.abort_early and not optim_step % (self.max_iterations // 10):
                     if loss_val > prev_loss * (1 - self.ae_tol):
                         break
@@ -329,12 +321,9 @@ class CarliniWagnerL2(object):
 
                 # Outputs for target set, given adversarial context set
                 pert_predictions = torch.argmax(pert_outputs, dim=1)
-                comp_pert_predictions = torch.argmax(
-                    self._compensate_confidence(pert_outputs,
-                                                target_labels),
-                    dim=1)
+                comp_pert_predictions = torch.argmax(self._compensate_confidence(pert_outputs,target_labels),dim=1)
                 # If the attack is successful, see if we've improved the loss
-                if self._attack_successful(comp_pert_predictions, target_labels, optim_step):
+                if self._attack_successful(comp_pert_predictions, target_labels):
                     # TODO: I'm not sure why this would be the case. What exactly does comp_pert do?
                     assert torch.all(comp_pert_predictions.eq(pert_predictions))
                     # If this attack has lower perturbation norm, record it
@@ -343,14 +332,12 @@ class CarliniWagnerL2(object):
                         best_l2_ppred = pert_predictions
                         for i, index in enumerate(adv_context_indices):
                             best_l2[i] = pert_norms[index]
-                        #assert best_l2.sum() - total_pert_norm <= 1.0e-6
                     if total_pert_norm < o_best_l2.sum():
                         o_successful_attack = True
                         o_best_l2_ppred = pert_predictions
                         for i, index in enumerate(adv_context_indices):
                             o_best_l2[i] = pert_norms[index]
                             o_best_advx[index] = adv_context_images[index].clone()
-                        #assert o_best_l2.sum() - total_pert_norm <= 1.0e-6
 
             # binary search of `scale_const`
             #assert best_l2_ppred is None or self._attack_successful(best_l2_ppred, target_labels, optim_step)
@@ -381,7 +368,7 @@ class CarliniWagnerL2(object):
     #    def _optimize(self, model, optimizer, inputs_tanh_var, pert_tanh_var,
     #                 targets_oh_var, c_var):
     # Instead of passing in the tanh context_images and perturbation, pass in the adversarial image and the originals
-    def _optimize(self, num_adv, adv_context_images, context_images, context_labels, target_images, target_labels_oh, c, model,
+    def _optimize(self, adv_context_images, context_images, context_labels, target_images, target_labels_oh, c, model,
                   optimizer):
         """
         Optimize for one step.
@@ -448,8 +435,8 @@ class CarliniWagnerL2(object):
             f_eval = torch.clamp(target_active - max_other_active
                                  + self.confidence, min=0.0)
         # the total loss of current batch, should be of dimension [1]
-        # Upweight the last term, according to the number of adversarial context points
-        combined_loss = torch.sum(perts_norm + c* torch.mean(f_eval)) # The f_eval contrib is weighted by c and distributed across all dims
+        # The f_eval contrib is weighted by c and distributed across all dims
+        combined_loss = torch.sum(perts_norm + c* torch.mean(f_eval))
 
         # Do optimization for one step
         optimizer.zero_grad()
@@ -460,7 +447,7 @@ class CarliniWagnerL2(object):
         loss = combined_loss.item()
         return loss, perts_norm, pert_outputs, adv_context_images
 
-    def _attack_successful(self, prediction, target, curr_step):
+    def _attack_successful(self, prediction, target):
         """
         See whether the underlying attack is successful.
 
