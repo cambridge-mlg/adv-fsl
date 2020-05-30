@@ -311,7 +311,7 @@ class CarliniWagnerL2(object):
                 #loss_val is 1-D, pert_norms is [num_context], pert_outputs is [num_target], adv_context_images is [num_context C x W x H]
                 loss_val, pert_norms, pert_outputs, adv_context_images = \
                     self._optimize(adv_context_set, context_images, context_labels, target_images,
-                                   target_labels_oh, scale_const, model, optimizer)
+                                   target_labels_oh, scale_const, get_logits_fn, optimizer)
                 if optim_step % 10 == 0: print('optim step [{}] loss: {}'.format(optim_step, loss_val))
 
                 if self.abort_early and not optim_step % (self.max_iterations // 10):
@@ -368,8 +368,8 @@ class CarliniWagnerL2(object):
     #    def _optimize(self, model, optimizer, inputs_tanh_var, pert_tanh_var,
     #                 targets_oh_var, c_var):
     # Instead of passing in the tanh context_images and perturbation, pass in the adversarial image and the originals
-    def _optimize(self, adv_context_images, context_images, context_labels, target_images, target_labels_oh, c, model,
-                  optimizer):
+    def _optimize(self, adv_context_images, context_images, context_labels, target_images, target_labels_oh, c,
+                  get_logits_fn, optimizer):
         """
         Optimize for one step.
 
@@ -392,7 +392,7 @@ class CarliniWagnerL2(object):
                  [num_target_images]), the adversarial examples (of dimension [num_context_images x C x H x W])
         """
         # Logits (for the target_images), when given the adversarial context set
-        pert_outputs = model(adv_context_images, context_labels, target_images)[0]
+        pert_outputs = fix_logits(get_logits_fn(adv_context_images, context_labels, target_images))
         # Will be zero for the clean context images
         perts_norm = torch.pow(adv_context_images - context_images, 2)
         perts_norm = torch.sum(perts_norm.view(
