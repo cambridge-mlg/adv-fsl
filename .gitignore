@@ -129,6 +129,7 @@ dmypy.json
 .pyre/
 
 learners/maml/data
+learners/protonets_miniimagenet/materials/images_84/
 checkpoints/
 
 .idea

@@ -13,10 +13,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', default='0')
     parser.add_argument('--load', default='./save/proto-1/max-acc.pth')
-    parser.add_argument('--batch', type=int, default=2000)
+    parser.add_argument('--batch', type=int, default=1000)
     parser.add_argument('--way', type=int, default=5)
     parser.add_argument('--shot', type=int, default=1)
-    parser.add_argument('--query', type=int, default=30)
+    parser.add_argument('--query', type=int, default=15)
     args = parser.parse_args()
     pprint(vars(args))
 

@@ -10,8 +10,8 @@ ROOT_PATH = './materials/'
 
 class MiniImageNet(Dataset):
 
-    def __init__(self, setname):
-        csv_path = osp.join(ROOT_PATH, setname + '.csv')
+    def __init__(self, setname, data_path):
+        csv_path = osp.join(data_path, setname + '.csv')
         lines = [x.strip() for x in open(csv_path, 'r').readlines()][1:]
 
         data = []
@@ -22,7 +22,7 @@ class MiniImageNet(Dataset):
 
         for l in lines:
             name, wnid = l.split(',')
-            path = osp.join(ROOT_PATH, 'images', name)
+            path = osp.join(data_path, 'images_84', name)
             if wnid not in self.wnids:
                 self.wnids.append(wnid)
                 lb += 1
@@ -33,8 +33,6 @@ class MiniImageNet(Dataset):
         self.label = label
 
         self.transform = transforms.Compose([
-            transforms.Resize(84),
-            transforms.CenterCrop(84),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
