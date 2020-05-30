@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from attacks.attack_utils import convert_labels, generate_context_attack_indices
+from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits
 
 
 def one_hot_embedding(labels, num_classes):
@@ -240,7 +240,7 @@ class CarliniWagnerL2(object):
         # `scale_const` won't ruin the optimum ever found.
         self.repeat = (self.binary_search_steps >= 10)
 
-    def generate(self, context_images, context_labels, target_images, model, target_labels=None):
+    def generate(self, context_images, context_labels, target_images, model, get_logits_fn, device, target_labels=None):
         """
         Produce adversarial examples for ``inputs``.
         """
@@ -250,13 +250,13 @@ class CarliniWagnerL2(object):
             assert len(target_labels.size()) == 1
         else:
             # Generate target labels based on model's initial prediction:
-            initial_logits = model(context_images, context_labels, target_images)[0]
+            initial_logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
             target_labels = convert_labels(initial_logits)
 
         classes = torch.unique(context_labels)
         num_classes = len(classes)
         # Make one-hot encoding for target_labels
-        target_labels_oh = one_hot_embedding(target_labels, num_classes).to(model.device)
+        target_labels_oh = one_hot_embedding(target_labels, num_classes).to(device)
 
         # Which context_images to attack:
         adv_context_indices = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
@@ -272,7 +272,7 @@ class CarliniWagnerL2(object):
         # The three "placeholders" are defined as:
         # - `o_best_l2`: The lowest L2 distance between the input and adversarial images
         # - `o_best_advx`: the best performing adversarial context set
-        o_best_l2 = torch.ones(input_size, device=model.device) * 1e4  # placeholder for inf
+        o_best_l2 = torch.ones(input_size, device=device) * 1e4  # placeholder for inf
         o_best_advx = context_images.clone()
 
         # Necessary conversions of the inputs into tanh space
@@ -282,7 +282,7 @@ class CarliniWagnerL2(object):
         # `pert_tanh` is essentially the adversarial perturbation in tanh-space.
         # In Carlini's code it's denoted as `modifier`
         pert_tanh = torch.zeros((input_size, context_images.shape[1], context_images.shape[2], context_images.shape[3]),
-                                device=model.device)  # type: torch.FloatTensor
+                                device=device)  # type: torch.FloatTensor
         if self.init_rand:
             nn.init.normal(pert_tanh, mean=0, std=1e-3)
         pert_tanh.requires_grad = True
@@ -294,7 +294,7 @@ class CarliniWagnerL2(object):
             print('Using scale const:', scale_const)
 
             # the minimum L2 norms of perturbations found during optimization
-            best_l2 = torch.ones(input_size, device=model.device) * 1e4  # As placeholder for np.inf
+            best_l2 = torch.ones(input_size, device=device) * 1e4  # As placeholder for np.inf
             # the perturbed predictions corresponding to `best_l2`, to be used in binary search of `scale_const`
             best_l2_ppred = None
 

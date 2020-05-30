@@ -56,7 +56,7 @@ class OmniglotData(object):
         :param seed: random seed for train/validation/test split.
         """
         np.random.seed(seed)
-        data = np.load(os.path.join(path, 'omniglot.npy'), encoding='bytes')
+        data = np.load(os.path.join(path, 'omniglot.npy'), encoding='bytes', allow_pickle=True)
         np.random.shuffle(data)
 
         self.instances_per_char = 20

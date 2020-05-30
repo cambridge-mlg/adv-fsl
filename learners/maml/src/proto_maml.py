@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from pytorch.src.maml import MAML
+from learners.maml.src.maml import MAML
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

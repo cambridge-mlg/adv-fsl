@@ -10,11 +10,11 @@ from torch.distributions.categorical import Categorical
 from torch.distributions.half_cauchy import HalfCauchy
 from torch.distributions.exponential import Exponential
 from torch.distributions.kl import kl_divergence
-from pytorch.src.utils import LogCauchy, Vague
-from pytorch.src.utils import GammaExpMixture as GEM
-from pytorch.src.utils import invertible_categorical_kl as ikl_cat
+from learners.maml.src.utils import LogCauchy, Vague
+from learners.maml.src.utils import GammaExpMixture as GEM
+from learners.maml.src.utils import invertible_categorical_kl as ikl_cat
 
-from pytorch.src.maml import MAML
+from learners.maml.src.maml import MAML
 
 
 class SigmaMAML(MAML):

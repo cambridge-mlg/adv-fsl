@@ -73,6 +73,7 @@ def save_image(image_array, save_path):
     im = Image.fromarray(np.clip((image_array + 1.0) * 127.5 + 0.5, 0, 255).astype(np.uint8), mode='RGB')
     im.save(save_path)
 
+
 def extract_class_indices(labels, which_class):
     """
     Helper method to extract the indices of elements which have the specified label.
@@ -336,7 +337,9 @@ class Learner:
                         context_images,
                         context_labels,
                         target_images,
-                        self.model)
+                        self.model,
+                        self.model,
+                        self.model.device)
 
                     for index in adv_context_indices:
                         save_image(adv_context_images[index].cpu().detach().numpy(),
@@ -350,7 +353,8 @@ class Learner:
                         del logits_adv
 
                 else:  # target
-                    adv_target_images = attack.generate(context_images, context_labels, target_images, self.model)
+                    adv_target_images = attack.generate(context_images, context_labels, target_images, self.model,
+                        self.model, self.model.device)
                     for i in range(len(target_images)):
                         save_image(adv_target_images[i].cpu().detach().numpy(),
                                    os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(t, i)))

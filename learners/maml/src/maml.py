@@ -30,7 +30,7 @@ class MAML(nn.Module):
                  gradient_steps=1,
                  num_channels=32,
                  kernel_width=3,
-                 first_order=True,
+                 first_order=False,
                  max_pool=True,
                  flatten=True,
                  hidden_dim=800):
@@ -134,6 +134,22 @@ class MAML(nn.Module):
             return loss, acc
         else:
             return loss
+
+    def compute_logits(self, x_context, y_context, x_target):
+        """Compute the logits.
+
+        Args:
+            x_context (torch.tensor): Context inputs
+            (N_c x C x H x W)
+            x_target (torch.tensor): Target inputs
+            (N_t x C x H x W)
+            y_context (torch.tensor): Context outputs
+            (N_c x num_classes)
+        """
+        phi_t, losses = self.inner_loop(x_context,
+                                        y_context,
+                                        self.gradient_steps)
+        return self(x_target, phi_t)
 
     def inner_loop(self, x_context, y_context, num_steps):
         """Run inner loop to get task specific weights

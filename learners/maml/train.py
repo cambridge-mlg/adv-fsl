@@ -3,12 +3,14 @@ import torch
 import os
 import numpy as np
 
-from pytorch.src.mini_imagenet import MiniImageNetData, prepare_task
-from pytorch.src.omniglot import OmniglotData
-from pytorch.src.maml import MAML
-from pytorch.src.proto_maml import ProtoMAMLv2 as ProtoMAML
-from pytorch.src.shrinkage_maml import SigmaMAML as sMAML
-from pytorch.src.shrinkage_maml import PredCPMAML as pMAML
+from learners.maml.src.mini_imagenet import MiniImageNetData, prepare_task
+from learners.maml.src.omniglot import OmniglotData
+from learners.maml.src.maml import MAML
+from learners.maml.src.proto_maml import ProtoMAMLv2 as ProtoMAML
+from learners.maml.src.shrinkage_maml import SigmaMAML as sMAML
+from learners.maml.src.shrinkage_maml import PredCPMAML as pMAML
+from learners.maml.src.utils import save_image
+from attacks.attack_helpers import create_attack
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -92,6 +94,50 @@ def test(model, data, model_path):
                                                           confidence))
 
 
+def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
+    # load the model
+    if device.type == 'cpu':
+            load_dict = torch.load(model_path, map_location='cpu')
+    else:
+            load_dict = torch.load(model_path)
+    model.load_state_dict(load_dict)
+
+    model.set_gradient_steps(test_gradient_steps)
+
+    attack = create_attack(config_path)
+
+    for task in range(tasks):
+        # when testing, target_shot is just shot
+        task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.shot)
+        xc, xt, yc, yt = prepare_task(task_dict)
+
+        if attack.get_attack_mode() == 'context':
+            adv_context_images, adv_context_indices = attack.generate(xc, yc, xt, model, model.compute_logits, device)
+
+            for index in adv_context_indices:
+                save_image(adv_context_images[index].cpu().detach().numpy(),
+                           os.path.join(checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task, index)))
+                save_image(xc[index].cpu().detach().numpy(),
+                           os.path.join(checkpoint_dir, 'in_task_{}_index_{}.png'.format(task, index)))
+
+            _, acc_after = model.compute_objective(adv_context_images, yc, xt, yt, accuracy=True)
+
+        else:  # target
+            adv_target_images = attack.generate(xc, yc, xt, model, model.compute_logits, device)
+            for i in range(len(xt)):
+                save_image(adv_target_images[i].cpu().detach().numpy(),
+                           os.path.join(checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task, i)))
+                save_image(xt[i].cpu().detach().numpy(),
+                           os.path.join(checkpoint_dir, 'in_task_{}_index_{}.png'.format(task, i)))
+
+            _, acc_after = model.compute_objective(xc, yc, adv_target_images, yt, accuracy=True)
+
+        _, acc_before = model.compute_objective(xc, yc, xt, yt, accuracy=True)
+
+        diff = acc_before - acc_after
+        print("Task = {}, Diff = {}".format(task, diff))
+
+
 # Parse arguments given to the script.
 parser = argparse.ArgumentParser()
 parser.add_argument('--model',
@@ -117,7 +163,7 @@ parser.add_argument('--dataset',
                     help='Choice of dataset to use')
 parser.add_argument('--mode',
                     type=str,
-                    choices=['train_and_test', 'test_only'],
+                    choices=['train_and_test', 'test_only', 'attack'],
                     default='train_and_test',
                     help='Whether to run training and testing or just test')
 parser.add_argument('--data_path',
@@ -161,6 +207,14 @@ parser.add_argument('--inner_lr',
                     type=float,
                     default=0.01,
                     help='Inner learning rate')
+parser.add_argument('--attack_tasks',
+                    type=int,
+                    default=10,
+                    help='Number of attack tasks.')
+parser.add_argument("--attack_config_path",
+                    help="Path to attack config file in yaml format.")
+parser.add_argument("--attack_model_path",
+                    help="Path to model to attack.")
 args = parser.parse_args()
 
 # Create checkpoint directory (if required)
@@ -282,6 +336,8 @@ if args.mode == 'train_and_test':
     test(model, data, os.path.join(args.checkpoint_dir, 'fully_trained.pt'))
     test(model, data, os.path.join(args.checkpoint_dir, 'best_validation.pt'))
 
+elif args.mode == 'attack':
+    attack(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
 
 else:  # test only
     # Test fully trained

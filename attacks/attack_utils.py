@@ -1,17 +1,26 @@
 import torch
 import math
 
+
 def convert_labels(predictions):
     return torch.argmax(predictions, dim=1, keepdim=False)
 
 
-'''
-    Given the class labels, generate the indices of the patterns we want to attack.
-    We choose patterns based on the specified fraction of classes and shots to attack.
-    eg. For class_fraction = 0.5, we will generate attacks for the (first) half of the classes
-    For shot_fraction = 0.25, one quarter of the context set images for a particular class will be adversarial
-'''
+def fix_logits(logits):
+    # cnaps puts an extra sampling dimension on the logits - get rid of it
+    size = logits.size()
+    if len(size) == 3 and size[0] == 1:
+        logits = torch.squeeze(logits, dim=0)
+    return logits
+
+
 def generate_context_attack_indices(class_labels, class_fraction, shot_fraction):
+    '''
+        Given the class labels, generate the indices of the patterns we want to attack.
+        We choose patterns based on the specified fraction of classes and shots to attack.
+        eg. For class_fraction = 0.5, we will generate attacks for the (first) half of the classes
+        For shot_fraction = 0.25, one quarter of the context set images for a particular class will be adversarial
+    '''
     indices = []
     classes = torch.unique(class_labels)
     num_classes = len(classes)
