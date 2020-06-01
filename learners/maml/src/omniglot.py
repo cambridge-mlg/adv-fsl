@@ -20,7 +20,7 @@ def extract_data(data, augment_data):
     # each omniglot image has shape (H,W), C is implicitly 1
     # pytorch wants to process images in (C, H, W) format, so we need expand the array for the channels component
     # final images array has shape (N, C, H, W) where N is image count
-    #images = np.expand_dims(np.array(images), 1)
+    images = np.expand_dims(np.array(images), -1)
     images = np.array(images)
     char_number = np.array(char_nums)
     return images, char_number
@@ -58,7 +58,6 @@ class OmniglotData(object):
         np.random.seed(seed)
         data = np.load(os.path.join(path, 'omniglot.npy'), encoding='bytes', allow_pickle=True)
         np.random.shuffle(data)
-
         self.instances_per_char = 20
         self.image_height = 28
         self.image_width = 28
