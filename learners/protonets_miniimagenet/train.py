@@ -21,13 +21,14 @@ if __name__ == '__main__':
     parser.add_argument('--test-way', type=int, default=5)
     parser.add_argument('--save-path', default='./save/proto-1')
     parser.add_argument('--gpu', default='0')
+    parser.add_argument('--data_path', default='./learners/protonets_miniimagenet/materials')
     args = parser.parse_args()
     pprint(vars(args))
 
     set_gpu(args.gpu)
     ensure_path(args.save_path)
 
-    trainset = MiniImageNet('train')
+    trainset = MiniImageNet('train', args.data_path)
     train_sampler = CategoriesSampler(trainset.label, 100,
                                       args.train_way, args.shot + args.query)
     train_loader = DataLoader(dataset=trainset, batch_sampler=train_sampler,

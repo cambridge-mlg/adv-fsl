@@ -5,9 +5,6 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 
-ROOT_PATH = './materials/'
-
-
 class MiniImageNet(Dataset):
 
     def __init__(self, setname, data_path):
