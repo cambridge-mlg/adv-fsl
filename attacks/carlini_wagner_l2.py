@@ -208,9 +208,6 @@ class CarliniWagnerL2(object):
         if c_lower >= c_upper:
             raise ValueError('c_range lower bound ({}) is expected to be less '
                              'than c_range upper bound ({})'.format(c_lower, c_upper))
-        if box_lower >= box_upper:
-            raise ValueError('box lower bound ({}) is expected to be less than '
-                             'box upper bound ({})'.format(box_lower, box_upper))
         self.targeted = targeted
         self.confidence = confidence
         self.c_range = (c_lower, c_upper)
@@ -218,7 +215,6 @@ class CarliniWagnerL2(object):
         self.max_iterations = max_iterations
         self.abort_early = abort_early
         self.ae_tol = 1e-4  # tolerance of early abort
-        self.box = (box_lower, box_upper)
         self.optimizer_lr = optimizer_lr
 
         # `self.init_rand` is not in Carlini's code, it's an attempt in the
@@ -239,13 +235,14 @@ class CarliniWagnerL2(object):
         self.repeat = (self.binary_search_steps >= 10)
 
     def generate(self, context_images, context_labels, target_images, model, get_logits_fn, device, target_labels=None):
-        self.box = (context_images.min().item(), context_images.max().item())
 
         """
         Produce adversarial examples for ``inputs``.
         """
         assert len(context_images.size()) == 4
-        assert len(target_images.size()) == 4
+        assert len(target_images.size()) == 4                
+        self.box = (context_images.min().item(), context_images.max().item())
+
         if target_labels is not None:
             assert len(target_labels.size()) == 1
         else:
