@@ -140,8 +140,6 @@ class CarliniWagnerL2(object):
                  binary_search_steps=10,
                  max_iterations=100,
                  abort_early=True,
-                 box_lower=-1.,
-                 box_upper=1.,
                  optimizer_lr=1e-2,
                  init_rand=False,
                  attack_mode='context',
@@ -241,6 +239,8 @@ class CarliniWagnerL2(object):
         self.repeat = (self.binary_search_steps >= 10)
 
     def generate(self, context_images, context_labels, target_images, model, get_logits_fn, device, target_labels=None):
+        self.box = (context_images.min().item(), context_images.max().item())
+
         """
         Produce adversarial examples for ``inputs``.
         """

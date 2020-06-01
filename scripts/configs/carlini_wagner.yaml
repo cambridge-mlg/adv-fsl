@@ -6,8 +6,6 @@ c_upper: 1.0e+10
 binary_search_steps: 15
 max_iterations: 100
 abort_early: False
-box_lower: -1.0
-box_upper: 1.0
 optimizer_lr: 1.0e-2
 init_rand: False
 attack_mode: context
