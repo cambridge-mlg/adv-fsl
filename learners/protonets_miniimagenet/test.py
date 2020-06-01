@@ -17,12 +17,13 @@ if __name__ == '__main__':
     parser.add_argument('--way', type=int, default=5)
     parser.add_argument('--shot', type=int, default=1)
     parser.add_argument('--query', type=int, default=15)
+    parser.add_argument('--data_path', default='./learners/protonets_miniimagenet/materials')
     args = parser.parse_args()
     pprint(vars(args))
 
     set_gpu(args.gpu)
 
-    dataset = MiniImageNet('test')
+    dataset = MiniImageNet('test', args.data_path)
     sampler = CategoriesSampler(dataset.label,
                                 args.batch, args.way, args.shot + args.query)
     loader = DataLoader(dataset, batch_sampler=sampler,
