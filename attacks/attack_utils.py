@@ -1,5 +1,7 @@
 import torch
 import math
+from PIL import Image
+import numpy as np
 
 
 def convert_labels(predictions):
@@ -45,3 +47,12 @@ def extract_class_indices(labels, which_class):
     class_mask = torch.eq(labels, which_class)  # binary mask of labels equal to which_class
     class_mask_indices = torch.nonzero(class_mask)  # indices of labels equal to which class
     return torch.reshape(class_mask_indices, (-1,))  # reshape to be a 1D vector
+
+def save_image(image_array, save_path):
+    image_array = image_array.transpose([1, 2, 0])
+    mode = 'RGB'
+    if image_array.shape[2] == 1:  # single channel image
+        image_array = image_array.squeeze()
+        mode = 'L'
+    im = Image.fromarray(np.clip((image_array + 1.0) * 127.5 + 0.5, 0, 255).astype(np.uint8), mode=mode)
+    im.save(save_path)
