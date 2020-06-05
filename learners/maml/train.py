@@ -11,6 +11,7 @@ from learners.maml.src.shrinkage_maml import SigmaMAML as sMAML
 from learners.maml.src.shrinkage_maml import PredCPMAML as pMAML
 from learners.maml.src.utils import save_image
 from attacks.attack_helpers import create_attack
+from attacks.attack_utils import extract_class_indices
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -92,6 +93,105 @@ def test(model, data, model_path):
     print("Test Accuracy on {}: {:3.1f}+/-{:2.1f}".format(model_path,
                                                           test_accuracy,
                                                           confidence))
+
+
+def test_by_example(model, data, model_path):
+    # load the model
+    if device.type == 'cpu':
+            load_dict = torch.load(model_path, map_location='cpu')
+    else:
+            load_dict = torch.load(model_path)
+    model.load_state_dict(load_dict)
+
+    NUM_TEST_TASKS = 600
+
+    model.set_gradient_steps(test_gradient_steps)
+    single_task_accuracies = []
+    group_task_accuracies = []
+    for task in range(NUM_TEST_TASKS):
+        # when testing, target_shot is just shot
+        task_dict = data.get_test_task(way=args.num_classes,
+                                       shot=args.shot,
+                                       target_shot=args.shot)
+        context_images, target_images, context_labels, target_labels = prepare_task(task_dict)
+        # do task one at a time
+        num_target_images = (target_images.size())[0]
+        single_image_accuracies = []
+        for i in range(num_target_images):
+            single_target_image = target_images[i:i+1]
+            single_target_label = target_labels[i:i+1]
+            _, single_image_accuracy = model.compute_objective(context_images, context_labels, single_target_image, single_target_label, accuracy=True)
+            single_image_accuracy = single_image_accuracy.detach()
+            single_image_accuracies.append(single_image_accuracy.item())
+            print('task={0:}/{1:}, image={2:}/{3:}, task accuracy={4:3.1f}, item accuracy={5:3.1f}'
+                  .format(task, NUM_TEST_TASKS, i, num_target_images,
+                          np.array(single_image_accuracies).mean() * 100.0,
+                          np.array(single_task_accuracies).mean() * 100.0 if len(single_task_accuracies) > 0 else 0.0),
+                  end='')
+            print('\r', end='')
+        single_task_accuracy = np.array(single_image_accuracies).mean()
+        single_task_accuracies.append(single_task_accuracy)
+
+        _, group_task_accuracy = model.compute_objective(context_images, context_labels, target_images,
+                                                           target_labels, accuracy=True)
+        group_task_accuracy = group_task_accuracy.detach()
+        group_task_accuracies.append(group_task_accuracy.item())
+
+    single_accuracy = np.array(single_task_accuracies).mean() * 100.0
+    single_accuracy_confidence = (196.0 * np.array(single_task_accuracies).std()) / np.sqrt(len(single_task_accuracies))
+    print('\nSingle: {0:3.1f}+/-{1:2.1f}'.format(single_accuracy, single_accuracy_confidence))
+    group_accuracy = np.array(group_task_accuracies).mean() * 100.0
+    group_accuracy_confidence = (196.0 * np.array(group_task_accuracies).std()) / np.sqrt(len(group_task_accuracies))
+    print('\nGroup: {0:3.1f}+/-{1:2.1f}'.format(group_accuracy, group_accuracy_confidence))
+
+
+def test_by_class(model, data, model_path):
+    # load the model
+    if device.type == 'cpu':
+        load_dict = torch.load(model_path, map_location='cpu')
+    else:
+        load_dict = torch.load(model_path)
+    model.load_state_dict(load_dict)
+
+    NUM_TEST_TASKS = 600
+
+    model.set_gradient_steps(test_gradient_steps)
+    single_task_accuracies = []
+    group_task_accuracies = []
+    for task in range(NUM_TEST_TASKS):
+        # when testing, target_shot is just shot
+        task_dict = data.get_test_task(way=args.num_classes,
+                                       shot=args.shot,
+                                       target_shot=args.shot)
+        context_images, target_images, context_labels, target_labels = prepare_task(task_dict)
+
+        # do task one class at a time
+        num_target_images = (target_images.size())[0]
+        single_class_accuracies = []
+        for c in torch.unique(context_labels):
+            indices = extract_class_indices(target_labels, c)
+            class_target_images = torch.index_select(target_images, 0, indices)
+            class_target_labels = torch.index_select(target_labels, 0, indices)
+
+            _, single_class_accuracy = model.compute_objective(context_images, context_labels, class_target_images,
+                                                               class_target_labels, accuracy=True)
+            single_class_accuracy = single_class_accuracy.detach()
+            single_class_accuracies.append(single_class_accuracy.item())
+
+        single_task_accuracy = np.array(single_class_accuracies).mean()
+        single_task_accuracies.append(single_task_accuracy)
+
+        _, group_task_accuracy = model.compute_objective(context_images, context_labels, target_images,
+                                                         target_labels, accuracy=True)
+        group_task_accuracy = group_task_accuracy.detach()
+        group_task_accuracies.append(group_task_accuracy.item())
+
+    single_accuracy = np.array(single_task_accuracies).mean() * 100.0
+    single_accuracy_confidence = (196.0 * np.array(single_task_accuracies).std()) / np.sqrt(len(single_task_accuracies))
+    print('\nSingle: {0:3.1f}+/-{1:2.1f}'.format(single_accuracy, single_accuracy_confidence))
+    group_accuracy = np.array(group_task_accuracies).mean() * 100.0
+    group_accuracy_confidence = (196.0 * np.array(group_task_accuracies).std()) / np.sqrt(len(group_task_accuracies))
+    print('\nGroup: {0:3.1f}+/-{1:2.1f}'.format(group_accuracy, group_accuracy_confidence))
 
 
 def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
@@ -207,14 +307,25 @@ parser.add_argument('--inner_lr',
                     type=float,
                     default=0.01,
                     help='Inner learning rate')
+parser.add_argument("--first_order", dest="first_order",
+                    default=False, action="store_true",
+                    help="Use first order MAML.")
 parser.add_argument('--attack_tasks',
                     type=int,
                     default=10,
                     help='Number of attack tasks.')
 parser.add_argument("--attack_config_path",
                     help="Path to attack config file in yaml format.")
+parser.add_argument("--test_model_path",
+                    help="Path to model to be tested.")
 parser.add_argument("--attack_model_path",
                     help="Path to model to attack.")
+parser.add_argument("--test_by_example", dest="test_by_example",
+                    default=False, action="store_true",
+                    help="Test one example at a time.")
+parser.add_argument("--test_by_class", dest="test_by_class",
+                    default=False, action="store_true",
+                    help="Test one class at a time.")
 args = parser.parse_args()
 
 # Create checkpoint directory (if required)
@@ -253,7 +364,8 @@ if args.model in ['maml', 'proto-maml']:
                  gradient_steps=args.gradient_steps,
                  max_pool=max_pool,
                  hidden_dim=hidden_dim,
-                 flatten=flatten)
+                 flatten=flatten,
+                 first_order=args.first_order)
 
 elif args.model in ['smaml', 'pmaml']:
     maml = sMAML if args.model == 'smaml' else pMAML
@@ -340,9 +452,14 @@ elif args.mode == 'attack':
     attack(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
 
 else:  # test only
-    # Test fully trained
-    args.model_path = os.path.join(args.checkpoint_dir, 'fully_trained.pt')
-    test(model, data, args.model_path)
-    # Test best validation model
-    args.model_path = os.path.join(args.checkpoint_dir, 'best_validation.pt')
-    test(model, data, args.model_path)
+    if args.test_by_example:
+        test_by_example(model, data, args.test_model_path)
+    elif args.test_by_class:
+        test_by_class(model, data, args.test_model_path)
+    else:  # test normally
+        # Test fully trained
+        args.model_path = os.path.join(args.checkpoint_dir, 'fully_trained.pt')
+        test(model, data, args.model_path)
+        # Test best validation model
+        args.model_path = os.path.join(args.checkpoint_dir, 'best_validation.pt')
+        test(model, data, args.model_path)
