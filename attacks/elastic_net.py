@@ -145,9 +145,9 @@ class ElasticNet():
         if self.targeted and target_labels is None:
             raise ValueError("Target labels `y` need to be provided for a targeted attack.")
 
+        # TODO: Is this right?
+        import pdb; pdb.set_trace()
         if target_labels is not None:
-            # TODO: Is this right?
-            import pdb; pdb.set_trace()
             assert len(target_labels.size()) == 1
         else:
             # Generate target labels based on model's initial prediction:
@@ -178,6 +178,7 @@ class ElasticNet():
         for outer_step in range(self.binary_search_steps):
             #TODO: Change this to something we pass in to all the functions that need it?
             self.global_step = 0
+            print('Using scale const:', c_current)
 
             # slack vector from the paper
             yy_k = nn.Parameter(context_images.clone())
@@ -228,6 +229,9 @@ class ElasticNet():
                         dist = l1_dist
                     loss = self._loss_fn(target_outputs, target_labels_oh, l1_dist, l2_dist, c_current)
 
+                    if k % 10 == 0:
+                        print('optim step [{}] loss: {}'.format(k, loss))
+
                     if self.abort_early:
                         if k % (self.max_iterations // NUM_CHECKS or 1) == 0:
                             if loss > previous_loss * ONE_MINUS_EPS:
@@ -248,11 +252,13 @@ class ElasticNet():
 
             # Update c_current for next iteration:
             if self._is_successful(curr_labels, target_labels, is_logits=False):
+                print("Found successful attack")
                 c_upper_bound = min(c_upper_bound, c_current)
 
                 if c_upper_bound < UPPER_CHECK:
                     c_current = (c_lower_bound + c_upper_bound) / 2.0
             else:
+                print("Not successful attack")
                 c_lower_bound = max(c_lower_bound, c_current)
                 if c_upper_bound < UPPER_CHECK:
                     c_current = (c_lower_bound + c_upper_bound) / 2.0
