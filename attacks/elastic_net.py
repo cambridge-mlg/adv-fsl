@@ -24,7 +24,7 @@ PREV_LOSS_INIT = 1e6
 INF = 10e10
 UPPER_CHECK = 1e9
 
-class ElasticNetL1Attack():
+class ElasticNet():
     """
     The ElasticNet L1 Attack, https://arxiv.org/abs/1709.04114
 
@@ -50,32 +50,33 @@ class ElasticNetL1Attack():
 
     def __init__(self, confidence=0,
                  targeted=False, learning_rate=1e-2,
-                 binary_search_steps=9, max_iterations=10000,
-                 abort_early=False, initial_const=1e-3,
-                 clip_min=0., clip_max=1., beta=1e-2, decision_rule='EN',
+                 binary_search_steps=9, max_iterations=1000,
+                 abort_early=False, beta=1e-2, decision_rule='EN',
                  attack_mode='context', class_fraction=1.0, shot_fraction=0.1,
-                 success_fraction=0.5, c_upper=10e10, c_lower=0.0):
+                 success_fraction=0.5, c_upper=10e10, c_lower=1e-3):
         """ElasticNet L1 Attack implementation in pytorch."""
 
         self.confidence = confidence
         self.targeted = targeted
         self.learning_rate = learning_rate
-        self.init_learning_rate = learning_rate
         self.max_iterations = max_iterations
         self.binary_search_steps = binary_search_steps
         self.abort_early = abort_early
-        self.initial_const = initial_const
         self.beta = beta
-        self.clip_range = (clip_min, clip_max)
         # The last iteration (if we run many steps) repeat the search once.
-        self.repeat = binary_search_steps >= REPEAT_STEP
         self.decision_rule = decision_rule
         self.attack_mode = attack_mode
         self.class_fraction = class_fraction
         self.shot_fraction = shot_fraction
         self.success_fraction = success_fraction
         self.c_range = (c_lower, c_upper)
+
+        self.init_learning_rate = learning_rate
         self.global_step = 0
+        self.repeat = binary_search_steps >= REPEAT_STEP
+        # Set defaults, but we'll use the context set to calculate these when generating attacks
+        self.clip_max = 1.0
+        self.clip_min = -1.0
 
     def _loss_fn(self, target_outputs, target_labels_oh, l1_dist, l2_dist_squared, const, exclude_l1=False):
         real = (target_labels_oh * target_outputs).sum(dim=1)
@@ -96,7 +97,6 @@ class ElasticNetL1Attack():
             loss_l1 = self.beta * l1_dist.sum()
             loss = loss_logits + loss_l2 + loss_l1
         return loss
-
 
     def _is_successful(self, output, target, is_logits):
         # determine success, see if confidence-adjusted logits give the right
@@ -135,6 +135,10 @@ class ElasticNetL1Attack():
 
     def generate(self, context_images, context_labels, target_images, model, get_logits_fn, device, target_labels=None):
         # Assert that, if attack is targeted, y is provided:
+
+        self.clip_max = context_images.max().item()
+        self.clip_min = context_images.min().item()
+
         if self.targeted and target_labels is None:
             raise ValueError("Target labels `y` need to be provided for a targeted attack.")
 
