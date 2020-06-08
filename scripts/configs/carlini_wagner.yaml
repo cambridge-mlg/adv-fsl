@@ -1,7 +1,7 @@
 attack: carlini_wagner
 targeted: False
 confidence: 0.0
-c_lower: 1.0e-2
+c_lower: 1.0
 c_upper: 1.0e+10
 binary_search_steps: 15
 max_iterations: 100
@@ -9,5 +9,5 @@ abort_early: False
 optimizer_lr: 1.0e-2
 init_rand: False
 attack_mode: context
-class_fraction: 0.5
-shot_fraction: 0.5
+class_fraction: 1.0
+shot_fraction: 0.1
