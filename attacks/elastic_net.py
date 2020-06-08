@@ -78,6 +78,9 @@ class ElasticNet():
         self.clip_max = 1.0
         self.clip_min = -1.0
 
+    def get_attack_mode(self):
+        return self.attack_mode
+
     def _loss_fn(self, target_outputs, target_labels_oh, l1_dist, l2_dist_squared, const, exclude_l1=False):
         real = (target_labels_oh * target_outputs).sum(dim=1)
         other = ((1.0 - target_labels_oh) * target_outputs -
@@ -98,7 +101,7 @@ class ElasticNet():
             loss = loss_logits + loss_l2 + loss_l1
         return loss
 
-    def _is_successful(self, output, target, is_logits):
+    def _is_successful(self, output, target, is_logits=False):
         # determine success, see if confidence-adjusted logits give the right
         #   label
         if is_logits:
@@ -233,7 +236,7 @@ class ElasticNet():
 
                     _, target_output_labels = torch.max(target_outputs, 1)
 
-                    if self._is_successful(target_outputs, target_labels, True):
+                    if self._is_successful(target_outputs, target_labels, is_logits=True):
                         # If dist is better than best dist for curr c, update
                         if dist.sum() < curr_dist.sum():
                             curr_dist = dist
@@ -244,7 +247,7 @@ class ElasticNet():
                             o_best_attack = xx_k.data.clone()
 
             # Update c_current for next iteration:
-            if self._is_successful(curr_labels, target_labels):
+            if self._is_successful(curr_labels, target_labels, is_logits=False):
                 c_upper_bound = min(c_upper_bound, c_current)
 
                 if c_upper_bound < UPPER_CHECK:
