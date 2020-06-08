@@ -2,9 +2,9 @@ attack: elastic_net
 confidence: 0.0
 targeted: False
 learning_rate: 1.0e-2
-max_iterations: 1000
+max_iterations: 500
 binary_search_steps: 15
-abort_early: False
+abort_early: True
 beta: 1.0e-2
 decision_rule: 'EN'
 c_lower: 1.0e-3

@@ -102,8 +102,7 @@ class ElasticNet():
         return loss
 
     def _is_successful(self, output, target, is_logits=False):
-        # determine success, see if confidence-adjusted logits give the right
-        #   label
+        # determine success, see if confidence-adjusted logits give the right label
         if is_logits:
             output = output.detach().clone()
             if self.targeted:
@@ -114,7 +113,12 @@ class ElasticNet():
                        target] += self.confidence
             prediction = torch.argmax(output, dim=1)
         else:
-            prediction = output
+            # Labels are all -1 and thus invalid. Attack not successful
+            if (output == -1).sum() == output.shape[0]:
+                return False
+            else:
+                prediction = output.long()
+
 
         if self.targeted:
             return ((prediction == target).sum()/float(prediction.shape[0])).item() >= self.success_fraction
@@ -145,8 +149,6 @@ class ElasticNet():
         if self.targeted and target_labels is None:
             raise ValueError("Target labels `y` need to be provided for a targeted attack.")
 
-        # TODO: Is this right?
-        import pdb; pdb.set_trace()
         if target_labels is not None:
             assert len(target_labels.size()) == 1
         else:
