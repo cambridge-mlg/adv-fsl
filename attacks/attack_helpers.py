@@ -40,8 +40,6 @@ def create_attack(attack_config_path):
                 binary_search_steps=attack_params['binary_search_steps'],
                 max_iterations=attack_params['max_iterations'],
                 abort_early=attack_params['abort_early'],
-                box_lower=attack_params['box_lower'],
-                box_upper=attack_params['box_upper'],
                 optimizer_lr=attack_params['optimizer_lr'],
                 init_rand=attack_params['init_rand'],
                 attack_mode=attack_params['attack_mode'],

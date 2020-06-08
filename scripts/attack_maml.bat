@@ -14,5 +14,5 @@ python ./learners/maml/train.py ^
 --tasks_per_batch 32 ^
 --inner_lr 0.4 ^
 --attack_tasks 10 ^
---attack_config_path ./scripts/configs/projected_gradient_descent_context.yaml ^
+--attack_config_path ./scripts/configs/carlini_wagner.yaml ^
 --attack_model_path ./learners/maml/models/maml_omniglot_5-way_5-shot.pt

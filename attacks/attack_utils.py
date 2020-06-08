@@ -1,5 +1,7 @@
 import torch
 import math
+from PIL import Image
+import numpy as np
 
 
 def convert_labels(predictions):
@@ -67,3 +69,13 @@ def one_hot_embedding(labels, num_classes):
     """
     y = torch.eye(num_classes)
     return y[labels]
+
+
+def save_image(image_array, save_path):
+    image_array = image_array.transpose([1, 2, 0])
+    mode = 'RGB'
+    if image_array.shape[2] == 1:  # single channel image
+        image_array = image_array.squeeze()
+        mode = 'L'
+    im = Image.fromarray(np.clip((image_array + 1.0) * 127.5 + 0.5, 0, 255).astype(np.uint8), mode=mode)
+    im.save(save_path)
