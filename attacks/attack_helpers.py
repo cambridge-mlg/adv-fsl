@@ -1,6 +1,7 @@
 import yaml
 from attacks.projected_gradient_descent import ProjectedGradientDescent
 from attacks.carlini_wagner_l2 import CarliniWagnerL2
+from attacks.elastic_net import ElasticNet
 
 
 def create_attack(attack_config_path):
@@ -42,6 +43,24 @@ def create_attack(attack_config_path):
                 abort_early=attack_params['abort_early'],
                 optimizer_lr=attack_params['optimizer_lr'],
                 init_rand=attack_params['init_rand'],
+                attack_mode=attack_params['attack_mode'],
+                class_fraction=attack_params['class_fraction'],
+                shot_fraction=attack_params['shot_fraction'],
+            )
+        elif attack_params['attack'] == 'elastic_net':
+            attack = ElasticNet(
+                confidence=attack_params['confidence'],
+                targeted=attack_params['targeted'],
+                learning_rate=attack_params['learning_rate'],
+                max_iterations=attack_params['max_iterations'],
+                binary_search_steps=attack_params['binary_search_steps'],
+                abort_early=attack_params['abort_early'],
+                beta=attack_params['beta'],
+                clip_min=attack_params['clip_min'],
+                clip_max=attack_params['clip_max'],
+                decision_rule=attack_params['decision_rule'],
+                c_lower=attack_params['c_lower'],
+                c_upper=attack_params['c_upper'],
                 attack_mode=attack_params['attack_mode'],
                 class_fraction=attack_params['class_fraction'],
                 shot_fraction=attack_params['shot_fraction'],
