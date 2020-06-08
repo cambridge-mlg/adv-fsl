@@ -320,7 +320,7 @@ class CarliniWagnerL2(object):
                 pert_predictions = torch.argmax(pert_outputs, dim=1)
                 comp_pert_predictions = torch.argmax(self._compensate_confidence(pert_outputs,target_labels),dim=1)
                 # If the attack is successful, see if we've improved the loss
-                if self._attack_successful(comp_pert_predictions, target_labels):
+                if self._attack_successful(comp_pert_predictions, target_labels, optim_step):
                     # TODO: I'm not sure why this would be the case. What exactly does comp_pert do?
                     assert torch.all(comp_pert_predictions.eq(pert_predictions))
                     # If this attack has lower perturbation norm, record it
@@ -362,9 +362,6 @@ class CarliniWagnerL2(object):
                     scale_const *= 10
         return o_best_advx, adv_context_indices
 
-    #    def _optimize(self, model, optimizer, inputs_tanh_var, pert_tanh_var,
-    #                 targets_oh_var, c_var):
-    # Instead of passing in the tanh context_images and perturbation, pass in the adversarial image and the originals
     def _optimize(self, adv_context_images, context_images, context_labels, target_images, target_labels_oh, c,
                   get_logits_fn, optimizer):
         """
@@ -444,7 +441,7 @@ class CarliniWagnerL2(object):
         loss = combined_loss.item()
         return loss, perts_norm, pert_outputs, adv_context_images
 
-    def _attack_successful(self, prediction, target):
+    def _attack_successful(self, prediction, target, step):
         """
         See whether the underlying attack is successful.
 
@@ -456,11 +453,11 @@ class CarliniWagnerL2(object):
         :rtype: bool
         """
         # Make the successfulness of an attack depend on the current iteration
-        #accept_success = min(int((curr_step/self.max_iterations)*10)/10.0 + 0.1, 1.0)
+        accept_success = min(int((step/self.max_iterations)*10)/10.0 + 0.1, 1.0)
         if self.targeted:
-            return ((prediction == target).sum()/float(prediction.shape[0])).item() >= self.success_fraction
+            return ((prediction == target).sum()/float(prediction.shape[0])).item() >= accept_sucess
         else:
-            return ((prediction != target).sum()/float(prediction.shape[0])).item() >= self.success_fraction
+            return ((prediction != target).sum()/float(prediction.shape[0])).item() >= accept_success
 
     def _compensate_confidence(self, outputs, targets):
         """
