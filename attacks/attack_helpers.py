@@ -56,8 +56,6 @@ def create_attack(attack_config_path):
                 binary_search_steps=attack_params['binary_search_steps'],
                 abort_early=attack_params['abort_early'],
                 beta=attack_params['beta'],
-                clip_min=attack_params['clip_min'],
-                clip_max=attack_params['clip_max'],
                 decision_rule=attack_params['decision_rule'],
                 c_lower=attack_params['c_lower'],
                 c_upper=attack_params['c_upper'],

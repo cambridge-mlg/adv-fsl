@@ -5,7 +5,7 @@ learning_rate: 1.0e-2
 max_iterations: 1000
 binary_search_steps: 15
 abort_early: False
-beta: 1e-2
+beta: 1.0e-2
 decision_rule: 'EN'
 c_lower: 1.0e-3
 c_upper: 1.0e+10
