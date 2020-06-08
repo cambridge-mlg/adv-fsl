@@ -12,21 +12,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits
+from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, one_hot_embedding
 
 
-def one_hot_embedding(labels, num_classes):
-    """Embedding labels to one-hot form.
-
-    Args:
-      labels: (LongTensor) class labels, sized [N,].
-      num_classes: (int) number of classes.
-
-    Returns:
-      (tensor) encoded labels, sized [N, #classes].
-    """
-    y = torch.eye(num_classes)
-    return y[labels]
 
 
 def atanh(x, eps=1e-6):

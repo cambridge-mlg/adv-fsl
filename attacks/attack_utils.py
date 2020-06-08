@@ -35,6 +35,14 @@ def generate_context_attack_indices(class_labels, class_fraction, shot_fraction)
     return indices
 
 
+def distance_l2_squared(x1, x2):
+    return torch.sum(torch.pow(x1 - x2, 2).view(x1.shape[0], -1), dim=1)
+
+
+def distance_l1(x1, x2):
+    return torch.sum(torch.abs(x1 - x2).view(x1.shape[0], -1), dim=1)
+
+
 def extract_class_indices(labels, which_class):
     """
     Helper method to extract the indices of elements which have the specified label.
@@ -45,3 +53,17 @@ def extract_class_indices(labels, which_class):
     class_mask = torch.eq(labels, which_class)  # binary mask of labels equal to which_class
     class_mask_indices = torch.nonzero(class_mask)  # indices of labels equal to which class
     return torch.reshape(class_mask_indices, (-1,))  # reshape to be a 1D vector
+
+
+def one_hot_embedding(labels, num_classes):
+    """Embedding labels to one-hot form.
+
+    Args:
+      labels: (LongTensor) class labels, sized [N,].
+      num_classes: (int) number of classes.
+
+    Returns:
+      (tensor) encoded labels, sized [N, #classes].
+    """
+    y = torch.eye(num_classes)
+    return y[labels]
