@@ -95,6 +95,10 @@ class Learner:
     def __init__(self):
         self.args = self.parse_command_line()
 
+        if self.args.mode == "attack":
+            if not os.path.exists(self.args.checkpoint_dir):
+                os.makedirs(self.args.checkpoint_dir)
+
         self.checkpoint_dir, self.logfile, self.checkpoint_path_validation, self.checkpoint_path_final \
             = get_log_files(self.args.checkpoint_dir, self.args.resume_from_checkpoint, self.args.mode == "test" or 
                             self.args.mode == "attack")
