@@ -12,6 +12,7 @@ from __future__ import unicode_literals
 
 import torch
 import torch.nn as nn
+from examples.facenet_adversarial_faces.facenet_fgsm import adv
 
 from attacks.attack_utils import distance_l2_squared, distance_l1, one_hot_embedding, fix_logits, convert_labels, generate_context_attack_indices
 
@@ -119,7 +120,6 @@ class ElasticNet():
             else:
                 prediction = output.long()
 
-
         if self.targeted:
             return ((prediction == target).sum()/float(prediction.shape[0])).item() >= self.success_fraction
         else:
@@ -130,7 +130,7 @@ class ElasticNet():
 
         upper = torch.clamp(yy_k - self.beta, max=self.clip_max)
         lower = torch.clamp(yy_k + self.beta, min=self.clip_min)
-
+        # Zero for all non-adv context images
         diff = yy_k - x
         cond1 = (diff > self.beta).float()
         cond2 = (torch.abs(diff) <= self.beta).float()
@@ -206,24 +206,25 @@ class ElasticNet():
                 # loss over yy_k with only L2 same as C&W
                 # we don't update L1 loss with SGD because we use ISTA
                 target_outputs = fix_logits(get_logits_fn(yy_k, context_labels, target_images))
-                l2_dist = distance_l2_squared(yy_k, context_images)
+                l2_dist = distance_l2_squared(yy_k[adv_context_indices], context_images[adv_context_indices])
                 loss_opt = self._loss_fn(target_outputs, target_labels_oh, None, l2_dist, c_current, exclude_l1=True)
                 loss_opt.backward()
 
                 # In-place gradient step, y = y - lr * y.grad
-                yy_k.data.add_(-lr, yy_k.grad.data)
+                yy_k.data[adv_context_indices].add_(-lr, yy_k.grad.data[adv_context_indices])
                 self.global_step += 1
 
                 # polynomial decay of learning rate
                 lr = self.init_learning_rate * (1 - self.global_step / self.max_iterations)**0.5
 
-                yy_k, xx_k = self._fast_iterative_shrinkage_thresholding(context_images, yy_k, xx_k)
+                yy_k[adv_context_indices], xx_k[adv_context_indices] = self._fast_iterative_shrinkage_thresholding(
+                    context_images[adv_context_indices], yy_k[adv_context_indices], xx_k[adv_context_indices])
 
                 # loss ElasticNet or L1 over xx_k
                 with torch.no_grad():
                     target_outputs = fix_logits(get_logits_fn(xx_k, context_labels, target_images))
-                    l2_dist = distance_l2_squared(xx_k, context_images)
-                    l1_dist = distance_l1(xx_k, context_images)
+                    l2_dist = distance_l2_squared(xx_k[adv_context_indices], context_images[adv_context_indices])
+                    l1_dist = distance_l1(xx_k[adv_context_indices], context_images[adv_context_indices])
 
                     if self.decision_rule == 'EN':
                         dist = l2_dist + (l1_dist * self.beta)
