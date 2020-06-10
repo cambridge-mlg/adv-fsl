@@ -60,6 +60,69 @@ default_attack_parameters = {
     }
 }
 
+default_maml_parameters = {
+    'omniglot_5_way_1_shot': {
+        'inner_lr': 0.4
+    },
+    'omniglot_5_way_5_shot': {
+        'inner_lr': 0.4
+    },
+    'omniglot_20_way_1_shot': {
+        'inner_lr': 0.1
+    },
+    'omniglot_20_way_5_shot': {
+        'inner_lr': 0.1
+    },
+    'mini_imagenet_5_way_1_shot': {
+        'inner_lr': 0.01
+    },
+    'mini_imagenet_5_way_5_shot': {
+        'inner_lr': 0.01
+    }
+}
+
+
+default_protonets_parameters = {
+    'omniglot_5_way_1_shot': {
+        'query': 5,
+    },
+    'omniglot_5_way_5_shot': {
+        'query': 5,
+    },
+    'omniglot_20_way_1_shot': {
+        'query': 5,
+    },
+    'omniglot_20_way_5_shot': {
+        'query': 5,
+    },
+    'mini_imagenet_5_way_1_shot': {
+        'query': 15,
+    },
+    'mini_imagenet_5_way_5_shot': {
+        'query': 15,
+    }
+}
+
+
+default_cnaps_parameters = {
+    'omniglot_5_way_1_shot': {
+        'query_test': 1
+    },
+    'omniglot_5_way_5_shot': {
+        'query_test': 5
+    },
+    'omniglot_20_way_1_shot': {
+        'query_test': 1
+    },
+    'omniglot_20_way_5_shot': {
+        'query_test': 5
+    },
+    'meta_dataset': {
+        'query_test': 10
+    }
+}
+
+
 def make_attack_name(attack_config):
     if attack_config['attack'] == 'projected_gradient_descent':
         return 'pgd_eps={}_eps_step={}'.format(attack_config['epsilon'],
@@ -202,18 +265,14 @@ def main():
                     model_specific_params += '\t--mode attack \\\n'
                     model_specific_params += '\t--num_classes {} \\\n'.format(way)
                     model_specific_params += '\t--shot {} \\\n'.format(shot)
-                    model_specific_params += '\t--target_shot {} \\\n'.format(shot)
-                    model_specific_params += '\t--gradient_steps 1 \\\n'
-                    model_specific_params += '\t--iterations 60000 \\\n'
-                    model_specific_params += '\t--tasks_per_batch 32 \\\n'
                     model_specific_params += '\t--inner_lr 0.4  \\\n'
                     model_specific_params += '\t--attack_model_path {} '.format(model_path)
 
                 elif model == 'protonets':
                     target = './learners/protonets/src/main.py'
                     model_path = os.path.join(model_path, '{}_{}.pt'.format(model, setting_name))
-                    model_specific_params += '\t--shot {} \\\n'.format(shot)
-                    model_specific_params += '\t--way {} \\\n'.format(way)
+                    model_specific_params += '\t--test_shot {} \\\n'.format(shot)
+                    model_specific_params += '\t--test_way {} \\\n'.format(way)
                     model_specific_params += '\t--query {} \\\n'.format(shot)
                     model_specific_params += '\t--load {} '.format(model_path)
                 # Glue  it all together
