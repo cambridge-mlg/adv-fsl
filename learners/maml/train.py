@@ -206,6 +206,8 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
     attack = create_attack(config_path)
 
+    accuracies_before = []
+    accuracies_after = []
     for task in range(tasks):
         # when testing, target_shot is just shot
         task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.shot)
@@ -234,8 +236,16 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
         _, acc_before = model.compute_objective(xc, yc, xt, yt, accuracy=True)
 
-        diff = acc_before - acc_after
-        print("Task = {}, Diff = {}".format(task, diff))
+        accuracies_before.append(acc_before.item())
+        accuracies_after.append(acc_after.item())
+
+    accuracy = np.array(accuracies_before).mean() * 100.0
+    accuracy_confidence = (196.0 * np.array(accuracies_before).std()) / np.sqrt(len(accuracies_before))
+    print('Before attack: {0:3.1f}+/-{1:2.1f}'.format(accuracy, accuracy_confidence))
+
+    accuracy = np.array(accuracies_after).mean() * 100.0
+    accuracy_confidence = (196.0 * np.array(accuracies_after).std()) / np.sqrt(len(accuracies_after))
+    print('After attack: {0:3.1f}+/-{1:2.1f}'.format(accuracy, accuracy_confidence))
 
 
 # Parse arguments given to the script.

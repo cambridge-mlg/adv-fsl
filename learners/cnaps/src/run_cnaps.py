@@ -322,15 +322,14 @@ class Learner:
                 print_and_log(self.logfile, '{0:}: {1:3.1f}+/-{2:2.1f}'.format(item, accuracy, accuracy_confidence))
 
     def attack_homebrew(self, path, session):
-        print_and_log(self.logfile, "")  # add a blank line
         print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
         self.model = self.init_model()
         self.model.load_state_dict(torch.load(path))
 
         attack = create_attack(self.args.attack_config_path)
-        #fgm_attack = ProjectedGradientDescent()
-
         for item in self.test_set:
+            accuracies_before = []
+            accuracies_after = []
             for t in range(self.args.attack_tasks):
                 task_dict = self.dataset.get_test_task(item, session)
                 context_images, target_images, context_labels, target_labels, context_images_np, target_images_np =\
@@ -356,6 +355,8 @@ class Learner:
                         acc_after = torch.mean(torch.eq(target_labels, torch.argmax(logits_adv, dim=-1)).float()).item()
                         del logits_adv
 
+                    del adv_context_images
+
                 else:  # target
                     adv_target_images = attack.generate(context_images, context_labels, target_images, self.model,
                         self.model, self.model.device)
@@ -370,12 +371,22 @@ class Learner:
                         acc_after = torch.mean(torch.eq(target_labels, torch.argmax(logits_adv, dim=-1)).float()).item()
                         del logits_adv
 
+                    del adv_target_images
+
                 logits = self.model(context_images, context_labels, target_images)
                 acc_before = torch.mean(torch.eq(target_labels, torch.argmax(logits, dim=-1)).float()).item()
                 del logits
 
-                diff = acc_before - acc_after
-                print_and_log(self.logfile, "Task = {}, Diff = {}".format(t, diff))
+                accuracies_before.append(acc_before)
+                accuracies_after.append(acc_after)
+
+            accuracy = np.array(accuracies_before).mean() * 100.0
+            accuracy_confidence = (196.0 * np.array(accuracies_before).std()) / np.sqrt(len(accuracies_before))
+            print_and_log(self.logfile, 'Before attack {0:}: {1:3.1f}+/-{2:2.1f}'.format(item, accuracy, accuracy_confidence))
+
+            accuracy = np.array(accuracies_after).mean() * 100.0
+            accuracy_confidence = (196.0 * np.array(accuracies_after).std()) / np.sqrt(len(accuracies_after))
+            print_and_log(self.logfile, 'After attack {0:}: {1:3.1f}+/-{2:2.1f}'.format(item, accuracy, accuracy_confidence))
 
     def attack(self, path, session):
         print_and_log(self.logfile, "")  # add a blank line

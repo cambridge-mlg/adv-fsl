@@ -200,6 +200,8 @@ class Learner:
 
         attack = create_attack(self.args.attack_config_path)
 
+        accuracies_before = []
+        accuracies_after = []
         for t in range(self.args.attack_tasks):
             task_dict = self.dataset.get_test_task(self.args.test_way, self.args.test_shot, self.args.query)
             context_images, target_images, context_labels, target_labels = self.prepare_task(task_dict, shuffle=False)
@@ -242,8 +244,16 @@ class Learner:
             acc_before = torch.mean(torch.eq(target_labels, torch.argmax(logits, dim=-1)).float()).item()
             del logits
 
-            diff = acc_before - acc_after
-            print_and_log(self.logfile, "Task = {}, Diff = {}".format(t, diff))
+            accuracies_before.append(acc_before)
+            accuracies_after.append(acc_after)
+
+        accuracy = np.array(accuracies_before).mean() * 100.0
+        accuracy_confidence = (196.0 * np.array(accuracies_before).std()) / np.sqrt(len(accuracies_before))
+        print_and_log(self.logfile, 'Before attack: {0:3.1f}+/-{1:2.1f}'.format(accuracy, accuracy_confidence))
+
+        accuracy = np.array(accuracies_after).mean() * 100.0
+        accuracy_confidence = (196.0 * np.array(accuracies_after).std()) / np.sqrt(len(accuracies_after))
+        print_and_log(self.logfile, 'After attack: {0:3.1f}+/-{1:2.1f}'.format(accuracy, accuracy_confidence))
 
     def prepare_task(self, task_dict, shuffle):
         context_images, context_labels = task_dict['context_images'], task_dict['context_labels']
