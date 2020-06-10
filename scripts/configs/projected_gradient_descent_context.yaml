@@ -7,5 +7,3 @@ project_step: True
 attack_mode: context
 class_fraction: 0.4
 shot_fraction: 0.4
-clip_max: 1.0
-clip_min: -1.0

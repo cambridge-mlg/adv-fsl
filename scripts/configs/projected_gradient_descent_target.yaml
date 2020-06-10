@@ -5,5 +5,3 @@ num_iterations: 10
 epsilon_step: 0.1
 project_step: True
 attack_mode: target
-clip_max: 1.0
-clip_min: -1.0

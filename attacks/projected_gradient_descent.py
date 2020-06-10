@@ -15,9 +15,7 @@ class ProjectedGradientDescent:
                  project_step=True,
                  attack_mode='context',
                  class_fraction=1.0,
-                 shot_fraction=1.0,
-                 clip_max=1.0,
-                 clip_min=-1.0):
+                 shot_fraction=1.0):
         self.norm = norm
         self.epsilon = epsilon
         self.num_iterations = num_iterations
@@ -26,14 +24,15 @@ class ProjectedGradientDescent:
         self.attack_mode = attack_mode
         self.class_fraction = class_fraction
         self.shot_fraction = shot_fraction
-        self.clip_max = clip_max
-        self.clip_min = clip_min
         self.loss = nn.CrossEntropyLoss()
 
     def generate(self, context_images, context_labels, target_images, model, get_logits_fn, device):
         # get the predicted target labels
         logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
         labels = convert_labels(logits)
+
+        self.clip_min = context_images.min().item()
+        self.clip_max = context_images.max().item()
 
         if self.attack_mode == 'target':
             return self._generate_target(context_images, context_labels, target_images, labels, model, get_logits_fn,

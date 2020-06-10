@@ -29,8 +29,6 @@ def create_attack(attack_config_path):
                 attack_mode=attack_params['attack_mode'],
                 class_fraction=class_fraction,
                 shot_fraction=shot_fraction,
-                clip_max=attack_params['clip_max'],
-                clip_min=attack_params['clip_min']
             )
         elif attack_params['attack'] == 'carlini_wagner':
             attack = CarliniWagnerL2(
