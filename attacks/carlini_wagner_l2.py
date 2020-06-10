@@ -133,7 +133,8 @@ class CarliniWagnerL2(object):
                  attack_mode='context',
                  class_fraction=0.5,
                  shot_fraction=0.5,
-                 success_fraction=0.5
+                 success_fraction=0.5,
+                 vary_success_criteria=False
                  ):
         """
         :param targeted: ``True`` to perform targeted attack in ``self.run``
@@ -212,7 +213,9 @@ class CarliniWagnerL2(object):
         self.attack_mode = attack_mode
         self.class_fraction = class_fraction
         self.shot_fraction = shot_fraction
+
         self.success_fraction = success_fraction
+        self.vary_success_criteria = vary_success_criteria
 
         # Since the larger the `scale_const` is, the more likely a successful
         # attack can be found, `self.repeat` guarantees at least attempt the
@@ -441,9 +444,14 @@ class CarliniWagnerL2(object):
         :rtype: bool
         """
         # Make the successfulness of an attack depend on the current iteration
-        accept_success = min(int((step/self.max_iterations)*10)/10.0 + 0.1, 1.0)
+        if self.vary_success_criteria:
+            min_success = 0.05
+            accept_success = (self.success_fraction - min_success)*step/self.max_iterations + min_success
+        else:
+            accept_success = self.success_fraction
+
         if self.targeted:
-            return ((prediction == target).sum()/float(prediction.shape[0])).item() >= accept_sucess
+            return ((prediction == target).sum()/float(prediction.shape[0])).item() >= accept_success
         else:
             return ((prediction != target).sum()/float(prediction.shape[0])).item() >= accept_success
 

@@ -44,6 +44,8 @@ def create_attack(attack_config_path):
                 optimizer_lr=attack_params['optimizer_lr'],
                 init_rand=attack_params['init_rand'],
                 attack_mode=attack_params['attack_mode'],
+                success_fraction=attack_params['success_fraction'],
+                vary_success_criteria=attack_params['vary_success_criteria'],
                 class_fraction=attack_params['class_fraction'],
                 shot_fraction=attack_params['shot_fraction'],
             )
@@ -59,6 +61,7 @@ def create_attack(attack_config_path):
                 decision_rule=attack_params['decision_rule'],
                 c_lower=attack_params['c_lower'],
                 c_upper=attack_params['c_upper'],
+                success_fraction=attack_params['success_fraction'],
                 attack_mode=attack_params['attack_mode'],
                 class_fraction=attack_params['class_fraction'],
                 shot_fraction=attack_params['shot_fraction'],
