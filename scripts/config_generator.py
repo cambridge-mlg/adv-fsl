@@ -69,10 +69,9 @@ def make_attack_name(attack_config):
                                                       attack_config['success_fraction'],
                                                       attack_config['vary_success_criteria'])
     elif attack_config['attack'] == 'elastic_net':
-        return 'elastic_conf={}_beta={}_success={}_vary={}'.format(attack_config['confidence'],
+        return 'elastic_conf={}_beta={}_success={}'.format(attack_config['confidence'],
                                                                    attack_config['beta'],
-                                                                   attack_config['success_fraction'],
-                                                                   attack_config['vary_success_criteria'])
+                                                                   attack_config['success_fraction'])
 
 def enumerate_parameter_settings(parameters):
     if len(parameters) == 0:
@@ -101,13 +100,16 @@ def dump_to_yaml(path, dict):
 def main():
     ''''Stuff to configure:'''
     num_tasks = 10
+    gpu_num = 1
 
-    settings = small_scale
+    settings = [('omniglot', 5, 1)]
+    models = all_models
+
     if settings == small_scale:
         models = ['maml', 'protonets']
     elif settings == large_scale:
         models = ['cnaps']
-    else:
+    elif models == None:
         print("Error: Not sure what models to use for unknown scale setting")
         return
 
@@ -124,14 +126,14 @@ def main():
     # Specifying n parameters, each with v_i many values will result in
     # v_1 x v_2 .. x v_n many configurations per attack
     attack_parameters = {
-        'pgd': [('epsilon', [0.1, 0.2, 0.3])],
-        'carlini_wagner': [('confidence', [0.0, 2.0]), ('vary_success_criteria', [True, False])],
-        'elastic_net': [('confidence', [0.0, 2.0]), ('beta', [0.01, 0.1])],
+        'pgd': [('epsilon', [0.3])],
+        'carlini_wagner': [ ('vary_success_criteria', [True, False])],
+        'elastic_net': [ ('beta', [0.01, 0.1])],
     }
 
     data_dir = '/scratches/stroustrup/jfb54/adv-fsl'
 
-    output_dir = '/home/squishymage/tmp_output'#'/scratch3/etv21/'
+    output_dir = '/scratch3/etv21/metalearning'#'/home/squishymage/tmp_output'
 
     attack_configurations = []
     # 1. Generate the necessary attack configs:
@@ -152,6 +154,10 @@ def main():
                 attack_configurations.append(attack_config)
 
     output_file = open(os.path.join(output_dir, 'run_exps.sh'), 'w')
+    output_file.write('ulimit -n 50000\n')
+    output_file.write('export PYTHONPATH=.\n')
+    output_file.write('export CUDA_DEVICE_ORDER=PCI_BUS_ID\n')
+    output_file.write('export CUDA_VISIBLE_DEVICES={}\n'.format(gpu_num))
 
     # 2. Generate command line
     for setting in settings:
@@ -179,16 +185,19 @@ def main():
                 if model == 'cnaps':
                     target = './learners/cnaps/src/run_cnaps.py'
                     model_path = os.path.join(model_path, 'meta-trained_meta-dataset_film.pt')
-                    model_specific_params += '\t--data_set {} \\\n'.format(dataset_name)
+                    model_specific_params += '\t--dataset {} \\\n'.format(dataset_name)
                     model_specific_params += '\t--feature_adaptation film \\\n'
                     model_specific_params += '\t--mode attack \\\n'
                     model_specific_params += '\t--shot {} \\\n'.format(shot)
                     model_specific_params += '\t--way {} \\\n'.format(way)
                     model_specific_params += '\t-m {} '.format(model_path)
                 elif model == 'maml':
-                    target = '/learners/maml/train.py'
+                    target = './learners/maml/train.py'
                     model_path = os.path.join(model_path, '{}_{}.pt'.format(model, setting_name))
-                    model_specific_params += '\t--data_set {} \\\n'.format(dataset_name)
+                    if dataset_name == 'miniimagenet':
+                        model_specific_params += '\t--dataset mini_imagenet \\\n'
+                    else:
+                        model_specific_params += '\t--dataset {} \\\n'.format(dataset_name)
                     model_specific_params += '\t--model maml \\\n'
                     model_specific_params += '\t--mode attack \\\n'
                     model_specific_params += '\t--num_classes {} \\\n'.format(way)
@@ -201,7 +210,7 @@ def main():
                     model_specific_params += '\t--attack_model_path {} '.format(model_path)
 
                 elif model == 'protonets':
-                    target = './learners/protonets_miniimagenet/attack.py'
+                    target = './learners/protonets/src/main.py'
                     model_path = os.path.join(model_path, '{}_{}.pt'.format(model, setting_name))
                     model_specific_params += '\t--shot {} \\\n'.format(shot)
                     model_specific_params += '\t--way {} \\\n'.format(way)
