@@ -362,7 +362,10 @@ else:
     max_pool = False
     flatten = False
     hidden_dim = 64
-    test_gradient_steps = 3
+    if args.num_classes == 5:
+        test_gradient_steps = 3
+    else:
+        test_gradient_steps = 5
 
 # Initialize model
 if args.model in ['maml', 'proto-maml']:
