@@ -12,7 +12,6 @@ from __future__ import unicode_literals
 
 import torch
 import torch.nn as nn
-from examples.facenet_adversarial_faces.facenet_fgsm import adv
 
 from attacks.attack_utils import distance_l2_squared, distance_l1, one_hot_embedding, fix_logits, convert_labels, generate_context_attack_indices
 
@@ -155,12 +154,13 @@ class ElasticNet():
             # Generate target labels based on model's initial prediction:
             initial_logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
             target_labels = convert_labels(initial_logits)
-
         classes = torch.unique(context_labels)
         num_classes = len(classes)
         # Make one-hot encoding for target_labels
         target_labels_oh = one_hot_embedding(target_labels, num_classes).to(device)
-        adv_context_indices = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
+        # These indices are tensors. I'm not sure that's what we want, but I don't want to change it without further discussion
+        adv_context_indices_t = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
+        adv_context_indices = [index_tensor.item() for index_tensor in adv_context_indices_t]
 
         #I don't think this is necessary:
         #x = x.detach().clone()
@@ -183,7 +183,7 @@ class ElasticNet():
             print('Using scale const:', c_current)
 
             # slack vector from the paper
-            yy_k = nn.Parameter(context_images.clone())
+            yy_k = context_images.clone()
             xx_k = context_images.clone()
 
             curr_dist = torch.ones(len(adv_context_indices), device=device) * INF
@@ -197,11 +197,8 @@ class ElasticNet():
             lr = self.learning_rate
 
             for k in range(self.max_iterations):
-
-                # reset gradient
-                if yy_k.grad is not None:
-                    yy_k.grad.detach_()
-                    yy_k.grad.zero_()
+                model.zero_grad()
+                yy_k.requires_grad = True
 
                 # loss over yy_k with only L2 same as C&W
                 # we don't update L1 loss with SGD because we use ISTA
@@ -210,15 +207,23 @@ class ElasticNet():
                 loss_opt = self._loss_fn(target_outputs, target_labels_oh, None, l2_dist, c_current, exclude_l1=True)
                 loss_opt.backward()
 
-                # In-place gradient step, y = y - lr * y.grad
-                yy_k.data[adv_context_indices].add_(-lr, yy_k.grad.data[adv_context_indices])
+                yy_k_grad = yy_k.grad
+                yy_k = yy_k.detach()
+                # Gradient step (gradient need only be calculated again in next iteration, so clone to prevent leaf edits)
+                for i, index in enumerate(adv_context_indices):
+                    yy_k[index] = yy_k[index] - lr* yy_k_grad[index]
+
                 self.global_step += 1
 
                 # polynomial decay of learning rate
                 lr = self.init_learning_rate * (1 - self.global_step / self.max_iterations)**0.5
 
-                yy_k[adv_context_indices], xx_k[adv_context_indices] = self._fast_iterative_shrinkage_thresholding(
+                yy_k_new, xx_k_new = self._fast_iterative_shrinkage_thresholding(
                     context_images[adv_context_indices], yy_k[adv_context_indices], xx_k[adv_context_indices])
+
+                for (i, index) in enumerate(adv_context_indices):
+                    yy_k[index] = yy_k_new[i]
+                    xx_k[index] = xx_k_new[i]
 
                 # loss ElasticNet or L1 over xx_k
                 with torch.no_grad():
