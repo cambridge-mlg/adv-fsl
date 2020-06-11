@@ -287,6 +287,7 @@ def main( gpu_num, output_dir, num_tasks):
                     target = './learners/protonets/src/main.py'
                     model_path = os.path.join(model_path, '{}_{}.pt'.format(model, setting_name))
                     data_dir = os.path.join(root_data_dir, 'adv-fsl')
+                    model_specific_params += '\t--mode attack \\\n'
                     model_specific_params += '\t--test_shot {} \\\n'.format(shot)
                     model_specific_params += '\t--test_way {} \\\n'.format(way)
                     model_specific_params += '\t--query {} \\\n'.format(
