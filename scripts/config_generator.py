@@ -16,9 +16,9 @@ default_attack_parameters = {
     'pgd': {
         'attack': 'projected_gradient_descent',
         'norm': 'inf',
-        'epsilon': 0.3,
-        'num_iterations': 10,
-        'epsilon_step': 0.05,
+        'epsilon': 8.0/255.0,
+        'num_iterations': 20,
+        'epsilon_step': 2.0/255.0,
         'project_step': True,
         'attack_mode': None,
         'class_fraction': None,
@@ -189,9 +189,8 @@ def main():
     # Specifying n parameters, each with v_i many values will result in
     # v_1 x v_2 .. x v_n many configurations per attack
     attack_parameters = {
-        'pgd': [('epsilon', [0.3])],
-        'carlini_wagner': [ ('vary_success_criteria', [True, False])],
-        'elastic_net': [ ('beta', [0.01, 0.1])],
+        'carlini_wagner': [('vary_success_criteria', [True, False])],
+        'elastic_net': [('beta', [0.01, 0.1])],
     }
 
     data_dir = '/scratches/stroustrup/jfb54/adv-fsl'
