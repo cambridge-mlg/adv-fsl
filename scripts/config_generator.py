@@ -1,10 +1,10 @@
-
 import os
 import yaml
 
 # Triples of ('dataset', way, shot)
-large_scale = [('metadataset', -1, -1), ('omniglot', 5, 1), ('omniglot', 5, 5),('omniglot', 20, 1), ('omniglot', 20, 5)]
-small_scale = [('omniglot', 5, 1), ('omniglot', 5, 5),('omniglot', 20, 1), ('omniglot', 20, 5),
+large_scale = [('metadataset', -1, -1), ('omniglot', 5, 1), ('omniglot', 5, 5), ('omniglot', 20, 1),
+               ('omniglot', 20, 5)]
+small_scale = [('omniglot', 5, 1), ('omniglot', 5, 5), ('omniglot', 20, 1), ('omniglot', 20, 5),
                ('miniimagenet', 5, 1), ('miniimagenet', 5, 5)]
 
 all_models = ['maml', 'protonets', 'cnaps']
@@ -16,9 +16,9 @@ default_attack_parameters = {
     'pgd': {
         'attack': 'projected_gradient_descent',
         'norm': 'inf',
-        'epsilon': 8.0/255.0,
+        'epsilon': 8.0 / 255.0,
         'num_iterations': 20,
-        'epsilon_step': 2.0/255.0,
+        'epsilon_step': 2.0 / 255.0,
         'project_step': True,
         'attack_mode': None,
         'class_fraction': None,
@@ -61,60 +61,58 @@ default_attack_parameters = {
 }
 
 default_maml_parameters = {
-    'omniglot_5_way_1_shot': {
+    'omniglot_5-way_1-shot': {
         'inner_lr': 0.4
     },
-    'omniglot_5_way_5_shot': {
+    'omniglot_5-way_5-shot': {
         'inner_lr': 0.4
     },
-    'omniglot_20_way_1_shot': {
+    'omniglot_20-way_1-shot': {
         'inner_lr': 0.1
     },
-    'omniglot_20_way_5_shot': {
+    'omniglot_20-way_5-shot': {
         'inner_lr': 0.1
     },
-    'mini_imagenet_5_way_1_shot': {
+    'mini_imagenet_5-way_1-shot': {
         'inner_lr': 0.01
     },
-    'mini_imagenet_5_way_5_shot': {
+    'mini_imagenet_5-way-5-shot': {
         'inner_lr': 0.01
     }
 }
-
 
 default_protonets_parameters = {
-    'omniglot_5_way_1_shot': {
+    'omniglot_5-way_1-shot': {
         'query': 5,
     },
-    'omniglot_5_way_5_shot': {
+    'omniglot_5-way_5-shot': {
         'query': 5,
     },
-    'omniglot_20_way_1_shot': {
+    'omniglot_20-way_1-shot': {
         'query': 5,
     },
-    'omniglot_20_way_5_shot': {
+    'omniglot_20-way_5-shot': {
         'query': 5,
     },
-    'mini_imagenet_5_way_1_shot': {
+    'mini_imagenet_5-way_1-shot': {
         'query': 15,
     },
-    'mini_imagenet_5_way_5_shot': {
+    'mini_imagenet_5-way_5-shot': {
         'query': 15,
     }
 }
 
-
 default_cnaps_parameters = {
-    'omniglot_5_way_1_shot': {
+    'omniglot_5-way_1-shot': {
         'query_test': 1
     },
-    'omniglot_5_way_5_shot': {
+    'omniglot_5-way_5-shot': {
         'query_test': 5
     },
-    'omniglot_20_way_1_shot': {
+    'omniglot_20-way_1-shot': {
         'query_test': 1
     },
-    'omniglot_20_way_5_shot': {
+    'omniglot_20-way_5-shot': {
         'query_test': 5
     },
     'meta_dataset': {
@@ -124,17 +122,23 @@ default_cnaps_parameters = {
 
 
 def make_attack_name(attack_config):
+    class_shot_fraction_str = 'cf={:.2f}_sf={:.2f}'.format(attack_config['class_fraction'],
+                                                         attack_config['shot_fraction'], )
     if attack_config['attack'] == 'projected_gradient_descent':
-        return 'pgd_eps={}_eps_step={}'.format(attack_config['epsilon'],
-                                               attack_config['epsilon_step'])
+        return 'pgd_{}_eps={:.2f}_eps_step={:.3f}'.format(class_shot_fraction_str,
+                                                          attack_config['epsilon'],
+                                                          attack_config['epsilon_step'])
     elif attack_config['attack'] == 'carlini_wagner':
-        return 'cw_conf={}_success={}_vary={}'.format(attack_config['confidence'],
-                                                      attack_config['success_fraction'],
-                                                      attack_config['vary_success_criteria'])
+        return 'cw_{}_conf={:.2f}_success={}_vary={}'.format(class_shot_fraction_str,
+                                                             attack_config['confidence'],
+                                                             attack_config['success_fraction'],
+                                                             attack_config['vary_success_criteria'])
     elif attack_config['attack'] == 'elastic_net':
-        return 'elastic_conf={}_beta={}_success={}'.format(attack_config['confidence'],
-                                                           attack_config['beta'],
-                                                           attack_config['success_fraction'])
+        return 'elastic_{}_conf={:.2f}_beta={:.2f}_success={}'.format(class_shot_fraction_str,
+                                                                      attack_config['confidence'],
+                                                                      attack_config['beta'],
+                                                                      attack_config['success_fraction'])
+
 
 def enumerate_parameter_settings(parameters):
     if len(parameters) == 0:
@@ -150,15 +154,17 @@ def enumerate_parameter_settings(parameters):
         lower_perms = enumerate_parameter_settings(parameters[1:])
         for value in param_vals:
             for lower_perm in lower_perms:
-                new_perm = lower_perm.copy() #Shallow copy should be fine
+                new_perm = lower_perm.copy()  # Shallow copy should be fine
                 new_perm[param_name] = value
                 result.append(new_perm)
     return result
+
 
 def dump_to_yaml(path, dict):
     f = open(path, "w")
     yaml.dump(dict, f, default_flow_style=False)
     f.close()
+
 
 def main():
     ''''Stuff to configure:'''
@@ -195,13 +201,20 @@ def main():
 
     data_dir = '/scratches/stroustrup/jfb54/adv-fsl'
 
-    output_dir = '/scratch3/etv21/metalearning'#'/home/squishymage/tmp_output'
+    output_dir = '/home/squishymage/tmp_output' # '/scratch3/etv21/metalearning'
 
     attack_configurations = []
     # 1. Generate the necessary attack configs:
     for attack in attacks:
-        # Enumerate non-default params
-        non_default_settings = enumerate_parameter_settings(attack_parameters[attack])
+
+        # Enumerate non-default params, if any
+        # Generate this outside the loop, no need to re-generate for each attack_type
+        if attack not in attack_parameters:
+            # Only default parameters, list contains only an empty dictionary
+            non_default_settings = [{}]
+        else:
+            non_default_settings = enumerate_parameter_settings(attack_parameters[attack])
+
         for non_default_params in non_default_settings:
             for attack_type in attack_types:
                 # Make copy of default config object
@@ -218,7 +231,6 @@ def main():
     output_file = open(os.path.join(output_dir, 'run_exps.sh'), 'w')
     output_file.write('ulimit -n 50000\n')
     output_file.write('export PYTHONPATH=.\n')
-    #output_file.write('export CUDA_DEVICE_ORDER=PCI_BUS_ID\n')
     output_file.write('export CUDA_VISIBLE_DEVICES={}\n'.format(gpu_num))
 
     # 2. Generate command line
@@ -250,12 +262,14 @@ def main():
                 if model == 'cnaps':
                     target = './learners/cnaps/src/run_cnaps.py'
                     model_path = os.path.join(model_path, 'meta-trained_meta-dataset_film.pt')
+                    data_dir = os.path.join(data_dir, 'tf-meta-dataset/records')
                     model_specific_params += '\t--dataset {} \\\n'.format(dataset_name)
                     model_specific_params += '\t--feature_adaptation film \\\n'
                     model_specific_params += '\t--mode attack \\\n'
                     model_specific_params += '\t--shot {} \\\n'.format(shot)
                     model_specific_params += '\t--way {} \\\n'.format(way)
-                    model_specific_params += '\t--query_test {} \\\n'.format(default_cnaps_parameters[setting_name]['query_test'])
+                    model_specific_params += '\t--query_test {} \\\n'.format(
+                        default_cnaps_parameters[setting_name]['query_test'])
                     model_specific_params += '\t-m {} '.format(model_path)
                 elif model == 'maml':
                     target = './learners/maml/train.py'
@@ -268,7 +282,8 @@ def main():
                     model_specific_params += '\t--mode attack \\\n'
                     model_specific_params += '\t--num_classes {} \\\n'.format(way)
                     model_specific_params += '\t--shot {} \\\n'.format(shot)
-                    model_specific_params += '\t--inner_lr {}  \\\n'.format(default_maml_parameters[setting_name]['inner_lr'])
+                    model_specific_params += '\t--inner_lr {}  \\\n'.format(
+                        default_maml_parameters[setting_name]['inner_lr'])
                     model_specific_params += '\t--attack_model_path {} '.format(model_path)
 
                 elif model == 'protonets':
@@ -276,7 +291,8 @@ def main():
                     model_path = os.path.join(model_path, '{}_{}.pt'.format(model, setting_name))
                     model_specific_params += '\t--test_shot {} \\\n'.format(shot)
                     model_specific_params += '\t--test_way {} \\\n'.format(way)
-                    model_specific_params += '\t--query {} \\\n'.format(default_protonets_parameters[setting_name]['query'])
+                    model_specific_params += '\t--query {} \\\n'.format(
+                        default_protonets_parameters[setting_name]['query'])
                     model_specific_params += '\t--load {} '.format(model_path)
                 # Glue  it all together
                 cmd = "python3 {} --data_path {} \\\n\t--checkpoint_dir {} \\\n\t--attack_config_path {} \\\n\t--attack_tasks {} \\\n".format(
