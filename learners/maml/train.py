@@ -216,21 +216,23 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         if attack.get_attack_mode() == 'context':
             adv_context_images, adv_context_indices = attack.generate(xc, yc, xt, model, model.compute_logits, device)
 
-            for index in adv_context_indices:
-                save_image(adv_context_images[index].cpu().detach().numpy(),
-                           os.path.join(checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task, index)))
-                save_image(xc[index].cpu().detach().numpy(),
-                           os.path.join(checkpoint_dir, 'in_task_{}_index_{}.png'.format(task, index)))
+            if task < 10:
+                for index in adv_context_indices:
+                    save_image(adv_context_images[index].cpu().detach().numpy(),
+                               os.path.join(checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task, index)))
+                    save_image(xc[index].cpu().detach().numpy(),
+                               os.path.join(checkpoint_dir, 'in_task_{}_index_{}.png'.format(task, index)))
 
             _, acc_after = model.compute_objective(adv_context_images, yc, xt, yt, accuracy=True)
 
         else:  # target
             adv_target_images = attack.generate(xc, yc, xt, model, model.compute_logits, device)
-            for i in range(len(xt)):
-                save_image(adv_target_images[i].cpu().detach().numpy(),
-                           os.path.join(checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task, i)))
-                save_image(xt[i].cpu().detach().numpy(),
-                           os.path.join(checkpoint_dir, 'in_task_{}_index_{}.png'.format(task, i)))
+            if task < 10:
+                for i in range(len(xt)):
+                    save_image(adv_target_images[i].cpu().detach().numpy(),
+                               os.path.join(checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task, i)))
+                    save_image(xt[i].cpu().detach().numpy(),
+                               os.path.join(checkpoint_dir, 'in_task_{}_index_{}.png'.format(task, i)))
 
             _, acc_after = model.compute_objective(xc, yc, adv_target_images, yt, accuracy=True)
 

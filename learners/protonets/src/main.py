@@ -215,11 +215,12 @@ class Learner:
                     self.model,
                     self.device)
 
-                for index in adv_context_indices:
-                    save_image(adv_context_images[index].cpu().detach().numpy(),
-                               os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(t, index)))
-                    save_image(context_images[index].cpu().detach().numpy(),
-                               os.path.join(self.checkpoint_dir,'in_task_{}_index_{}.png'.format(t, index)))
+                if t < 10:
+                    for index in adv_context_indices:
+                        save_image(adv_context_images[index].cpu().detach().numpy(),
+                                   os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(t, index)))
+                        save_image(context_images[index].cpu().detach().numpy(),
+                                   os.path.join(self.checkpoint_dir,'in_task_{}_index_{}.png'.format(t, index)))
 
                 with torch.no_grad():
                     logits_adv = self.model(adv_context_images, context_labels, target_images)
@@ -229,11 +230,12 @@ class Learner:
             else:  # target
                 adv_target_images = attack.generate(context_images, context_labels, target_images, self.model,
                     self.model, self.device)
-                for i in range(len(target_images)):
-                    save_image(adv_target_images[i].cpu().detach().numpy(),
-                               os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(t, i)))
-                    save_image(target_images[i].cpu().detach().numpy(),
-                               os.path.join(self.checkpoint_dir,'in_task_{}_index_{}.png'.format(t, i)))
+                if t < 10:
+                    for i in range(len(target_images)):
+                        save_image(adv_target_images[i].cpu().detach().numpy(),
+                                   os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(t, i)))
+                        save_image(target_images[i].cpu().detach().numpy(),
+                                   os.path.join(self.checkpoint_dir,'in_task_{}_index_{}.png'.format(t, i)))
 
                 with torch.no_grad():
                     logits_adv = self.model(context_images, context_labels, adv_target_images)

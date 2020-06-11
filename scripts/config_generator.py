@@ -133,8 +133,8 @@ def make_attack_name(attack_config):
                                                       attack_config['vary_success_criteria'])
     elif attack_config['attack'] == 'elastic_net':
         return 'elastic_conf={}_beta={}_success={}'.format(attack_config['confidence'],
-                                                                   attack_config['beta'],
-                                                                   attack_config['success_fraction'])
+                                                           attack_config['beta'],
+                                                           attack_config['success_fraction'])
 
 def enumerate_parameter_settings(parameters):
     if len(parameters) == 0:
@@ -162,7 +162,7 @@ def dump_to_yaml(path, dict):
 
 def main():
     ''''Stuff to configure:'''
-    num_tasks = 10
+    num_tasks = 100
     gpu_num = 1
 
     settings = [('omniglot', 5, 1)]
@@ -218,7 +218,7 @@ def main():
     output_file = open(os.path.join(output_dir, 'run_exps.sh'), 'w')
     output_file.write('ulimit -n 50000\n')
     output_file.write('export PYTHONPATH=.\n')
-    output_file.write('export CUDA_DEVICE_ORDER=PCI_BUS_ID\n')
+    #output_file.write('export CUDA_DEVICE_ORDER=PCI_BUS_ID\n')
     output_file.write('export CUDA_VISIBLE_DEVICES={}\n'.format(gpu_num))
 
     # 2. Generate command line
@@ -226,7 +226,10 @@ def main():
         dataset_name = setting[0]
         way = setting[1]
         shot = setting[2]
-        setting_name = '{}_{}-way_{}-shot'.format(dataset_name, way, shot)
+        if dataset_name == 'meta_dataset':
+            setting_name = dataset_name
+        else:
+            setting_name = '{}_{}-way_{}-shot'.format(dataset_name, way, shot)
         for model in models:
             for attack_config in attack_configurations:
                 attack_name = make_attack_name(attack_config)
@@ -252,6 +255,7 @@ def main():
                     model_specific_params += '\t--mode attack \\\n'
                     model_specific_params += '\t--shot {} \\\n'.format(shot)
                     model_specific_params += '\t--way {} \\\n'.format(way)
+                    model_specific_params += '\t--query_test {} \\\n'.format(default_cnaps_parameters[setting_name]['query_test'])
                     model_specific_params += '\t-m {} '.format(model_path)
                 elif model == 'maml':
                     target = './learners/maml/train.py'
@@ -264,7 +268,7 @@ def main():
                     model_specific_params += '\t--mode attack \\\n'
                     model_specific_params += '\t--num_classes {} \\\n'.format(way)
                     model_specific_params += '\t--shot {} \\\n'.format(shot)
-                    model_specific_params += '\t--inner_lr 0.4  \\\n'
+                    model_specific_params += '\t--inner_lr {}  \\\n'.format(default_maml_parameters[setting_name]['inner_lr'])
                     model_specific_params += '\t--attack_model_path {} '.format(model_path)
 
                 elif model == 'protonets':
@@ -272,7 +276,7 @@ def main():
                     model_path = os.path.join(model_path, '{}_{}.pt'.format(model, setting_name))
                     model_specific_params += '\t--test_shot {} \\\n'.format(shot)
                     model_specific_params += '\t--test_way {} \\\n'.format(way)
-                    model_specific_params += '\t--query {} \\\n'.format(shot)
+                    model_specific_params += '\t--query {} \\\n'.format(default_protonets_parameters[setting_name]['query'])
                     model_specific_params += '\t--load {} '.format(model_path)
                 # Glue  it all together
                 cmd = "python3 {} --data_path {} \\\n\t--checkpoint_dir {} \\\n\t--attack_config_path {} \\\n\t--attack_tasks {} \\\n".format(
