@@ -197,7 +197,7 @@ def main( gpu_num, output_dir, num_tasks):
         'carlini_wagner': [('vary_success_criteria', [True, False])],
     }
 
-    default_data_dir = '/scratches/stroustrup/jfb54/adv-fsl'
+    root_data_dir = '/scratches/stroustrup/jfb54/'
 
     attack_configurations = []
     # 1. Generate the necessary attack configs:
@@ -258,7 +258,7 @@ def main( gpu_num, output_dir, num_tasks):
                 if model == 'cnaps':
                     target = './learners/cnaps/src/run_cnaps.py'
                     model_path = os.path.join(model_path, 'meta-trained_meta-dataset_film.pt')
-                    data_dir = os.path.join(default_data_dir, 'tf-meta-dataset/records')
+                    data_dir = os.path.join(root_data_dir, 'tf-meta-dataset/records')
                     model_specific_params += '\t--dataset {} \\\n'.format(dataset_name)
                     model_specific_params += '\t--feature_adaptation film \\\n'
                     model_specific_params += '\t--mode attack \\\n'
@@ -270,7 +270,7 @@ def main( gpu_num, output_dir, num_tasks):
                 elif model == 'maml':
                     target = './learners/maml/train.py'
                     model_path = os.path.join(model_path, '{}_{}.pt'.format(model, setting_name))
-                    data_dir = default_data_dir
+                    data_dir = os.path.join(root_data_dir, 'adv-fsl')
                     if dataset_name == 'miniimagenet':
                         model_specific_params += '\t--dataset mini_imagenet \\\n'
                     else:
@@ -286,7 +286,7 @@ def main( gpu_num, output_dir, num_tasks):
                 elif model == 'protonets':
                     target = './learners/protonets/src/main.py'
                     model_path = os.path.join(model_path, '{}_{}.pt'.format(model, setting_name))
-                    data_dir = default_data_dir
+                    data_dir = os.path.join(root_data_dir, 'adv-fsl')
                     model_specific_params += '\t--test_shot {} \\\n'.format(shot)
                     model_specific_params += '\t--test_way {} \\\n'.format(way)
                     model_specific_params += '\t--query {} \\\n'.format(
