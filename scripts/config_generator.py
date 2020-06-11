@@ -6,9 +6,10 @@ import argparse
 large_scale = [('metadataset', -1, -1), ('omniglot', 5, 1), ('omniglot', 5, 5), ('omniglot', 20, 1),
                ('omniglot', 20, 5)]
 small_scale = [('omniglot', 5, 1), ('omniglot', 5, 5), ('omniglot', 20, 1), ('omniglot', 20, 5),
-               ('miniimagenet', 5, 1), ('miniimagenet', 5, 5)]
+               ('mini_imagenet', 5, 1), ('mini_imagenet', 5, 5)]  # ('ilsvrc_2012', 5, 1), ('ilsvrc_2012', 5, 5) for cnaps
 
 all_models = ['maml', 'protonets', 'cnaps']
+
 all_attacks = ['pgd', 'carlini_wagner', 'elastic_net']
 
 attack_modes = ['context', 'target']
@@ -77,7 +78,7 @@ default_maml_parameters = {
     'mini_imagenet_5-way_1-shot': {
         'inner_lr': 0.01
     },
-    'mini_imagenet_5-way-5-shot': {
+    'mini_imagenet_5-way_5-shot': {
         'inner_lr': 0.01
     }
 }
@@ -118,13 +119,25 @@ default_cnaps_parameters = {
     },
     'meta_dataset': {
         'query_test': 10
+    },
+    'ilsvrc_2012_5-way_1-shot': {
+        'query_test': 1
+    },
+    'ilsvrc_2012_5-way_5-shot': {
+        'query_test': 5
+    },
+    'ilsvrc_2012_20-way_1-shot': {
+        'query_test': 1
+    },
+    'ilsvrc_2012_20-way_5-shot': {
+        'query_test': 5
     }
 }
 
 
 def make_attack_name(attack_config):
     class_shot_fraction_str = 'cf={:.2f}_sf={:.2f}'.format(attack_config['class_fraction'],
-                                                         attack_config['shot_fraction'], )
+                                                           attack_config['shot_fraction'], )
     if attack_config['attack'] == 'projected_gradient_descent':
         return 'pgd_{}_eps={:.2f}_eps_step={:.3f}'.format(class_shot_fraction_str,
                                                           attack_config['epsilon'],
@@ -167,19 +180,22 @@ def dump_to_yaml(path, dict):
     f.close()
 
 
-def main( gpu_num, output_dir, num_tasks):
+def main(gpu_num, output_dir, num_tasks, script_name):
     ''''Stuff to configure:'''
 
-    settings = [('omniglot', 5, 1)]
-    models = all_models
-
-    if settings == small_scale:
-        models = ['maml', 'protonets']
-    elif settings == large_scale:
-        models = ['cnaps']
-    elif models == None:
-        print("Error: Not sure what models to use for unknown scale setting")
-        return
+    exp_settings = [{'model': 'maml', 'problem': ('omniglot', 5, 1)},
+                    {'model': 'maml', 'problem': ('omniglot', 5, 5)},
+                    {'model': 'maml', 'problem': ('mini_imagenet', 5, 1)},
+                    {'model': 'maml', 'problem': ('mini_imagenet', 5, 5)},
+                    {'model': 'protonets', 'problem': ('omniglot', 5, 1)},
+                    {'model': 'protonets', 'problem': ('omniglot', 5, 5)},
+                    {'model': 'protonets', 'problem': ('mini_imagenet', 5, 1)},
+                    {'model': 'protonets', 'problem': ('mini_imagenet', 5, 5)},
+                    {'model': 'cnaps', 'problem': ('omniglot', 5, 1)},
+                    {'model': 'cnaps', 'problem': ('omniglot', 5, 5)},
+                    {'model': 'cnaps', 'problem': ('ilsvrc_2012', 5, 1)},
+                    {'model': 'cnaps', 'problem': ('ilsvrc_2012', 5, 5)},
+                    ]
 
     attacks = ['pgd']
 
@@ -224,91 +240,91 @@ def main( gpu_num, output_dir, num_tasks):
                 attack_config['class_fraction'] = attack_type[1]
                 attack_configurations.append(attack_config)
 
-    output_file = open(os.path.join(output_dir, 'run_exps.sh'), 'w')
+    output_file = open(os.path.join(output_dir, script_name), 'w')
     output_file.write('ulimit -n 50000\n')
     output_file.write('export PYTHONPATH=.\n')
     output_file.write('export CUDA_VISIBLE_DEVICES={}\n'.format(gpu_num))
 
     # 2. Generate command line
-    for setting in settings:
-        dataset_name = setting[0]
-        way = setting[1]
-        shot = setting[2]
+    for setting in exp_settings:
+        model = setting['model']
+        dataset_name = setting['problem'][0]
+        way = setting['problem'][1]
+        shot = setting['problem'][2]
         if dataset_name == 'meta_dataset':
             setting_name = dataset_name
         else:
             setting_name = '{}_{}-way_{}-shot'.format(dataset_name, way, shot)
-        for model in models:
-            for attack_config in attack_configurations:
-                attack_name = make_attack_name(attack_config)
-                exp_name = '{}_{}_{}'.format(model, setting_name, attack_name)
 
-                # Make checkpoint dir
-                model_path = os.path.join('./learners', model, 'models')
-                checkpoint_dir = os.path.join(output_dir, model, setting_name, attack_name)
-                if not os.path.exists(checkpoint_dir):
-                    os.makedirs(checkpoint_dir)
+        for attack_config in attack_configurations:
+            attack_name = make_attack_name(attack_config)
 
-                # Save config in relevant folder
-                attack_config_path = os.path.join(checkpoint_dir, '{}.yaml'.format(attack_name))
-                dump_to_yaml(attack_config_path, attack_config)
+            # Make checkpoint dir
+            model_path = os.path.join('./learners', model, 'models')
+            checkpoint_dir = os.path.join(output_dir, model, setting_name, attack_name)
+            if not os.path.exists(checkpoint_dir):
+                os.makedirs(checkpoint_dir)
 
-                # Generate command
-                model_specific_params = ''
-                if model == 'cnaps':
-                    target = './learners/cnaps/src/run_cnaps.py'
-                    model_path = os.path.join(model_path, 'meta-trained_meta-dataset_film.pt')
-                    data_dir = os.path.join(root_data_dir, 'tf-meta-dataset/records')
-                    model_specific_params += '\t--dataset {} \\\n'.format(dataset_name)
-                    model_specific_params += '\t--feature_adaptation film \\\n'
-                    model_specific_params += '\t--mode attack \\\n'
-                    model_specific_params += '\t--shot {} \\\n'.format(shot)
-                    model_specific_params += '\t--way {} \\\n'.format(way)
-                    model_specific_params += '\t--query_test {} \\\n'.format(
-                        default_cnaps_parameters[setting_name]['query_test'])
-                    model_specific_params += '\t-m {} '.format(model_path)
-                elif model == 'maml':
-                    target = './learners/maml/train.py'
-                    model_path = os.path.join(model_path, '{}_{}.pt'.format(model, setting_name))
-                    data_dir = os.path.join(root_data_dir, 'adv-fsl')
-                    if dataset_name == 'miniimagenet':
-                        model_specific_params += '\t--dataset mini_imagenet \\\n'
-                    else:
-                        model_specific_params += '\t--dataset {} \\\n'.format(dataset_name)
-                    model_specific_params += '\t--model maml \\\n'
-                    model_specific_params += '\t--mode attack \\\n'
-                    model_specific_params += '\t--num_classes {} \\\n'.format(way)
-                    model_specific_params += '\t--shot {} \\\n'.format(shot)
-                    model_specific_params += '\t--inner_lr {}  \\\n'.format(
-                        default_maml_parameters[setting_name]['inner_lr'])
-                    model_specific_params += '\t--attack_model_path {} '.format(model_path)
+            # Save config in relevant folder
+            attack_config_path = os.path.join(checkpoint_dir, '{}.yaml'.format(attack_name))
+            dump_to_yaml(attack_config_path, attack_config)
 
-                elif model == 'protonets':
-                    target = './learners/protonets/src/main.py'
-                    model_path = os.path.join(model_path, '{}_{}.pt'.format(model, setting_name))
-                    data_dir = os.path.join(root_data_dir, 'adv-fsl')
-                    model_specific_params += '\t--mode attack \\\n'
-                    model_specific_params += '\t--test_shot {} \\\n'.format(shot)
-                    model_specific_params += '\t--test_way {} \\\n'.format(way)
-                    model_specific_params += '\t--query {} \\\n'.format(
-                        default_protonets_parameters[setting_name]['query'])
-                    model_specific_params += '\t--test_model_path {} '.format(model_path)
-                # Glue  it all together
-                cmd = "python3 {} --data_path {} \\\n\t--checkpoint_dir {} \\\n\t--attack_config_path {} \\\n\t--attack_tasks {} \\\n".format(
-                    target, data_dir, checkpoint_dir, attack_config_path, num_tasks)
-                cmd += model_specific_params
-                output_file.write(cmd + '\n')
+            # Generate command
+            model_specific_params = ''
+            if model == 'cnaps':
+                target = './learners/cnaps/src/run_cnaps.py'
+                model_path = os.path.join(model_path, 'meta-trained_meta-dataset_film.pt')
+                data_dir = os.path.join(root_data_dir, 'tf-meta-dataset/records')
+                model_specific_params += '\t--dataset {} \\\n'.format(dataset_name)
+                model_specific_params += '\t--feature_adaptation film \\\n'
+                model_specific_params += '\t--mode attack \\\n'
+                model_specific_params += '\t--shot {} \\\n'.format(shot)
+                model_specific_params += '\t--way {} \\\n'.format(way)
+                model_specific_params += '\t--query_test {} \\\n'.format(
+                    default_cnaps_parameters[setting_name]['query_test'])
+                model_specific_params += '\t-m {} '.format(model_path)
+            elif model == 'maml':
+                target = './learners/maml/train.py'
+                model_path = os.path.join(model_path, '{}_{}.pt'.format(model, setting_name))
+                data_dir = os.path.join(root_data_dir, 'adv-fsl')
+                model_specific_params += '\t--dataset {} \\\n'.format(dataset_name)
+                model_specific_params += '\t--model maml \\\n'
+                model_specific_params += '\t--mode attack \\\n'
+                model_specific_params += '\t--num_classes {} \\\n'.format(way)
+                model_specific_params += '\t--shot {} \\\n'.format(shot)
+                model_specific_params += '\t--inner_lr {}  \\\n'.format(
+                    default_maml_parameters[setting_name]['inner_lr'])
+                model_specific_params += '\t--attack_model_path {} '.format(model_path)
+
+            elif model == 'protonets':
+                target = './learners/protonets/src/main.py'
+                model_path = os.path.join(model_path, '{}_{}.pt'.format(model, setting_name))
+                data_dir = os.path.join(root_data_dir, 'adv-fsl')
+                model_specific_params += '\t--dataset {} \\\n'.format(dataset_name)
+                model_specific_params += '\t--mode attack \\\n'
+                model_specific_params += '\t--test_shot {} \\\n'.format(shot)
+                model_specific_params += '\t--test_way {} \\\n'.format(way)
+                model_specific_params += '\t--query {} \\\n'.format(
+                    default_protonets_parameters[setting_name]['query'])
+                model_specific_params += '\t--test_model_path {} '.format(model_path)
+            # Glue  it all together
+            cmd = "python3 {} --data_path {} \\\n\t--checkpoint_dir {} \\\n\t--attack_config_path {} \\\n\t--attack_tasks {} \\\n".format(
+                target, data_dir, checkpoint_dir, attack_config_path, num_tasks)
+            cmd += model_specific_params
+            output_file.write(cmd + '\n')
 
     output_file.close()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output_dir", "-c", default='/scratch/etv21/meta_learning',
+    parser.add_argument("--output_dir", "-d", default='/scratch/etv21/meta_learning',
                         help="Directory to which adv samples, log files, etc will be saved to")
-    parser.add_argument("--gpu_num", type=int, default=1, help="GPU to use")
-    parser.add_argument("--num_tasks", type=int, default=100, help="How many tasks per experiment")
+    parser.add_argument("--script_name", "-o", default='run_exps.sh',
+                        help="Name of generated bash file")
+    parser.add_argument("--gpu_num", "-g", type=int, default=1, help="GPU to use")
+    parser.add_argument("--num_tasks", "-t", type=int, default=100, help="How many tasks per experiment")
 
     args = parser.parse_args()
 
-    main(args.gpu_num, args.output_dir, args.num_tasks)
+    main(args.gpu_num, args.output_dir, args.num_tasks, args.script_name)
