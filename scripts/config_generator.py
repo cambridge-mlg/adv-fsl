@@ -1,5 +1,6 @@
 import os
 import yaml
+import argparse
 
 # Triples of ('dataset', way, shot)
 large_scale = [('metadataset', -1, -1), ('omniglot', 5, 1), ('omniglot', 5, 5), ('omniglot', 20, 1),
@@ -166,10 +167,8 @@ def dump_to_yaml(path, dict):
     f.close()
 
 
-def main():
+def main( gpu_num, output_dir, num_tasks):
     ''''Stuff to configure:'''
-    num_tasks = 100
-    gpu_num = 1
 
     settings = [('omniglot', 5, 1)]
     models = all_models
@@ -182,11 +181,11 @@ def main():
         print("Error: Not sure what models to use for unknown scale setting")
         return
 
-    attacks = all_attacks
+    attacks = ['pgd']
 
     # Tuples with (fraction_adv_images_per_class, fraction_classes_with_adv_images)
     # Minimum num of adv images per class will be 1, so setting the first number very small gives us one per class
-    attack_types = [(0.0001, 1.0), (1.0, 1.0)]
+    attack_types = [(0.0001, 1.0), (1.0, 0.5)]
 
     attack_mode = 'context'
 
@@ -196,12 +195,9 @@ def main():
     # v_1 x v_2 .. x v_n many configurations per attack
     attack_parameters = {
         'carlini_wagner': [('vary_success_criteria', [True, False])],
-        'elastic_net': [('beta', [0.01, 0.1])],
     }
 
     data_dir = '/scratches/stroustrup/jfb54/adv-fsl'
-
-    output_dir = '/home/squishymage/tmp_output' # '/scratch3/etv21/metalearning'
 
     attack_configurations = []
     # 1. Generate the necessary attack configs:
@@ -211,17 +207,17 @@ def main():
         # Generate this outside the loop, no need to re-generate for each attack_type
         if attack not in attack_parameters:
             # Only default parameters, list contains only an empty dictionary
-            non_default_settings = [{}]
+            settings_list = [{}]
         else:
-            non_default_settings = enumerate_parameter_settings(attack_parameters[attack])
+            settings_list = enumerate_parameter_settings(attack_parameters[attack])
 
-        for non_default_params in non_default_settings:
+        for params in settings_list:
             for attack_type in attack_types:
                 # Make copy of default config object
                 attack_config = default_attack_parameters[attack].copy()
                 # Configure non-default parameters:
-                for param_name in non_default_params:
-                    attack_config[param_name] = non_default_params[param_name]
+                for param_name in params:
+                    attack_config[param_name] = params[param_name]
                 # Configure attack mode, shot fraction and class fraction
                 attack_config['attack_mode'] = attack_mode
                 attack_config['shot_fraction'] = attack_type[0]
@@ -304,4 +300,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output_dir", "-c", default='/scratch/etv21/meta_learning',
+                        help="Directory to which adv samples, log files, etc will be saved to")
+    parser.add_argument("--gpu_num", type=int, default=1, help="GPU to use")
+    parser.add_argument("--num_tasks", type=int, default=100, help="How many tasks per experiment")
+
+    args = parser.parse_args()
+
+    main(args.gpu_num, args.output_dir, args.num_tasks)
