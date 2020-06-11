@@ -291,7 +291,7 @@ def main( gpu_num, output_dir, num_tasks):
                     model_specific_params += '\t--test_way {} \\\n'.format(way)
                     model_specific_params += '\t--query {} \\\n'.format(
                         default_protonets_parameters[setting_name]['query'])
-                    model_specific_params += '\t--load {} '.format(model_path)
+                    model_specific_params += '\t--test_model_path {} '.format(model_path)
                 # Glue  it all together
                 cmd = "python3 {} --data_path {} \\\n\t--checkpoint_dir {} \\\n\t--attack_config_path {} \\\n\t--attack_tasks {} \\\n".format(
                     target, data_dir, checkpoint_dir, attack_config_path, num_tasks)
