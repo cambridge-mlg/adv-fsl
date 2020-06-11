@@ -2,6 +2,7 @@ import torch
 import math
 from PIL import Image
 import numpy as np
+import os
 
 
 def convert_labels(predictions):
@@ -79,3 +80,20 @@ def save_image(image_array, save_path):
         mode = 'L'
     im = Image.fromarray(np.clip((image_array + 1.0) * 127.5 + 0.5, 0, 255).astype(np.uint8), mode=mode)
     im.save(save_path)
+
+
+class Logger():
+    def __init__(self, checkpoint_dir, log_file_name):
+        log_file_path = os.path.join(checkpoint_dir, log_file_name)
+        self.file = None
+        if os.path.isfile(log_file_path):
+            self.file = open(log_file_path, "a", buffering=1)
+        else:
+            self.file = open(log_file_path, "w", buffering=1)
+
+    def __del__(self):
+        self.file.close()
+
+    def print_and_log(self, message):
+        print(message, flush=True)
+        self.file.write(message + '\n')

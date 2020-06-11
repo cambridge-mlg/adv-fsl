@@ -11,7 +11,7 @@ from learners.maml.src.shrinkage_maml import SigmaMAML as sMAML
 from learners.maml.src.shrinkage_maml import PredCPMAML as pMAML
 from learners.maml.src.utils import save_image
 from attacks.attack_helpers import create_attack
-from attacks.attack_utils import extract_class_indices
+from attacks.attack_utils import extract_class_indices, Logger
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -90,7 +90,7 @@ def test(model, data, model_path):
     # test the  model
     _, test_accuracy, confidence = validate(model, data, batch_size=600,
                                             test=True)
-    print("Test Accuracy on {}: {:3.1f}+/-{:2.1f}".format(model_path,
+    logger.print_and_log("Test Accuracy on {}: {:3.1f}+/-{:2.1f}".format(model_path,
                                                           test_accuracy,
                                                           confidence))
 
@@ -123,12 +123,12 @@ def test_by_example(model, data, model_path):
             _, single_image_accuracy = model.compute_objective(context_images, context_labels, single_target_image, single_target_label, accuracy=True)
             single_image_accuracy = single_image_accuracy.detach()
             single_image_accuracies.append(single_image_accuracy.item())
-            print('task={0:}/{1:}, image={2:}/{3:}, task accuracy={4:3.1f}, item accuracy={5:3.1f}'
+            logger.print_and_log('task={0:}/{1:}, image={2:}/{3:}, task accuracy={4:3.1f}, item accuracy={5:3.1f}'
                   .format(task, NUM_TEST_TASKS, i, num_target_images,
                           np.array(single_image_accuracies).mean() * 100.0,
                           np.array(single_task_accuracies).mean() * 100.0 if len(single_task_accuracies) > 0 else 0.0),
                   end='')
-            print('\r', end='')
+            logger.print_and_log('\r', end='')
         single_task_accuracy = np.array(single_image_accuracies).mean()
         single_task_accuracies.append(single_task_accuracy)
 
@@ -139,10 +139,10 @@ def test_by_example(model, data, model_path):
 
     single_accuracy = np.array(single_task_accuracies).mean() * 100.0
     single_accuracy_confidence = (196.0 * np.array(single_task_accuracies).std()) / np.sqrt(len(single_task_accuracies))
-    print('\nSingle: {0:3.1f}+/-{1:2.1f}'.format(single_accuracy, single_accuracy_confidence))
+    logger.print_and_log('\nSingle: {0:3.1f}+/-{1:2.1f}'.format(single_accuracy, single_accuracy_confidence))
     group_accuracy = np.array(group_task_accuracies).mean() * 100.0
     group_accuracy_confidence = (196.0 * np.array(group_task_accuracies).std()) / np.sqrt(len(group_task_accuracies))
-    print('\nGroup: {0:3.1f}+/-{1:2.1f}'.format(group_accuracy, group_accuracy_confidence))
+    logger.print_and_log('\nGroup: {0:3.1f}+/-{1:2.1f}'.format(group_accuracy, group_accuracy_confidence))
 
 
 def test_by_class(model, data, model_path):
@@ -188,10 +188,10 @@ def test_by_class(model, data, model_path):
 
     single_accuracy = np.array(single_task_accuracies).mean() * 100.0
     single_accuracy_confidence = (196.0 * np.array(single_task_accuracies).std()) / np.sqrt(len(single_task_accuracies))
-    print('\nSingle: {0:3.1f}+/-{1:2.1f}'.format(single_accuracy, single_accuracy_confidence))
+    logger.print_and_log('\nSingle: {0:3.1f}+/-{1:2.1f}'.format(single_accuracy, single_accuracy_confidence))
     group_accuracy = np.array(group_task_accuracies).mean() * 100.0
     group_accuracy_confidence = (196.0 * np.array(group_task_accuracies).std()) / np.sqrt(len(group_task_accuracies))
-    print('\nGroup: {0:3.1f}+/-{1:2.1f}'.format(group_accuracy, group_accuracy_confidence))
+    logger.print_and_log('\nGroup: {0:3.1f}+/-{1:2.1f}'.format(group_accuracy, group_accuracy_confidence))
 
 
 def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
@@ -243,11 +243,11 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
     accuracy = np.array(accuracies_before).mean() * 100.0
     accuracy_confidence = (196.0 * np.array(accuracies_before).std()) / np.sqrt(len(accuracies_before))
-    print('Before attack: {0:3.1f}+/-{1:2.1f}'.format(accuracy, accuracy_confidence))
+    logger.print_and_log('Before attack: {0:3.1f}+/-{1:2.1f}'.format(accuracy, accuracy_confidence))
 
     accuracy = np.array(accuracies_after).mean() * 100.0
     accuracy_confidence = (196.0 * np.array(accuracies_after).std()) / np.sqrt(len(accuracies_after))
-    print('After attack: {0:3.1f}+/-{1:2.1f}'.format(accuracy, accuracy_confidence))
+    logger.print_and_log('After attack: {0:3.1f}+/-{1:2.1f}'.format(accuracy, accuracy_confidence))
 
 
 # Parse arguments given to the script.
@@ -344,6 +344,8 @@ args = parser.parse_args()
 if not os.path.exists(args.checkpoint_dir):
     os.makedirs(args.checkpoint_dir)
 
+logger = Logger(args.checkpoint_dir, 'log.txt')
+
 # Set model path
 model_str = args.saved_model + '.pt'
 args.model_path = os.path.join(args.checkpoint_dir, model_str)
@@ -423,13 +425,13 @@ if args.mode == 'train_and_test':
         loss.backward()
 
         if torch.isinf(loss).item():
-            print("Loss is inf, avoiding optimization step")
+            logger.print_and_log("Loss is inf, avoiding optimization step")
         else:
             optimizer.step()
 
         if (iteration + 1) % PRINT_FREQUENCY == 0:
             # print training stats
-            print('Task [{}/{}], Train Loss: {:.7f}, '\
+            logger.print_and_log('Task [{}/{}], Train Loss: {:.7f}, '\
                   'Train Acc: {:.7f}'.format(iteration + 1,
                                              args.iterations,
                                              loss.item(),
@@ -439,7 +441,7 @@ if args.mode == 'train_and_test':
             val_loss, val_accuracy, confidence = validate(model, data,
                                                           batch_size=128)
 
-            print('Validating at [{}/{}], Validation Loss: {:.7f}, '\
+            logger.print_and_log('Validating at [{}/{}], Validation Loss: {:.7f}, '\
                   'Validation Acc: {:3.1f}+/-{:2.1f}'.format(iteration + 1,
                                                   args.iterations,
                                                   val_loss.item(),
@@ -453,7 +455,7 @@ if args.mode == 'train_and_test':
                 best_validation_accuracy = val_accuracy
                 torch.save(model.state_dict(), os.path.join(
                     args.checkpoint_dir, 'best_validation.pt'))
-                print("Best validation model updated.")
+                logger.print_and_log("Best validation model updated.")
 
     # save the fully trained model
     torch.save(model.state_dict(), os.path.join(args.checkpoint_dir,
