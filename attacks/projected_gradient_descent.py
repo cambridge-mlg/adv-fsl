@@ -34,6 +34,13 @@ class ProjectedGradientDescent:
         self.clip_min = context_images.min().item()
         self.clip_max = context_images.max().item()
 
+        if self.clip_min != 0.0 or self.clip_max != 1.0:
+            # Epsilon is specified relative to min = 0, max = 1.0
+            # If this is not the case, scale epsilon up
+            step_ratio = self.epsilon_step / self.epsilon
+            self.epsilon = self.epsilon * (self.clip_max  - self.clip_min)
+            self.epsilon_step = self.epsilon * step_ratio
+
         if self.attack_mode == 'target':
             return self._generate_target(context_images, context_labels, target_images, labels, model, get_logits_fn,
                                          device)
@@ -122,6 +129,11 @@ class ProjectedGradientDescent:
 
             adv_context_images = adv_context_images.detach()
             del logits
+            del grad
+            del diff
+            del new_perturbation
+
+            assert adv_context_images.requires_grad == False
 
         return adv_context_images, adv_context_indices
 
