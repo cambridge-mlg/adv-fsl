@@ -18,9 +18,9 @@ default_attack_parameters = {
     'pgd': {
         'attack': 'projected_gradient_descent',
         'norm': 'inf',
-        'epsilon': 8.0 * 2.0 / 255.0,
+        'epsilon': 8.0 / 255.0,
         'num_iterations': 20,
-        'epsilon_step': 2.0 * 2.0 / 255.0,
+        'epsilon_step': 2.0 / 255.0,
         'project_step': True,
         'attack_mode': None,
         'class_fraction': None,
