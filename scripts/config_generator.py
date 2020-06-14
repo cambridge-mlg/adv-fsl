@@ -180,7 +180,7 @@ def dump_to_yaml(path, dict):
     f.close()
 
 
-def main(gpu_num, output_dir, num_tasks, script_name):
+def main(gpu_num, output_dir, script_name,  num_tasks, attack_mode):
     ''''Stuff to configure:'''
 
     exp_settings = [{'model': 'maml', 'problem': ('omniglot', 5, 1)},
@@ -202,8 +202,9 @@ def main(gpu_num, output_dir, num_tasks, script_name):
     # Tuples with (fraction_adv_images_per_class, fraction_classes_with_adv_images)
     # Minimum num of adv images per class will be 1, so setting the first number very small gives us one per class
     attack_types = [(0.0001, 1.0), (1.0, 0.5)]
-
-    attack_mode = 'context'
+    # attack types don't matter when attacking in target mode. So  prevent unnecessary repetition
+    if attack_mode =='target':
+        attack_types = attack_types[0:1]
 
     # Leave the attack's entry as None to just use the default settings.
     # Unspecified parameters will have the default value
@@ -324,7 +325,8 @@ if __name__ == "__main__":
                         help="Name of generated bash file")
     parser.add_argument("--gpu_num", "-g", type=int, default=1, help="GPU to use")
     parser.add_argument("--num_tasks", "-t", type=int, default=100, help="How many tasks per experiment")
+    parser.add_argument("--attack_mode", "-m", default="context", help="Either 'context' or 'target', depending on what type of attack to run")
 
     args = parser.parse_args()
 
-    main(args.gpu_num, args.output_dir, args.num_tasks, args.script_name)
+    main(args.gpu_num, args.output_dir, args.script_name, args.num_tasks, args.attack_mode)
