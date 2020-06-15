@@ -14,6 +14,7 @@ import torch.nn as nn
 import torch.optim as optim
 from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, one_hot_embedding, Logger
 
+INF = 1e+5
 
 def atanh(x, eps=1e-6):
     """
@@ -30,61 +31,6 @@ class CarliniWagnerL2(object):
     """
     The L2 attack adversary. To enforce the box constraint, the
     change-of-variable trick using tanh-space is adopted.
-
-    The loss function to optimize:
-
-    .. math::
-        \\|\\delta\\|_2^2 + c \\cdot f(x + \\delta)
-
-    where :math:`f` is defined as
-
-    .. math::
-        f(x') = \\max\\{0, (\\max_{i \\ne t}{Z(x')_i} - Z(x')_t) \\cdot \\tau + \\kappa\\}
-
-    where :math:`\\tau` is :math:`+1` if the adversary performs targeted attack;
-    otherwise it's :math:`-1`.
-
-    Usage::
-    #TODO:
-        attacker = L2Adversary()
-        # inputs: a batch of input tensors
-        # targets: a batch of attack targets
-        # model: the model to attack
-        advx = attacker(model, inputs, targets)
-
-
-    The change-of-variable trick
-    ++++++++++++++++++++++++++++
-
-    Let :math:`a` be a proper affine transformation.
-
-    1. Given input :math:`x` in image space, map :math:`x` to "tanh-space" by
-
-    .. math:: \\hat{x} = \\tanh^{-1}(a^{-1}(x))
-
-    2. Optimize an adversarial perturbation :math:`m` without constraint in the
-    "tanh-space", yielding an adversarial example :math:`w = \\hat{x} + m`; and
-
-    3. Map :math:`w` back to the same image space as the one where :math:`x`
-    resides:
-
-    .. math::
-        x' = a(\\tanh(w))
-
-    where :math:`x'` is the adversarial example, and :math:`\\delta = x' - x`
-    is the adversarial perturbation.
-
-    Since the composition of affine transformation and hyperbolic tangent is
-    strictly monotonic, $\\delta = 0$ if and only if $m = 0$.
-
-    Symbols used in docstring
-    +++++++++++++++++++++++++
-
-    - ``B``: the batch size
-    - ``C``: the number of channels
-    - ``H``: the height
-    - ``W``: the width
-    - ``M``: the number of classes
     """
 
     def __init__(self,
@@ -127,10 +73,6 @@ class CarliniWagnerL2(object):
         :param abort_early: ``True`` to abort early in process of searching for
                :math:`c` when the loss virtually stops increasing
         :type abort_early: bool
-        :param box_lower: lower bound of the box in which we do optimization
-        :type box_lower: float
-        :param box_upper: upper bound of the box in which we do optimization
-        :type box_upper: float
         :param optimizer_lr: the base learning rate of the Adam optimizer used
                over the adversarial perturbation in clipped space
         :type optimizer_lr: float
@@ -195,7 +137,6 @@ class CarliniWagnerL2(object):
         self.logger = Logger(checkpoint_dir, "cw_logs.txt")
 
     def generate(self, context_images, context_labels, target_images, model, get_logits_fn, device, target_labels=None):
-
         """
         Produce adversarial examples for ``inputs``.
         """
@@ -210,8 +151,6 @@ class CarliniWagnerL2(object):
         self.logger.print_and_log(
             "class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
 
-        range_box = (context_images.min().item(), context_images.max().item())
-
         if target_labels is not None:
             assert len(target_labels.size()) == 1
         else:
@@ -224,62 +163,82 @@ class CarliniWagnerL2(object):
         # Make one-hot encoding for target_labels
         target_labels_oh = one_hot_embedding(target_labels, num_classes).to(device)
 
-        # Which context_images to attack:
-        adv_context_indices = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
-        # The number of patterns for which we're generating the attack
-        input_size = len(adv_context_indices)  # type: int
+        if self.attack_mode == 'context':
+            attack_set = context_images
+            # Which context_images to attack:
+            adv_context_indices = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
+            # The number of patterns for which we're generating the attack
+            input_size = len(adv_context_indices)
+            num_attacks = 1
+        else:
+            attack_set = target_images
+            input_size = len(target_images)
+            num_attacks = input_size
+
+        # Shouldn't really matter whether we use context or target set here
+        range_box = (attack_set.min().item(), attack_set.max().item())
 
         # Set up bounds and initial values for c
-        scale_const = self.c_range[0]
-        lower_bound = 0.0
-        upper_bound = self.c_range[1]
+        scale_consts = [self.c_range[0]] * num_attacks
+        lower_bounds = [0.0] * num_attacks
+        upper_bounds = [self.c_range[1]] * num_attacks
 
-        # Set up holders for the optimal attacks and related info
-        # The three "placeholders" are defined as:
+        # Set up holders for the optimal attacks and their L2 distortion
         # - `o_best_l2`: The lowest L2 distance between the input and adversarial images
         # - `o_best_advx`: the best performing adversarial context set
-        o_best_l2 = torch.ones(input_size, device=device) * 1e4  # placeholder for inf
-        o_best_advx = context_images.clone()
+        o_best_l2 = torch.ones(input_size, device=device) * INF  # placeholder for inf
+        o_best_l2_ppreds = -torch.ones(num_attacks, device=device)
+        o_best_advx = attack_set.clone()
 
-        # Necessary conversions of the inputs into tanh space
         # convert `inputs` to tanh-space
-        context_images_tanh = self._to_tanh_space(context_images, range_box)
+        attack_set_tanh = self._to_tanh_space(attack_set, range_box)
 
         # `pert_tanh` is essentially the adversarial perturbation in tanh-space.
         # In Carlini's code it's denoted as `modifier`
+
         pert_tanh = torch.zeros((input_size, context_images.shape[1], context_images.shape[2], context_images.shape[3]),
-                                device=device)  # type: torch.FloatTensor
+                                device=device)
         if self.init_rand:
             nn.init.normal(pert_tanh, mean=0, std=1e-3)
+
         pert_tanh.requires_grad = True
         optimizer = optim.Adam([pert_tanh], lr=self.optimizer_lr)
 
         for sstep in range(self.binary_search_steps):
             if self.repeat and sstep == self.binary_search_steps - 1:
-                scale_const = upper_bound
-            self.logger.print_and_log('Using scale const:{}'.format(scale_const))
+                scale_consts = upper_bounds
+            self.logger.print_and_log('Using scale const:{}'.format(scale_consts))
 
             # the minimum L2 norms of perturbations found during optimization
-            best_l2 = torch.ones(input_size, device=device) * 1e4  # As placeholder for np.inf
+            best_l2 = torch.ones(input_size, device=device) * INF  # As placeholder for np.inf
             # the perturbed predictions corresponding to `best_l2`, to be used in binary search of `scale_const`
-            best_l2_ppred = None
+            best_l2_ppreds = -torch.ones(num_attacks, device=device)
+            # Target attacks can examine the best_l2_ppreds individually to see whether each attack succeeded
+            # Since context attack rely on the entire set being successful, and ppreds is semantically meaningful, we
+            best_l2_successful = torch.zeros(num_attacks)
 
             # previous (summed) batch loss, to be used in early stopping policy
-            prev_loss = 1e4  # as placeholder for infinity, type: float
+            prev_loss = INF
 
             for optim_step in range(self.max_iterations):
-                adv_context_set_tanh = context_images_tanh.clone()
-                for i, index in enumerate(adv_context_indices):
-                    adv_context_set_tanh[index] = adv_context_set_tanh[index] + pert_tanh[i]
+                adv_image_set_tanh = attack_set_tanh.clone()
+                if self.attack_mode == 'context':
+                    # Loops are bad, and bad things may happen here, but I currently have no better solutions
+                    for i, index in enumerate(adv_context_indices):
+                        adv_image_set_tanh[index] = adv_image_set_tanh[index] + pert_tanh[i]
+                else:
+                    adv_image_set_tanh = adv_image_set_tanh + pert_tanh
+
 
                 # Map examples back to image space
-                adv_context_set = self._from_tanh_space(adv_context_set_tanh, range_box)
+                adv_image_set = self._from_tanh_space(adv_image_set_tanh, range_box)
                 # loss_val is 1-D, pert_norms is [num_context], pert_outputs is [num_target], adv_context_images is
-                # [num_context C x W x H]
-                loss_val, pert_norms, pert_outputs, adv_context_images = \
-                    self._optimize(adv_context_set, context_images, context_labels, target_images,
-                                   target_labels_oh, scale_const, get_logits_fn, optimizer)
-                if optim_step % 10 == 0: self.logger.print_and_log('optim step [{}] loss: {}'.format(optim_step, loss_val))
+                # [num_attack C x W x H]
+                loss_val, pert_norms, pert_outputs, adv_image_set = \
+                    self._optimize(adv_image_set, context_images, context_labels, target_images,
+                                   target_labels_oh, scale_consts, get_logits_fn, optimizer)
+                if optim_step % 10 == 0: self.logger.print_and_log(
+                    'optim step [{}] loss: {}'.format(optim_step, loss_val))
 
                 if self.abort_early and not optim_step % (self.max_iterations // 10):
                     if loss_val > prev_loss * (1 - self.ae_tol):
@@ -289,51 +248,70 @@ class CarliniWagnerL2(object):
                 # Outputs for target set, given adversarial context set
                 pert_predictions = torch.argmax(pert_outputs, dim=1)
                 comp_pert_predictions = torch.argmax(self._compensate_confidence(pert_outputs, target_labels), dim=1)
-                # If the attack is successful, see if we've improved the loss
-                if self._attack_successful(comp_pert_predictions, target_labels, optim_step):
-                    # TODO: I'm not sure why this would be the case. What exactly does comp_pert do?
-                    assert torch.all(comp_pert_predictions.eq(pert_predictions))
-                    # If this attack has lower perturbation norm, record it
-                    total_pert_norm = pert_norms.sum()
-                    if total_pert_norm < best_l2.sum():
-                        best_l2_ppred = pert_predictions
-                        for i, index in enumerate(adv_context_indices):
-                            best_l2[i] = pert_norms[index]
-                    if total_pert_norm < o_best_l2.sum():
-                        o_successful_attack = True
-                        o_best_l2_ppred = pert_predictions
-                        for i, index in enumerate(adv_context_indices):
-                            o_best_l2[i] = pert_norms[index]
-                            o_best_advx[index] = adv_context_images[index].clone()
+
+                # Updating these depends on whether we're doing per input or for the whole input set
+                if self.attack_mode == 'context':
+                    if self._context_attack_successful(comp_pert_predictions, target_labels, optim_step):
+                        assert torch.all(comp_pert_predictions.eq(pert_predictions))
+                        # If this attack has lower perturbation norm, record it
+                        total_pert_norm = pert_norms.sum()
+                        if total_pert_norm < best_l2.sum():
+                            best_l2_ppreds = pert_predictions
+                            best_l2_successful[0] = 1 # True
+                            for i, index in enumerate(adv_context_indices):
+                                best_l2[i] = pert_norms[index]
+                        if total_pert_norm < o_best_l2.sum():
+                            o_best_l2_ppreds = pert_predictions
+                            for i, index in enumerate(adv_context_indices):
+                                o_best_l2[i] = pert_norms[index]
+                                o_best_advx[index] = adv_image_set[index].clone()
+                else:
+                    for i in range(num_attacks):
+                        if self._target_attack_successful(comp_pert_predictions[i], target_labels[i], optim_step):
+                            assert torch.all(comp_pert_predictions.eq(pert_predictions))
+                            # If this attack has lower perturbation norm, record it
+                            if pert_norms[i] < best_l2[i]:
+                                best_l2_successful[i] = 1 # True
+                                best_l2[i] = pert_norms[i]
+                                best_l2_ppreds[i] = pert_predictions[i]
+                            if pert_norms[i] < o_best_l2[i]:
+                                o_best_l2[i] = pert_norms[i]
+                                o_best_l2_ppreds[i] = pert_predictions[i]
+                                o_best_advx[i] = adv_image_set[i].clone()
 
             # binary search of `scale_const`
-            # assert best_l2_ppred is None or self._attack_successful(best_l2_ppred, target_labels, optim_step)
-            # assert o_best_l2_ppred is None or self._attack_successful(o_best_l2_ppred, target_labels, optim_step)
-            if best_l2_ppred is not None:
-                self.logger.print_and_log("Found successful attack")
-                # successful; attempt to lower `scale_const` by halving it
-                if scale_const < upper_bound:
-                    upper_bound = scale_const
-                # `upper_bounds_np[i] == c_range[1]` implies no solution
-                # found, i.e. upper_bounds_np[i] has never been updated by
-                # scale_consts_np[i] until
-                # `scale_consts_np[i] > 0.1 * c_range[1]`
-                if upper_bound < self.c_range[1] * 0.1:
-                    scale_consts = (lower_bound + upper_bound) / 2
-            else:
-                self.logger.print_and_log("Not successful")
-                # failure; multiply `scale_const` by ten if no solution
-                # found; otherwise do binary search
-                if scale_const > lower_bound:
-                    lower_bound = scale_const
-                if upper_bound < self.c_range[1] * 0.1:
-                    scale_const = (lower_bound + upper_bound) / 2
+            for i in range(num_attacks):
+                # Extra attack, only makes sense for target attacks
+                if self.attack_mode == 'target':
+                    target_label = target_labels[i]
+                    assert best_l2_ppreds[i] == -1 or self._target_attack_successful(best_l2_ppreds[i], target_label)
+                    assert o_best_l2_ppreds[i] == -1 or self._target_attack_successful(o_best_l2_ppreds[i], target_label)
+
+                if best_l2_successful[i] == 1:
+                    # successful; attempt to lower `scale_const` by halving it
+                    if scale_consts[i] < upper_bounds[i]:
+                        upper_bounds[i] = scale_consts[i]
+                    # `upper_bounds_np[i] == c_range[1]` implies no solution found, i.e. upper_bounds_np[i] has never
+                    # been updated by scale_consts_np[i] until `scale_consts_np[i] > 0.1 * c_range[1]`
+                    if upper_bounds[i] < self.c_range[1] * 0.1:
+                        scale_consts[i] = (lower_bounds[i] + upper_bounds[i]) / 2
                 else:
-                    scale_const *= 10
+                    # failure; multiply `scale_const` by ten if no solution
+                    # found; otherwise do binary search
+                    if scale_consts[i] > lower_bounds[i]:
+                        lower_bounds[i] = scale_consts[i]
+                    if upper_bounds[i] < self.c_range[1] * 0.1:
+                        scale_consts[i] = (lower_bounds[i] + upper_bounds[i]) / 2
+                    else:
+                        scale_consts[i] *= 10
+        if self.attack_mode == 'context':
+            return o_best_advx, adv_context_indices
+        else:
+            return o_best_advx
 
-        return o_best_advx, adv_context_indices #, o_best_l2
 
-    def _optimize(self, adv_context_images, context_images, context_labels, target_images, target_labels_oh, c,
+
+    def _optimize(self, adv_images, context_images, context_labels, target_images, target_labels_oh, c,
                   get_logits_fn, optimizer):
         """
         Optimize for one step.
@@ -356,22 +334,26 @@ class CarliniWagnerL2(object):
                  (of dimension [num_context_images]), the perturbed activations (of dimension
                  [num_target_images]), the adversarial examples (of dimension [num_context_images x C x H x W])
         """
-        # Logits (for the target_images), when given the adversarial context set
-        pert_outputs = fix_logits(get_logits_fn(adv_context_images, context_labels, target_images))
-        # Will be zero for the clean context images
-        perts_norm = torch.pow(adv_context_images - context_images, 2)
-        perts_norm = torch.sum(perts_norm.view(
-            perts_norm.size(0), -1), 1)
+        if self.attack_mode == 'context':
+            # Logits (for the target_images), when given the adversarial context set
+            pert_outputs = fix_logits(get_logits_fn(adv_images, context_labels, target_images))
+            # Will be zero for the clean context images
+            perts_norm = torch.pow(adv_images - context_images, 2)
+        else:
+            # Logits when given the adversarial target set
+            pert_outputs = fix_logits(get_logits_fn(context_images, context_labels, adv_images))
+            # Will be zero for the clean context images
+            perts_norm = torch.pow(adv_images - target_images, 2)
 
-        ## target_active is a tensor of dimension [B], where the i-th entry is the logit value
-        ## of the correct/target class for the i-th image
+        perts_norm = torch.sum(perts_norm.view(perts_norm.size(0), -1), 1)
+
+        # target_active is a tensor of dimension [B], where the i-th entry is the logit value
+        # of the correct/target class for the i-th image
         # In Carlini's code, `target_active` is called `real`.
         target_active = torch.sum(target_labels_oh * pert_outputs, 1)
-        inf = 1e4  # sadly pytorch does not work with np.inf;
-        # 1e4 is also used in Carlini's code
 
-        ## Get the next most likely class i.e. for each image, find the maximum logit value
-        ## that isn't the correct/target class's logit
+        # Get the next most likely class i.e. for each image, find the maximum logit value
+        # that isn't the correct/target class's logit
         # In Carlini's code, `max_other_active` is called `other`.
         # max_other_active should be a Tensor of dimension [B]
         #
@@ -381,27 +363,29 @@ class CarliniWagnerL2(object):
         # $o_i$ the $i$th element along axis=1 of `pert_outputs_var`.
         #
         # noinspection PyArgumentList
-        assert (pert_outputs.max(1)[0] >= -inf).all(), 'assumption failed'
+        assert (pert_outputs.max(1)[0] >= -INF).all(), 'assumption failed'
         # noinspection PyArgumentList
         max_other_active = torch.max(((1.0 - target_labels_oh) * pert_outputs
-                                      - target_labels_oh * inf), 1)[0]
+                                      - target_labels_oh * INF), 1)[0]
 
         # Compute $f(x')$, where $x'$ is the adversarial example in image space.
         # The result `f_eval` should be of dimension [B]
         if self.targeted:
-            # if targeted, optimize to make `target_active` larger than
-            # `max_other_active` by `self.confidence`
+            # if targeted, optimize to make `target_active` larger than `max_other_active` by `self.confidence`
             f_eval = torch.clamp(max_other_active - target_active
                                  + self.confidence, min=0.0)
         else:
             # if not targeted, optimize to make `max_other_active` larger than
-            # `target_active` (the ground truth image labels) by
-            # `self.confidence`
+            # `target_active` (the ground truth image labels) by `self.confidence`
             f_eval = torch.clamp(target_active - max_other_active
                                  + self.confidence, min=0.0)
         # the total loss of current batch, should be of dimension [1]
-        # The f_eval contrib is weighted by c and distributed across all dims
-        combined_loss = torch.sum(perts_norm + c * torch.mean(f_eval))
+        if self.attack_mode == 'context':
+            # The f_eval contrib is weighted by c and distributed across all dims
+            # c is 1-D list
+            combined_loss = torch.sum(perts_norm + c[0] * torch.mean(f_eval))
+        else:
+            combined_loss = torch.sum(perts_norm + c * f_eval)
 
         # Do optimization for one step
         optimizer.zero_grad()
@@ -410,9 +394,9 @@ class CarliniWagnerL2(object):
 
         # Make some records in python/numpy on CPU
         loss = combined_loss.item()
-        return loss, perts_norm, pert_outputs, adv_context_images
+        return loss, perts_norm, pert_outputs, adv_images
 
-    def _attack_successful(self, prediction, target, step):
+    def _context_attack_successful(self, prediction, target, step):
         """
         See whether the underlying attack is successful.
 
@@ -423,6 +407,8 @@ class CarliniWagnerL2(object):
         :return: ``True`` if the attack is successful
         :rtype: bool
         """
+
+        # Slightly more complicated way of defining success than in the target case
         # Make the successfulness of an attack depend on the current iteration
         if self.vary_success_criteria:
             min_success = 0.05
@@ -434,6 +420,22 @@ class CarliniWagnerL2(object):
             return ((prediction == target).sum() / float(prediction.shape[0])).item() >= accept_success
         else:
             return ((prediction != target).sum() / float(prediction.shape[0])).item() >= accept_success
+
+    def _target_attack_successful(self, prediction, target):
+        """
+        See whether the underlying attack is successful.
+
+        :param prediction: the prediction of the model on an input
+        :type prediction: int
+        :param target: either the attack target or the ground-truth image label
+        :type target: int
+        :return: ``True`` if the attack is successful
+        :rtype: bool
+        """
+        if self.targeted:
+            return prediction == target
+        else:
+            return prediction != target
 
     def _compensate_confidence(self, outputs, targets):
         """
