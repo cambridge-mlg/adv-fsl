@@ -15,8 +15,6 @@ import torch.optim as optim
 from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, one_hot_embedding, Logger
 
 
-
-
 def atanh(x, eps=1e-6):
     """
     The inverse hyperbolic tangent function, missing in pytorch.
@@ -27,38 +25,6 @@ def atanh(x, eps=1e-6):
     """
     x = x * (1 - eps)
     return 0.5 * torch.log((1.0 + x) / (1.0 - x))
-
-
-def to_tanh_space(x, box):
-    """
-    Convert a batch of tensors to tanh-space. This method complements the
-    implementation of the change-of-variable trick in terms of tanh.
-
-    :param x: the batch of tensors, of dimension [B x C x H x W]
-    :param box: a tuple of lower bound and upper bound of the box constraint
-    :return: the batch of tensors in tanh-space, of the same dimension;
-             the returned tensor is on the same device as ``x``
-    """
-    _box_mul = (box[1] - box[0]) * 0.5
-    _box_plus = (box[1] + box[0]) * 0.5
-    return atanh((x - _box_plus) / _box_mul)
-
-
-def from_tanh_space(x, box):
-    """
-    Convert a batch of tensors from tanh-space to oridinary image space.
-    This method complements the implementation of the change-of-variable trick
-    in terms of tanh.
-
-    :param x: the batch of tensors, of dimension [B x C x H x W]
-    :param box: a tuple of lower bound and upper bound of the box constraint
-    :return: the batch of tensors in ordinary image space, of the same
-             dimension; the returned tensor is on the same device as ``x``
-    """
-    _box_mul = (box[1] - box[0]) * 0.5
-    _box_plus = (box[1] + box[0]) * 0.5
-    return torch.tanh(x) * _box_mul + _box_plus
-
 
 class CarliniWagnerL2(object):
     """
@@ -234,8 +200,17 @@ class CarliniWagnerL2(object):
         Produce adversarial examples for ``inputs``.
         """
         assert len(context_images.size()) == 4
-        assert len(target_images.size()) == 4                
-        self.box = (context_images.min().item(), context_images.max().item())
+        assert len(target_images.size()) == 4
+
+        self.logger.print_and_log(
+            "Performing CW L2 attack on {} set. Settings = (confidence={}, binary_search_steps={}, max_iterations,"
+            "={}, abort_early={}, optimizer_lr={}, vary_success_criteria={}, success_fraction={})".format(
+                self.attack_mode, self.confidence, self.binary_search_steps, self.max_iterations, self.abort_early,
+                self.optimizer_lr, self.vary_success_criteria, self.success_fraction))
+        self.logger.print_and_log(
+            "class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
+
+        range_box = (context_images.min().item(), context_images.max().item())
 
         if target_labels is not None:
             assert len(target_labels.size()) == 1
@@ -268,7 +243,7 @@ class CarliniWagnerL2(object):
 
         # Necessary conversions of the inputs into tanh space
         # convert `inputs` to tanh-space
-        context_images_tanh = self._to_tanh_space(context_images)  # type: torch.FloatTensor
+        context_images_tanh = self._to_tanh_space(context_images, range_box)
 
         # `pert_tanh` is essentially the adversarial perturbation in tanh-space.
         # In Carlini's code it's denoted as `modifier`
@@ -282,7 +257,7 @@ class CarliniWagnerL2(object):
         for sstep in range(self.binary_search_steps):
             if self.repeat and sstep == self.binary_search_steps - 1:
                 scale_const = upper_bound
-            print('Using scale const:', scale_const)
+            self.logger.print_and_log('Using scale const:', scale_const)
 
             # the minimum L2 norms of perturbations found during optimization
             best_l2 = torch.ones(input_size, device=device) * 1e4  # As placeholder for np.inf
@@ -298,12 +273,13 @@ class CarliniWagnerL2(object):
                     adv_context_set_tanh[index] = adv_context_set_tanh[index] + pert_tanh[i]
 
                 # Map examples back to image space
-                adv_context_set = self._from_tanh_space(adv_context_set_tanh)
-                #loss_val is 1-D, pert_norms is [num_context], pert_outputs is [num_target], adv_context_images is [num_context C x W x H]
+                adv_context_set = self._from_tanh_space(adv_context_set_tanh, range_box)
+                # loss_val is 1-D, pert_norms is [num_context], pert_outputs is [num_target], adv_context_images is
+                # [num_context C x W x H]
                 loss_val, pert_norms, pert_outputs, adv_context_images = \
                     self._optimize(adv_context_set, context_images, context_labels, target_images,
                                    target_labels_oh, scale_const, get_logits_fn, optimizer)
-                if optim_step % 10 == 0: print('optim step [{}] loss: {}'.format(optim_step, loss_val))
+                if optim_step % 10 == 0: self.logger.print_and_log('optim step [{}] loss: {}'.format(optim_step, loss_val))
 
                 if self.abort_early and not optim_step % (self.max_iterations // 10):
                     if loss_val > prev_loss * (1 - self.ae_tol):
@@ -312,7 +288,7 @@ class CarliniWagnerL2(object):
 
                 # Outputs for target set, given adversarial context set
                 pert_predictions = torch.argmax(pert_outputs, dim=1)
-                comp_pert_predictions = torch.argmax(self._compensate_confidence(pert_outputs,target_labels),dim=1)
+                comp_pert_predictions = torch.argmax(self._compensate_confidence(pert_outputs, target_labels), dim=1)
                 # If the attack is successful, see if we've improved the loss
                 if self._attack_successful(comp_pert_predictions, target_labels, optim_step):
                     # TODO: I'm not sure why this would be the case. What exactly does comp_pert do?
@@ -331,10 +307,10 @@ class CarliniWagnerL2(object):
                             o_best_advx[index] = adv_context_images[index].clone()
 
             # binary search of `scale_const`
-            #assert best_l2_ppred is None or self._attack_successful(best_l2_ppred, target_labels, optim_step)
-            #assert o_best_l2_ppred is None or self._attack_successful(o_best_l2_ppred, target_labels, optim_step)
+            # assert best_l2_ppred is None or self._attack_successful(best_l2_ppred, target_labels, optim_step)
+            # assert o_best_l2_ppred is None or self._attack_successful(o_best_l2_ppred, target_labels, optim_step)
             if best_l2_ppred is not None:
-                print("Found successful attack")
+                self.logger.print_and_log("Found successful attack")
                 # successful; attempt to lower `scale_const` by halving it
                 if scale_const < upper_bound:
                     upper_bound = scale_const
@@ -345,7 +321,7 @@ class CarliniWagnerL2(object):
                 if upper_bound < self.c_range[1] * 0.1:
                     scale_consts = (lower_bound + upper_bound) / 2
             else:
-                print("Not successful")
+                self.logger.print_and_log("Not successful")
                 # failure; multiply `scale_const` by ten if no solution
                 # found; otherwise do binary search
                 if scale_const > lower_bound:
@@ -354,7 +330,8 @@ class CarliniWagnerL2(object):
                     scale_const = (lower_bound + upper_bound) / 2
                 else:
                     scale_const *= 10
-        return o_best_advx, adv_context_indices
+
+        return o_best_advx, adv_context_indices, o_best_l2
 
     def _optimize(self, adv_context_images, context_images, context_labels, target_images, target_labels_oh, c,
                   get_logits_fn, optimizer):
@@ -424,7 +401,7 @@ class CarliniWagnerL2(object):
                                  + self.confidence, min=0.0)
         # the total loss of current batch, should be of dimension [1]
         # The f_eval contrib is weighted by c and distributed across all dims
-        combined_loss = torch.sum(perts_norm + c* torch.mean(f_eval))
+        combined_loss = torch.sum(perts_norm + c * torch.mean(f_eval))
 
         # Do optimization for one step
         optimizer.zero_grad()
@@ -449,14 +426,14 @@ class CarliniWagnerL2(object):
         # Make the successfulness of an attack depend on the current iteration
         if self.vary_success_criteria:
             min_success = 0.05
-            accept_success = (self.success_fraction - min_success)*step/self.max_iterations + min_success
+            accept_success = (self.success_fraction - min_success) * step / self.max_iterations + min_success
         else:
             accept_success = self.success_fraction
 
         if self.targeted:
-            return ((prediction == target).sum()/float(prediction.shape[0])).item() >= accept_success
+            return ((prediction == target).sum() / float(prediction.shape[0])).item() >= accept_success
         else:
-            return ((prediction != target).sum()/float(prediction.shape[0])).item() >= accept_success
+            return ((prediction != target).sum() / float(prediction.shape[0])).item() >= accept_success
 
     def _compensate_confidence(self, outputs, targets):
         """
@@ -490,21 +467,33 @@ class CarliniWagnerL2(object):
     def get_attack_mode(self):
         return self.attack_mode
 
-    def _to_tanh_space(self, x):
+    @staticmethod
+    def _to_tanh_space(self, x, box):
         """
-        Convert a batch of tensors to tanh-space.
+        Convert a batch of tensors to tanh-space. This method complements the
+        implementation of the change-of-variable trick in terms of tanh.
 
         :param x: the batch of tensors, of dimension [B x C x H x W]
-        :return: the batch of tensors in tanh-space, of the same dimension
-        """
-        return to_tanh_space(x, self.box)
-
-    def _from_tanh_space(self, x):
-        """
-        Convert a batch of tensors from tanh-space to input space.
-
-        :param x: the batch of tensors, of dimension [B x C x H x W]
+        :param box: a tuple of lower bound and upper bound of the box constraint
         :return: the batch of tensors in tanh-space, of the same dimension;
                  the returned tensor is on the same device as ``x``
         """
-        return from_tanh_space(x, self.box)
+        _box_mul = (box[1] - box[0]) * 0.5
+        _box_plus = (box[1] + box[0]) * 0.5
+        return atanh((x - _box_plus) / _box_mul)
+
+    @staticmethod
+    def _from_tanh_space(self, x, box):
+        """
+        Convert a batch of tensors from tanh-space to oridinary image space.
+        This method complements the implementation of the change-of-variable trick
+        in terms of tanh.
+
+        :param x: the batch of tensors, of dimension [B x C x H x W]
+        :param box: a tuple of lower bound and upper bound of the box constraint
+        :return: the batch of tensors in ordinary image space, of the same
+                 dimension; the returned tensor is on the same device as ``x``
+        """
+        _box_mul = (box[1] - box[0]) * 0.5
+        _box_plus = (box[1] + box[0]) * 0.5
+        return torch.tanh(x) * _box_mul + _box_plus

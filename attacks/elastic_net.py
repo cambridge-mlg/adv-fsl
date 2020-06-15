@@ -40,8 +40,6 @@ class ElasticNet():
     :param abort_early: if set to true, abort early if getting stuck in local
         min
     :param initial_const: initial value of the constant c
-    :param clip_min: mininum value per input dimension.
-    :param clip_max: maximum value per input dimension.
     :param beta: hyperparameter trading off L2 minimization for L1 minimization
     :param decision_rule: EN or L1. Select final adversarial example from
                           all successful examples based on the least
@@ -78,8 +76,6 @@ class ElasticNet():
         self.global_step = 0
         self.repeat = binary_search_steps >= REPEAT_STEP
         # Set defaults, but we'll use the context set to calculate these when generating attacks
-        self.clip_max = 1.0
-        self.clip_min = -1.0
         self.logger = Logger(checkpoint_dir, "enet_logs.txt")
 
     def get_attack_mode(self):
@@ -128,11 +124,11 @@ class ElasticNet():
         else:
             return ((prediction != target).sum()/float(prediction.shape[0])).item() >= self.success_fraction
 
-    def _fast_iterative_shrinkage_thresholding(self, x, yy_k, xx_k):
+    def _fast_iterative_shrinkage_thresholding(self, x, yy_k, xx_k, clip_min, clip_max):
         zt = self.global_step / (self.global_step + 3)
 
-        upper = torch.clamp(yy_k - self.beta, max=self.clip_max)
-        lower = torch.clamp(yy_k + self.beta, min=self.clip_min)
+        upper = torch.clamp(yy_k - self.beta, max=clip_max)
+        lower = torch.clamp(yy_k + self.beta, min=clip_min)
         # Zero for all non-adv context images
         diff = yy_k - x
         cond1 = (diff > self.beta).float()
@@ -146,8 +142,17 @@ class ElasticNet():
     def generate(self, context_images, context_labels, target_images, model, get_logits_fn, device, target_labels=None):
         # Assert that, if attack is targeted, y is provided:
 
-        self.clip_max = context_images.max().item()
-        self.clip_min = context_images.min().item()
+        self.logger.print_and_log(
+            "Performing Elastic Net attack on {} set. Settings = (confidence={}, beta={}, decision_rule={}, "
+            "binary_search_steps={}, max_iterations={}, abort_early={}, learning_rate={}, vary_success_criteria={}, "
+            "success_fraction={})".format(self.attack_mode, self.confidence, self.beta, self.decision_rule,
+                                          self.binary_search_steps, self.max_iterations, self.abort_early,
+                                          self.learning_rate, self.vary_success_criteria, self.success_fraction))
+        self.logger.print_and_log(
+            "class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
+
+        clip_max = context_images.max().item()
+        clip_min = context_images.min().item()
 
         if self.targeted and target_labels is None:
             raise ValueError("Target labels `y` need to be provided for a targeted attack.")
@@ -184,7 +189,7 @@ class ElasticNet():
         for outer_step in range(self.binary_search_steps):
             #TODO: Change this to something we pass in to all the functions that need it?
             self.global_step = 0
-            print('Using scale const:', c_current)
+            self.logger.print_and_log('Using scale const:', c_current)
 
             # slack vector from the paper
             yy_k = context_images.clone()
@@ -222,8 +227,7 @@ class ElasticNet():
                 # polynomial decay of learning rate
                 lr = self.init_learning_rate * (1 - self.global_step / self.max_iterations)**0.5
 
-                yy_k_new, xx_k_new = self._fast_iterative_shrinkage_thresholding(
-                    context_images[adv_context_indices], yy_k[adv_context_indices], xx_k[adv_context_indices])
+                yy_k_new, xx_k_new = self._fast_iterative_shrinkage_thresholding(context_images[adv_context_indices], yy_k[adv_context_indices], xx_k[adv_context_indices], clip_min, clip_max)
 
                 for (i, index) in enumerate(adv_context_indices):
                     yy_k[index] = yy_k_new[i]
@@ -242,7 +246,7 @@ class ElasticNet():
                     loss = self._loss_fn(target_outputs, target_labels_oh, l1_dist, l2_dist, c_current)
 
                     if k % 10 == 0:
-                        print('optim step [{}] loss: {}'.format(k, loss))
+                        self.logger.print_and_log('optim step [{}] loss: {}'.format(k, loss))
 
                     if self.abort_early:
                         if k % (self.max_iterations // NUM_CHECKS or 1) == 0:
@@ -264,13 +268,13 @@ class ElasticNet():
 
             # Update c_current for next iteration:
             if self._is_successful(curr_labels, target_labels, is_logits=False):
-                print("Found successful attack")
+                self.logger.print_and_log("Found successful attack")
                 c_upper_bound = min(c_upper_bound, c_current)
 
                 if c_upper_bound < UPPER_CHECK:
                     c_current = (c_lower_bound + c_upper_bound) / 2.0
             else:
-                print("Not successful attack")
+                self.logger.print_and_log("Not successful attack")
                 c_lower_bound = max(c_lower_bound, c_current)
                 if c_upper_bound < UPPER_CHECK:
                     c_current = (c_lower_bound + c_upper_bound) / 2.0
