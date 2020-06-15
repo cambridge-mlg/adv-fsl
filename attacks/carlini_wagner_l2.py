@@ -319,7 +319,7 @@ class CarliniWagnerL2(object):
                 # scale_consts_np[i] until
                 # `scale_consts_np[i] > 0.1 * c_range[1]`
                 if upper_bound < self.c_range[1] * 0.1:
-                    scale_consts = (lower_bound + upper_bound) / 2
+                    scale_const = (lower_bound + upper_bound) / 2
             else:
                 self.logger.print_and_log("Not successful")
                 # failure; multiply `scale_const` by ten if no solution
