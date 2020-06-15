@@ -144,10 +144,10 @@ class ElasticNet():
 
         self.logger.print_and_log(
             "Performing Elastic Net attack on {} set. Settings = (confidence={}, beta={}, decision_rule={}, "
-            "binary_search_steps={}, max_iterations={}, abort_early={}, learning_rate={}, vary_success_criteria={}, "
+            "binary_search_steps={}, max_iterations={}, abort_early={}, learning_rate={}, "
             "success_fraction={})".format(self.attack_mode, self.confidence, self.beta, self.decision_rule,
                                           self.binary_search_steps, self.max_iterations, self.abort_early,
-                                          self.learning_rate, self.vary_success_criteria, self.success_fraction))
+                                          self.learning_rate, self.success_fraction))
         self.logger.print_and_log(
             "class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
 
@@ -189,7 +189,7 @@ class ElasticNet():
         for outer_step in range(self.binary_search_steps):
             #TODO: Change this to something we pass in to all the functions that need it?
             self.global_step = 0
-            self.logger.print_and_log('Using scale const:', c_current)
+            self.logger.print_and_log('Using scale const: {}'.format(c_current))
 
             # slack vector from the paper
             yy_k = context_images.clone()

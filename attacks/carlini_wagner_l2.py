@@ -257,7 +257,7 @@ class CarliniWagnerL2(object):
         for sstep in range(self.binary_search_steps):
             if self.repeat and sstep == self.binary_search_steps - 1:
                 scale_const = upper_bound
-            self.logger.print_and_log('Using scale const:', scale_const)
+            self.logger.print_and_log('Using scale const:{}'.format(scale_const))
 
             # the minimum L2 norms of perturbations found during optimization
             best_l2 = torch.ones(input_size, device=device) * 1e4  # As placeholder for np.inf
@@ -331,7 +331,7 @@ class CarliniWagnerL2(object):
                 else:
                     scale_const *= 10
 
-        return o_best_advx, adv_context_indices, o_best_l2
+        return o_best_advx, adv_context_indices #, o_best_l2
 
     def _optimize(self, adv_context_images, context_images, context_labels, target_images, target_labels_oh, c,
                   get_logits_fn, optimizer):
@@ -468,7 +468,7 @@ class CarliniWagnerL2(object):
         return self.attack_mode
 
     @staticmethod
-    def _to_tanh_space(self, x, box):
+    def _to_tanh_space(x, box):
         """
         Convert a batch of tensors to tanh-space. This method complements the
         implementation of the change-of-variable trick in terms of tanh.
@@ -483,7 +483,7 @@ class CarliniWagnerL2(object):
         return atanh((x - _box_plus) / _box_mul)
 
     @staticmethod
-    def _from_tanh_space(self, x, box):
+    def _from_tanh_space(x, box):
         """
         Convert a batch of tensors from tanh-space to oridinary image space.
         This method complements the implementation of the change-of-variable trick
