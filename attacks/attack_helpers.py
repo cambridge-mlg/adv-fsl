@@ -4,7 +4,7 @@ from attacks.carlini_wagner_l2 import CarliniWagnerL2
 from attacks.elastic_net import ElasticNet
 
 
-def create_attack(attack_config_path):
+def create_attack(attack_config_path, checkpoint_dir):
     with open(attack_config_path) as f:
         attack_params = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -21,6 +21,7 @@ def create_attack(attack_config_path):
 
             # create the attack
             attack = ProjectedGradientDescent(
+                checkpoint_dir=checkpoint_dir,
                 norm=attack_params['norm'],
                 epsilon=attack_params['epsilon'],
                 num_iterations=attack_params['num_iterations'],
@@ -32,6 +33,7 @@ def create_attack(attack_config_path):
             )
         elif attack_params['attack'] == 'carlini_wagner':
             attack = CarliniWagnerL2(
+                checkpoint_dir=checkpoint_dir,
                 targeted=attack_params['targeted'],
                 confidence=attack_params['confidence'],
                 c_lower=attack_params['c_lower'],
@@ -49,6 +51,7 @@ def create_attack(attack_config_path):
             )
         elif attack_params['attack'] == 'elastic_net':
             attack = ElasticNet(
+                checkpoint_dir=checkpoint_dir,
                 confidence=attack_params['confidence'],
                 targeted=attack_params['targeted'],
                 learning_rate=attack_params['learning_rate'],

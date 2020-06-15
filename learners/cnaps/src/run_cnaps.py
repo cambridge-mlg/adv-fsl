@@ -326,7 +326,7 @@ class Learner:
         self.model = self.init_model()
         self.model.load_state_dict(torch.load(path))
 
-        attack = create_attack(self.args.attack_config_path)
+        attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
         for item in self.test_set:
             accuracies_before = []
             accuracies_after = []

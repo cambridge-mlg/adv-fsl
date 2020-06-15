@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, one_hot_embedding
+from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, one_hot_embedding, Logger
 
 
 
@@ -121,7 +121,9 @@ class CarliniWagnerL2(object):
     - ``M``: the number of classes
     """
 
-    def __init__(self, targeted=False,
+    def __init__(self,
+                 checkpoint_dir,
+                 targeted=False,
                  confidence=0.0,
                  c_lower=1e-3,
                  c_upper=1e10,
@@ -224,6 +226,7 @@ class CarliniWagnerL2(object):
         # the L2 norm is, thus less optimal, the last attempt at the largest
         # `scale_const` won't ruin the optimum ever found.
         self.repeat = (self.binary_search_steps >= 10)
+        self.logger = Logger(checkpoint_dir, "cw_logs.txt")
 
     def generate(self, context_images, context_labels, target_images, model, get_logits_fn, device, target_labels=None):
 

@@ -204,7 +204,7 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
     model.set_gradient_steps(test_gradient_steps)
 
-    attack = create_attack(config_path)
+    attack = create_attack(config_path, checkpoint_dir)
 
     accuracies_before = []
     accuracies_after = []

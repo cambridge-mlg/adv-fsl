@@ -3,11 +3,12 @@ import torch
 import math
 import torch.distributions.uniform as uniform
 import numpy as np
-from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits
+from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, Logger
 
 
 class ProjectedGradientDescent:
     def __init__(self,
+                 checkpoint_dir,
                  norm='inf',
                  epsilon=0.3,
                  num_iterations=10,
@@ -15,7 +16,8 @@ class ProjectedGradientDescent:
                  project_step=True,
                  attack_mode='context',
                  class_fraction=1.0,
-                 shot_fraction=1.0):
+                 shot_fraction=1.0,
+                 normalize_perturbation=True):
         self.norm = norm
         self.epsilon = epsilon
         self.num_iterations = num_iterations
@@ -25,21 +27,29 @@ class ProjectedGradientDescent:
         self.class_fraction = class_fraction
         self.shot_fraction = shot_fraction
         self.loss = nn.CrossEntropyLoss()
+        self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
+
+    # Epsilon and epsilon_step are specified for inputs normalized to [0,1].
+    # Use a sample of the images to recalculate the required perturbation size (for actual image normalization)
+    def normalize_epsilon(self, clip_min, clip_max):
+
+        if clip_min != 0.0 or clip_max != 1.0:
+            # Epsilon is specified relative to min = 0, max = 1.0
+            # If this is not the case, scale epsilon
+            step_ratio = self.epsilon_step / self.epsilon
+            epsilon_new = self.epsilon * (clip_max - clip_min)
+            epsilon_step_new = epsilon_new * step_ratio
+        return epsilon_new, epsilon_step_new
 
     def generate(self, context_images, context_labels, target_images, model, get_logits_fn, device):
         # get the predicted target labels
         logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
         labels = convert_labels(logits)
 
-        self.clip_min = context_images.min().item()
-        self.clip_max = context_images.max().item()
-
-        if self.clip_min != 0.0 or self.clip_max != 1.0:
-            # Epsilon is specified relative to min = 0, max = 1.0
-            # If this is not the case, scale epsilon up
-            step_ratio = self.epsilon_step / self.epsilon
-            self.epsilon = self.epsilon * (self.clip_max  - self.clip_min)
-            self.epsilon_step = self.epsilon * step_ratio
+        self.logger.print_and_log("Performing PGD attack on {} set. Settings = {norm={}, epsilon={}, epsilon_step={}, "
+                                  "num_iterations={}".format(self.attack_mode, self.norm, self.epsilon,
+                                                             self.epsilon_step, self.num_iterations))
+        self.logger.print_and_log("class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
 
         if self.attack_mode == 'target':
             return self._generate_target(context_images, context_labels, target_images, labels, model, get_logits_fn,
@@ -49,16 +59,24 @@ class ProjectedGradientDescent:
                                           device)
 
     def _generate_target(self, context_images, context_labels, target_images, labels, model, get_logits_fn, device):
+        clip_min = target_images.min().item()
+        clip_max = target_images.max().item()
+        if self.normalize_perturbation:
+            epsilon, epsilon_step = self.normalize_epsilon(clip_min, clip_max)
+        else:
+            epsilon, epsilon_step = self.epsilon, self.epsilon_step
+        self.logger.print_and_log("Normalized perturbation sizes: eps={}, eps_step={}".format(epsilon, epsilon_step))
+
         adv_target_images = target_images.clone()
 
         # Initial projection step
         target_size = adv_target_images.size()
         m = target_size[1] * target_size[2] * target_size[3]
         num_target_images = target_size[0]
-        initial_perturb = self.random_sphere(num_target_images, m, self.epsilon, self.norm).reshape(
+        initial_perturb = self.random_sphere(num_target_images, m, epsilon, self.norm).reshape(
             (num_target_images, target_size[1], target_size[2], target_size[3])).to(device)
 
-        adv_target_images = torch.clamp(adv_target_images + initial_perturb, self.clip_min, self.clip_max)
+        adv_target_images = torch.clamp(adv_target_images + initial_perturb, clip_min, clip_max)
 
         for _ in range(self.num_iterations):
             adv_target_images.requires_grad = True
@@ -75,11 +93,11 @@ class ProjectedGradientDescent:
             if self.norm == 'inf':
                 perturbation = torch.sign(grad)
 
-            adv_target_images = torch.clamp(adv_target_images + self.epsilon_step * perturbation, self.clip_min,
-                                            self.clip_max)
+            adv_target_images = torch.clamp(adv_target_images + epsilon_step * perturbation, clip_min,
+                                            clip_max)
 
             diff = adv_target_images - target_images
-            new_perturbation = self.projection(diff, self.epsilon, self.norm, device)
+            new_perturbation = self.projection(diff, epsilon, self.norm, device)
             adv_target_images = target_images + new_perturbation
 
             adv_target_images = adv_target_images.detach()
@@ -88,18 +106,25 @@ class ProjectedGradientDescent:
         return adv_target_images
 
     def _generate_context(self, context_images, context_labels, target_images, labels, model, get_logits_fn, device):
+        clip_min = target_images.min().item()
+        clip_max = target_images.max().item()
+        if self.normalize_perturbation:
+            epsilon, epsilon_step = self.normalize_epsilon(clip_min, clip_max)
+        else:
+            epsilon, epsilon_step = self.epsilon, self.epsilon_step
+
         adv_context_indices = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
         adv_context_images = context_images.clone()
 
         # Initial projection step
         size = adv_context_images.size()
         m = size[1] * size[2] * size[3]
-        initial_perturb = self.random_sphere(len(adv_context_indices), m, self.epsilon, self.norm).reshape(
+        initial_perturb = self.random_sphere(len(adv_context_indices), m, epsilon, self.norm).reshape(
             (len(adv_context_indices), size[1], size[2], size[3])).to(device)
 
         for i, index in enumerate(adv_context_indices):
-            adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], self.clip_min,
-                                                    self.clip_max)
+            adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], clip_min,
+                                                    clip_max)
 
         for i in range(0, self.num_iterations):
             adv_context_images.requires_grad = True
@@ -120,11 +145,11 @@ class ProjectedGradientDescent:
 
             for index in adv_context_indices:
                 adv_context_images[index] = torch.clamp(adv_context_images[index] +
-                                                        self.epsilon_step * perturbation[index],
-                                                        self.clip_min, self.clip_max)
+                                                        epsilon_step * perturbation[index],
+                                                        clip_min, clip_max)
 
                 diff = adv_context_images[index] - context_images[index]
-                new_perturbation = self.projection(diff, self.epsilon, self.norm, device)
+                new_perturbation = self.projection(diff, epsilon, self.norm, device)
                 adv_context_images[index] = context_images[index] + new_perturbation
 
             del logits

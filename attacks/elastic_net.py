@@ -13,7 +13,8 @@ from __future__ import unicode_literals
 import torch
 import torch.nn as nn
 
-from attacks.attack_utils import distance_l2_squared, distance_l1, one_hot_embedding, fix_logits, convert_labels, generate_context_attack_indices
+from attacks.attack_utils import distance_l2_squared, distance_l1, one_hot_embedding, fix_logits, convert_labels, \
+    generate_context_attack_indices, Logger
 
 ONE_MINUS_EPS = 0.999999
 '''We check whether we should abort early every max_iterations // NUM_CHECKS iterations'''
@@ -48,7 +49,9 @@ class ElasticNet():
     :param loss_fn: loss function
     """
 
-    def __init__(self, confidence=0,
+    def __init__(self,
+                 checkpoint_dir,
+                 confidence=0,
                  targeted=False, learning_rate=1e-2,
                  binary_search_steps=9, max_iterations=1000,
                  abort_early=False, beta=1e-2, decision_rule='EN',
@@ -77,6 +80,7 @@ class ElasticNet():
         # Set defaults, but we'll use the context set to calculate these when generating attacks
         self.clip_max = 1.0
         self.clip_min = -1.0
+        self.logger = Logger(checkpoint_dir, "enet_logs.txt")
 
     def get_attack_mode(self):
         return self.attack_mode
