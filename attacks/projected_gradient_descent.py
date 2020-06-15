@@ -26,6 +26,7 @@ class ProjectedGradientDescent:
         self.attack_mode = attack_mode
         self.class_fraction = class_fraction
         self.shot_fraction = shot_fraction
+        self.normalize_perturbation = normalize_perturbation
         self.loss = nn.CrossEntropyLoss()
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
 
@@ -46,8 +47,8 @@ class ProjectedGradientDescent:
         logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
         labels = convert_labels(logits)
 
-        self.logger.print_and_log("Performing PGD attack on {} set. Settings = {norm={}, epsilon={}, epsilon_step={}, "
-                                  "num_iterations={}".format(self.attack_mode, self.norm, self.epsilon,
+        self.logger.print_and_log("Performing PGD attack on {} set. Settings = (norm={}, epsilon={}, epsilon_step={}, "
+                                  "num_iterations={})".format(self.attack_mode, self.norm, self.epsilon,
                                                              self.epsilon_step, self.num_iterations))
         self.logger.print_and_log("class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
 
@@ -84,6 +85,9 @@ class ProjectedGradientDescent:
             # compute loss
             loss = self.loss(logits, labels)
             model.zero_grad()
+
+            if i % 5 == 0 or i == self.num_iterations-1:
+                self.logger.print_and_log("Iter {}, loss = {:.5f}".format(i, loss))
 
             # compute gradient
             loss.backward()
@@ -132,6 +136,9 @@ class ProjectedGradientDescent:
             # compute loss
             loss = self.loss(logits, labels)
             model.zero_grad()
+
+            if i % 5 == 0 or i == self.num_iterations-1:
+                self.logger.print_and_log("Iter {}, loss = {:.5f}".format(i, loss))
 
             # compute gradients
             loss.backward()
