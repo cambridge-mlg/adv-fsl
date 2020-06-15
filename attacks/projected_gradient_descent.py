@@ -59,9 +59,9 @@ class ProjectedGradientDescent:
             (num_target_images, target_size[1], target_size[2], target_size[3])).to(device)
 
         adv_target_images = torch.clamp(adv_target_images + initial_perturb, self.clip_min, self.clip_max)
-        adv_target_images.requires_grad = True
 
         for _ in range(self.num_iterations):
+            adv_target_images.requires_grad = True
             logits = fix_logits(get_logits_fn(context_images, context_labels, adv_target_images))
             # compute loss
             loss = self.loss(logits, labels)
@@ -83,7 +83,6 @@ class ProjectedGradientDescent:
             adv_target_images = target_images + new_perturbation
 
             adv_target_images = adv_target_images.detach()
-            adv_target_images.requires_grad = True
             del logits
 
         return adv_target_images
@@ -109,11 +108,11 @@ class ProjectedGradientDescent:
             loss = self.loss(logits, labels)
             model.zero_grad()
 
-            adv_context_images.requires_grad = True
-
             # compute gradients
             loss.backward()
             grad = adv_context_images.grad
+
+            adv_context_images = adv_context_images.detach()
 
             # apply norm bound
             if self.norm == 'inf':
@@ -121,19 +120,14 @@ class ProjectedGradientDescent:
 
             for index in adv_context_indices:
                 adv_context_images[index] = torch.clamp(adv_context_images[index] +
-                                                        self.epsilon_step * perturbation[index], self.clip_min, self.clip_max)
+                                                        self.epsilon_step * perturbation[index],
+                                                        self.clip_min, self.clip_max)
 
                 diff = adv_context_images[index] - context_images[index]
                 new_perturbation = self.projection(diff, self.epsilon, self.norm, device)
                 adv_context_images[index] = context_images[index] + new_perturbation
 
-            adv_context_images = adv_context_images.detach()
             del logits
-            del grad
-            del diff
-            del new_perturbation
-
-            assert adv_context_images.requires_grad == False
 
         return adv_context_images, adv_context_indices
 
