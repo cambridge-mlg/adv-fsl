@@ -101,10 +101,10 @@ class ElasticNet():
             loss = loss_logits + loss_l2 + loss_l1
         return loss
 
-    def _is_successful(self, output, target, is_logits=False):
+    def _context_attack_successful(self, output, target, is_logits=False):
         # determine success, see if confidence-adjusted logits give the right label
         if is_logits:
-            output = output.detach().clone()
+            output = output.detach()
             if self.targeted:
                 output[torch.arange(len(target)).long(),
                        target] -= self.confidence
@@ -123,6 +123,29 @@ class ElasticNet():
             return ((prediction == target).sum()/float(prediction.shape[0])).item() >= self.success_fraction
         else:
             return ((prediction != target).sum()/float(prediction.shape[0])).item() >= self.success_fraction
+
+    def _target_attack_successful(self, output, target, is_logits=False):
+        # determine success, see if confidence-adjusted logits give the right label
+        if is_logits:
+            output = output.detach().clone()
+            if self.targeted:
+                output[torch.arange(len(target)).long(),
+                       target] -= self.confidence
+            else:
+                output[torch.arange(len(target)).long(),
+                       target] += self.confidence
+            prediction = torch.argmax(output, dim=1)
+        else:
+            # Labels are all -1 and thus invalid. Attack not successful
+            if output == -1:
+                return False
+            else:
+                prediction = output.long()
+
+        if self.targeted:
+            return prediction == target
+        else:
+            return prediction != target
 
     def _fast_iterative_shrinkage_thresholding(self, x, yy_k, xx_k, clip_min, clip_max):
         zt = self.global_step / (self.global_step + 3)
@@ -151,9 +174,6 @@ class ElasticNet():
         self.logger.print_and_log(
             "class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
 
-        clip_max = context_images.max().item()
-        clip_min = context_images.min().item()
-
         if self.targeted and target_labels is None:
             raise ValueError("Target labels `y` need to be provided for a targeted attack.")
 
@@ -163,27 +183,42 @@ class ElasticNet():
             # Generate target labels based on model's initial prediction:
             initial_logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
             target_labels = convert_labels(initial_logits)
+
         classes = torch.unique(context_labels)
         num_classes = len(classes)
         # Make one-hot encoding for target_labels
         target_labels_oh = one_hot_embedding(target_labels, num_classes).to(device)
-        # These indices are tensors. I'm not sure that's what we want, but I don't want to change it without further discussion
-        adv_context_indices_t = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
-        adv_context_indices = [index_tensor.item() for index_tensor in adv_context_indices_t]
 
-        #I don't think this is necessary:
-        #x = x.detach().clone()
-        # We optimize the entire context set as a single attack, so we only have one c
-        c_current = self.c_range[0]
-        c_lower_bound = 0.0
-        c_upper_bound = self.c_range[1]
+        if self.attack_mode == 'context':
+            # These indices are tensors. I'm not sure that's what we want, but I don't want to change it without further discussion
+            adv_context_indices_t = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
+            adv_context_indices = [index_tensor.item() for index_tensor in adv_context_indices_t]
+            attack_set = context_images
+            # We are conceptually only performing one attack, albeit over a set of images
+            num_attacks = 1
+            num_inputs = len(adv_context_indices)
+        else:
+            attack_set = target_images
+            num_attacks = len(target_images)
+            num_inputs = num_attacks
+
+        clip_max = attack_set.max().item()
+        clip_min = attack_set.min().item()
+
+        # I don't think this is necessary:
+        # x = x.detach().clone()
+
+        # For context set attacks, we optimize the entire context set as a single attack, so we only have one c
+        c_current = torch.ones(num_attacks, device=device) * self.c_range[0]
+        c_lower_bound = torch.zeros(num_attacks, device=device)
+        c_upper_bound = torch.ones(num_attacks, device=device) * self.c_range[1]
 
         # As many best_dists as we have adversarial context images
-        o_best_dist = torch.ones(len(adv_context_indices), device=device) * INF
+        o_best_dist = torch.ones(num_inputs, device=device) * INF
         # As many best_labels as we have target images
-        o_best_labels = torch.ones(target_images.shape[0], device=device) * -1.0
+        # o_best_labels = torch.ones(target_images.shape[0], device=device) * -1.0
         # Store entire adversarial context set
-        o_best_attack = context_images.clone()
+        o_best_attack = attack_set.clone()
 
         # Start binary search
         for outer_step in range(self.binary_search_steps):
@@ -192,11 +227,11 @@ class ElasticNet():
             self.logger.print_and_log('Using scale const: {}'.format(c_current))
 
             # slack vector from the paper
-            yy_k = context_images.clone()
-            xx_k = context_images.clone()
+            yy_k = attack_set.clone()
+            xx_k = attack_set.clone()
 
-            curr_dist = torch.ones(len(adv_context_indices), device=device) * INF
-            curr_labels = -torch.ones(target_images.shape[0], device=device)
+            curr_dist = torch.ones(num_inputs, device=device) * INF
+            curr_labels = -torch.ones(target_images.shape[0], device=device) #TODO: check this
 
             previous_loss = PREV_LOSS_INIT
 
@@ -211,33 +246,49 @@ class ElasticNet():
 
                 # loss over yy_k with only L2 same as C&W
                 # we don't update L1 loss with SGD because we use ISTA
-                target_outputs = fix_logits(get_logits_fn(yy_k, context_labels, target_images))
-                l2_dist = distance_l2_squared(yy_k[adv_context_indices], context_images[adv_context_indices])
+                if self.attack_mode == 'context':
+                    target_outputs = fix_logits(get_logits_fn(yy_k, context_labels, target_images))
+                    l2_dist = distance_l2_squared(yy_k[adv_context_indices], context_images[adv_context_indices])
+                else:
+                    target_outputs = fix_logits(get_logits_fn(context_images, context_labels, yy_k))
+                    l2_dist = distance_l2_squared(yy_k, target_images)
+                # TODO: Are we doing any sort of weighting for the l2_dists to compensate for input_num?
                 loss_opt = self._loss_fn(target_outputs, target_labels_oh, None, l2_dist, c_current, exclude_l1=True)
                 loss_opt.backward()
 
                 yy_k_grad = yy_k.grad
                 yy_k = yy_k.detach()
-                # Gradient step (gradient need only be calculated again in next iteration, so clone to prevent leaf edits)
-                for i, index in enumerate(adv_context_indices):
-                    yy_k[index] = yy_k[index] - lr* yy_k_grad[index]
+                # Gradient step
+                if self.attack_mode == 'context':
+                    for i, index in enumerate(adv_context_indices):
+                        yy_k[index] = yy_k[index] - lr* yy_k_grad[index]
+                else:
+                    yy_k = yy_k - lr * yy_k_grad
 
                 self.global_step += 1
 
                 # polynomial decay of learning rate
                 lr = self.init_learning_rate * (1 - self.global_step / self.max_iterations)**0.5
 
-                yy_k_new, xx_k_new = self._fast_iterative_shrinkage_thresholding(context_images[adv_context_indices], yy_k[adv_context_indices], xx_k[adv_context_indices], clip_min, clip_max)
+                if self.attack_mode == 'context':
+                    yy_k_new, xx_k_new = self._fast_iterative_shrinkage_thresholding(context_images[adv_context_indices], yy_k[adv_context_indices], xx_k[adv_context_indices], clip_min, clip_max)
 
-                for (i, index) in enumerate(adv_context_indices):
-                    yy_k[index] = yy_k_new[i]
-                    xx_k[index] = xx_k_new[i]
+                    for (i, index) in enumerate(adv_context_indices):
+                        yy_k[index] = yy_k_new[i]
+                        xx_k[index] = xx_k_new[i]
+                else:
+                    yy_k, xx_k = self._fast_iterative_shrinkage_thresholding(target_images, yy_k, xx_k, clip_min, clip_max)
 
                 # loss ElasticNet or L1 over xx_k
                 with torch.no_grad():
-                    target_outputs = fix_logits(get_logits_fn(xx_k, context_labels, target_images))
-                    l2_dist = distance_l2_squared(xx_k[adv_context_indices], context_images[adv_context_indices])
-                    l1_dist = distance_l1(xx_k[adv_context_indices], context_images[adv_context_indices])
+                    if self.attack_mode == 'context':
+                        target_outputs = fix_logits(get_logits_fn(xx_k, context_labels, target_images))
+                        l2_dist = distance_l2_squared(xx_k[adv_context_indices], context_images[adv_context_indices])
+                        l1_dist = distance_l1(xx_k[adv_context_indices], context_images[adv_context_indices])
+                    else:
+                        target_outputs = fix_logits(get_logits_fn(context_images, context_labels, xx_k))
+                        l2_dist = distance_l2_squared(xx_k, target_images)
+                        l1_dist = distance_l1(xx_k, target_images)
 
                     if self.decision_rule == 'EN':
                         dist = l2_dist + (l1_dist * self.beta)
@@ -256,29 +307,41 @@ class ElasticNet():
 
                     _, target_output_labels = torch.max(target_outputs, 1)
 
-                    if self._is_successful(target_outputs, target_labels, is_logits=True):
-                        # If dist is better than best dist for curr c, update
-                        if dist.sum() < curr_dist.sum():
-                            curr_dist = dist
-                            curr_labels = target_output_labels
-                        if dist.sum() < o_best_dist.sum():
-                            o_best_dist = dist
-                            o_best_labels = target_output_labels
-                            o_best_attack = xx_k.data.clone()
+                    if self.attack_mode == 'context':
+                        if self._context_attack_successful(target_outputs, target_labels, is_logits=True):
+                            # If dist is better than best dist for curr c, update
+                            if dist.sum() < curr_dist.sum():
+                                curr_dist = dist
+                                curr_labels = target_output_labels
+                            if dist.sum() < o_best_dist.sum():
+                                o_best_dist = dist
+                                o_best_attack = xx_k.data.clone()
+                    else:
+                        for i in range(num_attacks):
+                            if self._target_attack_successful(target_outputs[i], target_labels[i], is_logits=True):
+                                # If dist is better than best dist for curr c, update
+                                if dist.sum[i] < curr_dist[i]:
+                                    curr_dist[i] = dist[i]
+                                    curr_labels[i] = target_output_labels[i]
+                                if dist[i] < o_best_dist[i]:
+                                    o_best_dist[i] = dist[i]
+                                    o_best_attack[i] = xx_k.data.clone()
 
             # Update c_current for next iteration:
-            if self._is_successful(curr_labels, target_labels, is_logits=False):
-                self.logger.print_and_log("Found successful attack")
-                c_upper_bound = min(c_upper_bound, c_current)
+            for i in range(num_attacks):
+                if (self.attack_mode == 'context' and self._context_attack_successful(curr_labels, target_labels, is_logits=False)) \
+                        or (self.attack_mode == 'target' and self._target_attack_successful(curr_labels[i], target_labels[i], is_logits=False)):
+                    self.logger.print_and_log("Found successful attack")
+                    c_upper_bound[i] = min(c_upper_bound[i], c_current[i])
 
-                if c_upper_bound < UPPER_CHECK:
-                    c_current = (c_lower_bound + c_upper_bound) / 2.0
-            else:
-                self.logger.print_and_log("Not successful attack")
-                c_lower_bound = max(c_lower_bound, c_current)
-                if c_upper_bound < UPPER_CHECK:
-                    c_current = (c_lower_bound + c_upper_bound) / 2.0
+                    if c_upper_bound[i] < UPPER_CHECK:
+                        c_current[i] = (c_lower_bound[i] + c_upper_bound[i]) / 2.0
                 else:
-                    c_current *= 10
+                    self.logger.print_and_log("Not successful attack")
+                    c_lower_bound[i] = max(c_lower_bound[i], c_current[i])
+                    if c_upper_bound[i] < UPPER_CHECK:
+                        c_current[i] = (c_lower_bound[i] + c_upper_bound[i]) / 2.0
+                    else:
+                        c_current[i] *= 10
 
         return o_best_attack, adv_context_indices
