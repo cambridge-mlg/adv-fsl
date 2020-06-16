@@ -9,7 +9,7 @@ abort_early: False
 optimizer_lr: 1.0e-2
 init_rand: False
 vary_success_criteria: False
-success_fraction: 0.5
+success_fraction: 0.2
 attack_mode: context
 class_fraction: 1.0
 shot_fraction: 0.1
