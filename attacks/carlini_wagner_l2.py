@@ -179,15 +179,15 @@ class CarliniWagnerL2(object):
         range_box = (attack_set.min().item(), attack_set.max().item())
 
         # Set up bounds and initial values for c
-        scale_consts = [self.c_range[0]] * num_attacks
-        lower_bounds = [0.0] * num_attacks
-        upper_bounds = [self.c_range[1]] * num_attacks
+        scale_consts = torch.ones(num_attacks, device=device) * self.c_range[0]
+        lower_bounds = torch.zeros(num_attacks, device=device)
+        upper_bounds = torch.ones(num_attacks, device=device) * self.c_range[1]
 
         # Set up holders for the optimal attacks and their L2 distortion
         # - `o_best_l2`: The lowest L2 distance between the input and adversarial images
         # - `o_best_advx`: the best performing adversarial context set
         o_best_l2 = torch.ones(input_size, device=device) * INF  # placeholder for inf
-        o_best_l2_ppreds = -torch.ones(num_attacks, device=device)
+        o_best_l2_ppreds = -torch.ones(num_attacks, device=device, dtype=torch.long)
         o_best_advx = attack_set.clone()
 
         # convert `inputs` to tanh-space
@@ -212,7 +212,7 @@ class CarliniWagnerL2(object):
             # the minimum L2 norms of perturbations found during optimization
             best_l2 = torch.ones(input_size, device=device) * INF  # As placeholder for np.inf
             # the perturbed predictions corresponding to `best_l2`, to be used in binary search of `scale_const`
-            best_l2_ppreds = -torch.ones(num_attacks, device=device)
+            best_l2_ppreds = -torch.ones(num_attacks, device=device, dtype=torch.long)
             # Target attacks can examine the best_l2_ppreds individually to see whether each attack succeeded
             # Since context attack rely on the entire set being successful, and ppreds is semantically meaningful, we
             best_l2_successful = torch.zeros(num_attacks)
@@ -267,7 +267,7 @@ class CarliniWagnerL2(object):
                                 o_best_advx[index] = adv_image_set[index].clone()
                 else:
                     for i in range(num_attacks):
-                        if self._target_attack_successful(comp_pert_predictions[i], target_labels[i], optim_step):
+                        if self._target_attack_successful(comp_pert_predictions[i], target_labels[i]):
                             assert torch.all(comp_pert_predictions.eq(pert_predictions))
                             # If this attack has lower perturbation norm, record it
                             if pert_norms[i] < best_l2[i]:
@@ -383,7 +383,7 @@ class CarliniWagnerL2(object):
         if self.attack_mode == 'context':
             # The f_eval contrib is weighted by c and distributed across all dims
             # c is 1-D list
-            combined_loss = torch.sum(perts_norm + c[0] * torch.mean(f_eval))
+            combined_loss = torch.sum(perts_norm + c[0].item() * torch.mean(f_eval))
         else:
             combined_loss = torch.sum(perts_norm + c * f_eval)
 
