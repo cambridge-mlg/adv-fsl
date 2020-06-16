@@ -62,6 +62,7 @@ class ProjectedGradientDescent:
     def _generate_target(self, context_images, context_labels, target_images, labels, model, get_logits_fn, device):
         clip_min = target_images.min().item()
         clip_max = target_images.max().item()
+        # Desired epsilon are given for images normalized to [0,1]. Adjust for when this is not the case
         if self.normalize_perturbation:
             epsilon, epsilon_step = self.normalize_epsilon(clip_min, clip_max)
         else:
@@ -79,7 +80,7 @@ class ProjectedGradientDescent:
 
         adv_target_images = torch.clamp(adv_target_images + initial_perturb, clip_min, clip_max)
 
-        for _ in range(self.num_iterations):
+        for i in range(self.num_iterations):
             adv_target_images.requires_grad = True
             logits = fix_logits(get_logits_fn(context_images, context_labels, adv_target_images))
             # compute loss
@@ -92,19 +93,18 @@ class ProjectedGradientDescent:
             # compute gradient
             loss.backward()
             grad = adv_target_images.grad
+            adv_target_images = adv_target_images.detach()
 
             # apply norm bound
             if self.norm == 'inf':
                 perturbation = torch.sign(grad)
 
-            adv_target_images = torch.clamp(adv_target_images + epsilon_step * perturbation, clip_min,
-                                            clip_max)
+            adv_target_images = torch.clamp(adv_target_images + epsilon_step * perturbation, clip_min, clip_max)
 
             diff = adv_target_images - target_images
             new_perturbation = self.projection(diff, epsilon, self.norm, device)
             adv_target_images = target_images + new_perturbation
 
-            adv_target_images = adv_target_images.detach()
             del logits
 
         return adv_target_images
@@ -183,21 +183,19 @@ class ProjectedGradientDescent:
         tol = 10e-8
         values_tmp = values.reshape((values.shape[0], -1))
 
-        if norm_p == 2:
-            pass
-            #values_tmp = values_tmp * torch.unsqueeze(
-            #    np.minimum(1.0, eps / (np.linalg.norm(values_tmp, axis=1) + tol)), dim=1
-            #)
-        elif norm_p == 1:
-            pass
-            #values_tmp = values_tmp * np.expand_dims(
-            #    np.minimum(1.0, eps / (np.linalg.norm(values_tmp, axis=1, ord=1) + tol)), axis=1
-            #)
-        elif norm_p == 'inf':
+        # if norm_p == 2:
+        #    values_tmp = values_tmp * torch.unsqueeze(
+        #        np.minimum(1.0, eps / (np.linalg.norm(values_tmp, axis=1) + tol)), dim=1
+        #    )
+        # elif norm_p == 1:
+        #    values_tmp = values_tmp * np.expand_dims(
+        #        np.minimum(1.0, eps / (np.linalg.norm(values_tmp, axis=1, ord=1) + tol)), axis=1
+        #    )
+        if norm_p == 'inf':
             values_tmp = torch.sign(values_tmp) * torch.min(torch.abs(values_tmp), torch.Tensor([eps]).to(device))
         else:
             raise NotImplementedError(
-                "Values of `norm_p` different from 1, 2 and `np.inf` are currently not supported.")
+                "Values of `norm_p` different from `np.inf` are currently not supported.")
 
         values = values_tmp.reshape(values.shape)
         return values
