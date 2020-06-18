@@ -38,6 +38,9 @@ def generate_context_attack_indices(class_labels, class_fraction, shot_fraction)
     return indices
 
 
+def distance_linf(x1, x2):
+    return torch.max(torch.abs(x1 - x2), dim=1)
+
 def distance_l2_squared(x1, x2):
     return torch.sum(torch.pow(x1 - x2, 2).view(x1.shape[0], -1), dim=1)
 
