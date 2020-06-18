@@ -331,7 +331,7 @@ class Learner:
 
     def accuracy(self, context_images, context_labels, target_images, target_labels):
         logits = self.model(context_images, context_labels, target_images)
-        acc = torch.mean(torch.eq(target_labels, torch.argmax(logits, dim=-1)).float()).item()
+        acc = torch.mean(torch.eq(target_labels.long(), torch.argmax(logits, dim=-1).long()).float()).item()
         del logits
         return acc
 
