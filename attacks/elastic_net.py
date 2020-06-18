@@ -129,12 +129,10 @@ class ElasticNet():
         if is_logits:
             output = output.detach().clone()
             if self.targeted:
-                output[torch.arange(len(target)).long(),
-                       target] -= self.confidence
+                output[target] -= self.confidence
             else:
-                output[torch.arange(len(target)).long(),
-                       target] += self.confidence
-            prediction = torch.argmax(output, dim=1)
+                output[target] += self.confidence
+            prediction = torch.argmax(output)
         else:
             # Labels are all -1 and thus invalid. Attack not successful
             if output == -1:
