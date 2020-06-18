@@ -52,14 +52,16 @@ from utils import print_and_log, get_log_files, ValidationAccuracies, loss, aggr
 from model import Cnaps
 from art_wrapper import Art_Wrapper
 from meta_dataset_reader import MetaDatasetReader, SingleDatasetReader
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Quiet TensorFlow warnings
 import tensorflow as tf
+
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)  # Quiet TensorFlow warnings
 # from art.attacks import ProjectedGradientDescent, FastGradientMethod
 # from art.classifiers import PyTorchClassifier
 from PIL import Image
 import sys
-#sys.path.append(os.path.abspath('attacks'))
+# sys.path.append(os.path.abspath('attacks'))
 from attacks.attack_helpers import create_attack
 
 NUM_VALIDATION_TASKS = 200
@@ -100,7 +102,7 @@ class Learner:
                 os.makedirs(self.args.checkpoint_dir)
 
         self.checkpoint_dir, self.logfile, self.checkpoint_path_validation, self.checkpoint_path_final \
-            = get_log_files(self.args.checkpoint_dir, self.args.resume_from_checkpoint, self.args.mode == "test" or 
+            = get_log_files(self.args.checkpoint_dir, self.args.resume_from_checkpoint, self.args.mode == "test" or
                             self.args.mode == "attack")
 
         print_and_log(self.logfile, "Options: %s\n" % self.args)
@@ -142,7 +144,8 @@ class Learner:
     def init_data(self):
         if self.args.dataset == "meta-dataset":
             train_set = ['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower']
-            validation_set = ['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower',
+            validation_set = ['ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi',
+                              'vgg_flower',
                               'mscoco']
             test_set = self.args.test_datasets
         else:
@@ -155,6 +158,7 @@ class Learner:
     """
     Command line parser
     """
+
     def parse_command_line(self):
         parser = argparse.ArgumentParser()
 
@@ -178,7 +182,7 @@ class Learner:
         parser.add_argument("--test_model_path", "-m", default=None, help="Path to model to load and test.")
         parser.add_argument("--feature_adaptation", choices=["no_adaptation", "film", "film+ar"], default="film",
                             help="Method to adapt feature extractor parameters.")
-        parser.add_argument("--batch_normalization", choices=["basic",  "task_norm-i"],
+        parser.add_argument("--batch_normalization", choices=["basic", "task_norm-i"],
                             default="basic", help="Normalization layer to use.")
         parser.add_argument("--training_iterations", "-i", type=int, default=110000,
                             help="Number of meta-training iterations.")
@@ -200,6 +204,8 @@ class Learner:
                             help="Shots per class for target  of single dataset task.")
         parser.add_argument("--query_test", type=int, default=10,
                             help="Shots per class for target  of single dataset task.")
+        parser.add_argument("--swap_attack", default=False,
+                            help="When attacking, should the attack be a swap attack or not.")
 
         args = parser.parse_args()
 
@@ -227,7 +233,7 @@ class Learner:
 
                     if (iteration + 1) % PRINT_FREQUENCY == 0:
                         # print training stats
-                        print_and_log(self.logfile,'Task [{}/{}], Train Loss: {:.7f}, Train Accuracy: {:.7f}'
+                        print_and_log(self.logfile, 'Task [{}/{}], Train Loss: {:.7f}, Train Accuracy: {:.7f}'
                                       .format(iteration + 1, total_iterations, torch.Tensor(losses).mean().item(),
                                               torch.Tensor(train_accuracies).mean().item()))
                         train_accuracies = []
@@ -256,8 +262,10 @@ class Learner:
                 self.test(self.args.test_model_path, session)
 
             if self.args.mode == 'attack':
-                self.attack_homebrew(self.args.test_model_path, session)
-                # self.attack(self.args.test_model_path, session)
+                if not self.args.swap_attack:
+                    self.attack_homebrew(self.args.test_model_path, session)
+                else:
+                    self.attack_swap(self.args.test_model_path, session)
 
             self.logfile.close()
 
@@ -281,7 +289,7 @@ class Learner:
 
     def validate(self, session):
         with torch.no_grad():
-            accuracy_dict ={}
+            accuracy_dict = {}
             for item in self.validation_set:
                 accuracies = []
                 for _ in range(NUM_VALIDATION_TASKS):
@@ -321,6 +329,88 @@ class Learner:
 
                 print_and_log(self.logfile, '{0:}: {1:3.1f}+/-{2:2.1f}'.format(item, accuracy, accuracy_confidence))
 
+    def accuracy(self, context_images, context_labels, target_images, target_labels):
+        logits = self.model(context_images, context_labels, target_images)
+        acc = torch.mean(torch.eq(target_labels, torch.argmax(logits, dim=-1)).float()).item()
+        del logits
+        return acc
+
+    def print_average_accuracy(self, accuracies, descriptor, item):
+        accuracy = np.array(accuracies).mean() * 100.0
+        accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
+        print_and_log(self.logfile,
+                      '{0:} {1:}: {2:3.1f}+/-{3:2.1f}'.format(descriptor, item, accuracy, accuracy_confidence))
+
+    def save_image_pair(self, adv_img, clean_img, task_no, index):
+        save_image(adv_img.cpu().detach().numpy(),
+                   os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task_no, index)))
+        save_image(clean_img, os.path.join(self.checkpoint_dir, 'in_task_{}_index_{}.png'.format(task_no, index)))
+
+    def attack_swap(self, path, session):
+        print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
+        self.model = self.init_model()
+        self.model.load_state_dict(torch.load(path))
+
+        context_attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
+        context_attack.set_attack_mode('context')
+        assert context_attack.get_shot_fraction() == 1.0
+        assert context_attack.get_class_fraction() == 1.0
+
+        target_attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
+        context_attack.set_attack_mode('target')
+
+        for item in self.test_set:
+            clean_accuracies = []
+            adv_context_accuracies = []
+            adv_target_accuracies = []
+            adv_target_as_context_accuracies = []
+            adv_context_as_target_accuraies = []
+
+            for t in range(self.args.attack_tasks):
+                task_dict = self.dataset.get_test_task(item, session)
+                context_images, target_images, context_labels, target_labels, context_images_np, target_images_np = \
+                    self.prepare_task(task_dict, shuffle=False)
+
+                assert context_images.shape[0] == target_images.shape[0]
+
+                adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels,
+                                                                                  target_images,
+                                                                                  target_labels, self.model, self.model,
+                                                                                  self.model.device)
+
+                adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels,
+                                                                               target_images,
+                                                                               target_labels, self.model, self.model,
+                                                                               self.model.device)
+
+                assert adv_context_indices == adv_target_indices
+
+                with torch.no_grad():
+                    clean_accuracies.append(self.accuracy(context_images, context_labels, target_images, target_labels))
+
+                    adv_context_accuracies.append(
+                        self.accuracy(adv_context_images, context_labels, target_images, target_labels))
+                    adv_target_accuracies.append(
+                        self.accuracy(context_images, context_labels, adv_target_images, target_labels))
+
+                    adv_target_as_context_accuracies.append(
+                        self.accuracy(adv_target_images, target_labels, context_images, context_labels))
+                    adv_context_as_target_accuraies.append(
+                        self.accuracy(target_images, target_labels, adv_context_images, context_labels))
+
+                if t < 10:
+                    for index in adv_target_indices:
+                        self.save_image_pair(adv_context_images[index], context_images_np[index], t, index)
+                        self.save_image_pair(adv_target_images[index], target_images_np[index], t, index)
+
+                del adv_context_images, adv_target_images
+
+            self.print_average_accuracy(clean_accuracies, "Clean accuracy", item)
+            self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", item)
+            self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", item)
+            self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", item)
+            self.print_average_accuracy(adv_context_as_target_accuraies, "Adv Context as Target", item)
+
     def attack_homebrew(self, path, session):
         print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
         self.model = self.init_model()
@@ -332,124 +422,35 @@ class Learner:
             accuracies_after = []
             for t in range(self.args.attack_tasks):
                 task_dict = self.dataset.get_test_task(item, session)
-                context_images, target_images, context_labels, target_labels, context_images_np, target_images_np =\
+                context_images, target_images, context_labels, target_labels, context_images_np, target_images_np = \
                     self.prepare_task(task_dict, shuffle=False)
 
+                acc_before = self.accuracy(context_images, context_labels, target_images, target_labels)
+
                 if attack.get_attack_mode() == 'context':
-                    adv_context_images, adv_context_indices = attack.generate(
-                        context_images,
-                        context_labels,
-                        target_images,
-                        target_labels,
-                        self.model,
-                        self.model,
-                        self.model.device)
+                    clean_version = context_images_np
+                else:
+                    clean_version = target_images_np
 
-                    if t < 10:
-                        for index in adv_context_indices :
-                            save_image(adv_context_images[index].cpu().detach().numpy(),
-                                       os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(t, index)))
-                            save_image(context_images_np[index],
-                                       os.path.join(self.checkpoint_dir,'in_task_{}_index_{}.png'.format(t, index)))
+                adv_images, adv_indices = attack.generate(context_images, context_labels, target_images, target_labels,
+                                                          self.model, self.model, self.model.device)
 
-                    with torch.no_grad():
-                        logits_adv = self.model(adv_context_images, context_labels, target_images)
-                        acc_after = torch.mean(torch.eq(target_labels, torch.argmax(logits_adv, dim=-1)).float()).item()
-                        del logits_adv
+                if t < 10:
+                    for index in adv_indices:
+                        self.save_image_pair(adv_images[index], clean_version[index], t, index)
 
-                    del adv_context_images
+                with torch.no_grad():
+                    if attack.get_attack_mode() == 'context':
+                        acc_after = self.accuracy(adv_images, context_labels, target_images, target_labels)
+                    else:
+                        acc_after = self.accuracy(context_images, context_labels, adv_images, target_labels)
 
-                else:  # target
-                    adv_target_images = attack.generate(context_images, context_labels, target_images, target_labels,
-                                                        self.model, self.model, self.model.device)
-
-                    if t < 10:
-                        for i in range(len(target_images)):
-                            save_image(adv_target_images[i].cpu().detach().numpy(),
-                                       os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(t, i)))
-                            save_image(target_images_np[i],
-                                       os.path.join(self.checkpoint_dir,'in_task_{}_index_{}.png'.format(t, i)))
-
-                    with torch.no_grad():
-                        logits_adv = self.model(context_images, context_labels, adv_target_images)
-                        acc_after = torch.mean(torch.eq(target_labels, torch.argmax(logits_adv, dim=-1)).float()).item()
-                        del logits_adv
-
-                    del adv_target_images
-
-                logits = self.model(context_images, context_labels, target_images)
-                acc_before = torch.mean(torch.eq(target_labels, torch.argmax(logits, dim=-1)).float()).item()
-                del logits
-
+                del adv_images
                 accuracies_before.append(acc_before)
                 accuracies_after.append(acc_after)
 
-            accuracy = np.array(accuracies_before).mean() * 100.0
-            accuracy_confidence = (196.0 * np.array(accuracies_before).std()) / np.sqrt(len(accuracies_before))
-            print_and_log(self.logfile, 'Before attack {0:}: {1:3.1f}+/-{2:2.1f}'.format(item, accuracy, accuracy_confidence))
-
-            accuracy = np.array(accuracies_after).mean() * 100.0
-            accuracy_confidence = (196.0 * np.array(accuracies_after).std()) / np.sqrt(len(accuracies_after))
-            print_and_log(self.logfile, 'After attack {0:}: {1:3.1f}+/-{2:2.1f}'.format(item, accuracy, accuracy_confidence))
-
-    def attack(self, path, session):
-        print_and_log(self.logfile, "")  # add a blank line
-        print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
-        self.model = self.init_model()
-        self.model.load_state_dict(torch.load(path))
-        model_wrapper = Art_Wrapper(self.model)
-
-        classifier = PyTorchClassifier(
-            model=model_wrapper,
-            clip_values=(-1.0, 1.0),  # Could also get this from context_images
-            loss=nn.CrossEntropyLoss(),
-            optimizer=self.optimizer,
-            input_shape=(1, 3, 84, 84),
-            nb_classes=self.args.way,
-        )
-
-        # attack = ProjectedGradientDescent(classifier, eps=0.3, eps_step=0.01, max_iter=10)
-        attack = FastGradientMethod(classifier)
-
-        for item in self.test_set:
-
-            for t in range(self.args.attack_tasks):
-
-                task_dict = self.dataset.get_test_task(item, session)
-                context_images, target_images, context_labels, target_labels, context_images_np = self.prepare_task(task_dict, shuffle=False)
-                context_images_attack_all = context_images.clone().detach()
-
-                for c in torch.unique(context_labels):
-                    class_index = extract_class_indices(context_labels, c)[0].item()
-                    context_x = np.expand_dims(context_images_np[class_index], 0)
-
-                    model_wrapper.init_data(context_images, context_labels, target_images, class_index)
-
-                    adv_x = attack.generate(x=context_x)
-
-                    save_image(adv_x, os.path.join(self.checkpoint_dir, 'adv.png'))
-                    save_image(context_x, os.path.join(self.checkpoint_dir, 'in.png'))
-                    adv_x_torch = torch.from_numpy(adv_x).to(self.device)
-                    context_images_attack_all[class_index] = adv_x_torch
-
-                    with torch.no_grad():
-                        logits_adv = self.model(torch.cat([context_images[0:class_index], adv_x_torch,
-                            context_images[class_index + 1:]], dim=0), context_labels, target_images)
-                        acc_after = torch.mean(torch.eq(target_labels, torch.argmax(logits_adv, dim=-1)).float()).item()
-
-                        logits = self.model(context_images, context_labels, target_images)
-                        acc_before = torch.mean(torch.eq(target_labels, torch.argmax(logits, dim=-1)).float()).item()
-                        del logits
-
-                    diff = acc_before - acc_after
-                    print_and_log(self.logfile, "Task = {}, Class = {} \t Diff = {}".format(t, c, diff))
-
-                print_and_log(self.logfile, "Accuracy before {}".format(acc_after))
-                logits = self.model(context_images_attack_all, context_labels, target_images)
-                acc_all_attack = torch.mean(torch.eq(target_labels, torch.argmax(logits, dim=-1)).float()).item()
-                print_and_log(self.logfile, "Accuracy after {}".format(acc_all_attack))
-
-
+            self.print_average_accuracy(accuracies_before, "Before attack", item)
+            self.print_average_accuracy(accuracies_after, "After attack", item)
 
     def prepare_task(self, task_dict, shuffle=True):
         context_images_np, context_labels_np = task_dict['context_images'], task_dict['context_labels']
@@ -500,7 +501,7 @@ class Learner:
         use_two_gpus = False
         if self.args.dataset == "meta-dataset":
             if self.args.feature_adaptation == "film+ar" or \
-               self.args.batch_normalization == "task_norm-i":
+                    self.args.batch_normalization == "task_norm-i":
                 use_two_gpus = True  # These models do not fit on one GPU, so use model parallelism.
 
         return use_two_gpus
