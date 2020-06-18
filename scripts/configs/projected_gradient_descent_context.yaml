@@ -7,3 +7,4 @@ project_step: True
 attack_mode: context
 class_fraction: 1.0
 shot_fraction: 0.001
+use_true_target_labels: False

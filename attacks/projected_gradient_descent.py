@@ -17,6 +17,7 @@ class ProjectedGradientDescent:
                  attack_mode='context',
                  class_fraction=1.0,
                  shot_fraction=1.0,
+                 use_true_target_labels=False,
                  normalize_perturbation=True):
         self.norm = norm
         self.epsilon = epsilon
@@ -26,6 +27,7 @@ class ProjectedGradientDescent:
         self.attack_mode = attack_mode
         self.class_fraction = class_fraction
         self.shot_fraction = shot_fraction
+        self.use_true_target_labels = use_true_target_labels
         self.normalize_perturbation = normalize_perturbation
         self.loss = nn.CrossEntropyLoss()
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
@@ -33,7 +35,8 @@ class ProjectedGradientDescent:
     # Epsilon and epsilon_step are specified for inputs normalized to [0,1].
     # Use a sample of the images to recalculate the required perturbation size (for actual image normalization)
     def normalize_epsilon(self, clip_min, clip_max):
-
+        epsilon_new = self.epsilon
+        epsilon_step_new = self.epsilon_step
         if clip_min != 0.0 or clip_max != 1.0:
             # Epsilon is specified relative to min = 0, max = 1.0
             # If this is not the case, scale epsilon
@@ -42,14 +45,18 @@ class ProjectedGradientDescent:
             epsilon_step_new = epsilon_new * step_ratio
         return epsilon_new, epsilon_step_new
 
-    def generate(self, context_images, context_labels, target_images, model, get_logits_fn, device):
-        # get the predicted target labels
-        logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
-        labels = convert_labels(logits)
+    def generate(self, context_images, context_labels, target_images, target_labels, model, get_logits_fn, device):
+        if self.use_true_target_labels:
+            labels = target_labels
+        else:
+            # get the predicted target labels
+            logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
+            labels = convert_labels(logits)
 
         self.logger.print_and_log("Performing PGD attack on {} set. Settings = (norm={}, epsilon={}, epsilon_step={}, "
-                                  "num_iterations={})".format(self.attack_mode, self.norm, self.epsilon,
-                                                             self.epsilon_step, self.num_iterations))
+                                  "num_iterations={}, use_true_labels={})"
+                                  .format(self.attack_mode, self.norm, self.epsilon, self.epsilon_step,
+                                          self.num_iterations, self.use_true_target_labels))
         self.logger.print_and_log("class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
 
         if self.attack_mode == 'target':

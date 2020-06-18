@@ -214,7 +214,7 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         xc, xt, yc, yt = prepare_task(task_dict)
 
         if attack.get_attack_mode() == 'context':
-            adv_context_images, adv_context_indices = attack.generate(xc, yc, xt, model, model.compute_logits, device)
+            adv_context_images, adv_context_indices = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
 
             if task < 10:
                 for index in adv_context_indices:
@@ -226,7 +226,7 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
             _, acc_after = model.compute_objective(adv_context_images, yc, xt, yt, accuracy=True)
 
         else:  # target
-            adv_target_images = attack.generate(xc, yc, xt, model, model.compute_logits, device)
+            adv_target_images = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
             if task < 10:
                 for i in range(len(xt)):
                     save_image(adv_target_images[i].cpu().detach().numpy(),

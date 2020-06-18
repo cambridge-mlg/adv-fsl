@@ -1,7 +1,8 @@
 attack: projected_gradient_descent
 norm: inf
-epsilon: 0.3
-num_iterations: 10
-epsilon_step: 0.1
+epsilon: 0.0314
+num_iterations: 20
+epsilon_step: 0.007843
 project_step: True
 attack_mode: target
+use_true_target_labels: True
