@@ -49,6 +49,7 @@ def create_attack(attack_config_path, checkpoint_dir):
                 vary_success_criteria=attack_params['vary_success_criteria'],
                 class_fraction=attack_params['class_fraction'],
                 shot_fraction=attack_params['shot_fraction'],
+                use_true_target_labels=attack_params['use_true_target_labels']
             )
         elif attack_params['attack'] == 'elastic_net':
             attack = ElasticNet(
@@ -67,6 +68,7 @@ def create_attack(attack_config_path, checkpoint_dir):
                 attack_mode=attack_params['attack_mode'],
                 class_fraction=attack_params['class_fraction'],
                 shot_fraction=attack_params['shot_fraction'],
+                use_true_target_labels=attack_params['use_true_target_labels']
             )
 
         return attack

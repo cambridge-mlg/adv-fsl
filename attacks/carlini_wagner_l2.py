@@ -48,7 +48,8 @@ class CarliniWagnerL2(object):
                  class_fraction=0.5,
                  shot_fraction=0.5,
                  success_fraction=0.5,
-                 vary_success_criteria=False
+                 vary_success_criteria=False,
+                 use_true_target_labels=False
                  ):
         """
         :param targeted: ``True`` to perform targeted attack in ``self.run``
@@ -126,6 +127,7 @@ class CarliniWagnerL2(object):
 
         self.success_fraction = success_fraction
         self.vary_success_criteria = vary_success_criteria
+        self.use_true_target_labels = use_true_target_labels
 
         # Since the larger the `scale_const` is, the more likely a successful
         # attack can be found, `self.repeat` guarantees at least attempt the
@@ -151,7 +153,7 @@ class CarliniWagnerL2(object):
         self.logger.print_and_log(
             "class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
 
-        if target_labels is not None:
+        if self.use_true_target_labels:
             assert len(target_labels.size()) == 1
         else:
             # Generate target labels based on model's initial prediction:
@@ -166,14 +168,14 @@ class CarliniWagnerL2(object):
         if self.attack_mode == 'context':
             attack_set = context_images
             # Which context_images to attack:
-            adv_context_indices = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
-            # The number of patterns for which we're generating the attack
-            input_size = len(adv_context_indices)
+            adv_indices  = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
             num_attacks = 1
         else:
             attack_set = target_images
-            input_size = len(target_images)
-            num_attacks = input_size
+            adv_indices = range(target_images.shape[0])
+            num_attacks = len(target_images)
+        # The number of patterns for which we're generating the attack
+        input_size = len(adv_indices)
 
         # Shouldn't really matter whether we use context or target set here
         range_box = (attack_set.min().item(), attack_set.max().item())
@@ -224,7 +226,7 @@ class CarliniWagnerL2(object):
                 adv_image_set_tanh = attack_set_tanh.clone()
                 if self.attack_mode == 'context':
                     # Loops are bad, and bad things may happen here, but I currently have no better solutions
-                    for i, index in enumerate(adv_context_indices):
+                    for i, index in enumerate(adv_indices):
                         adv_image_set_tanh[index] = adv_image_set_tanh[index] + pert_tanh[i]
                 else:
                     adv_image_set_tanh = adv_image_set_tanh + pert_tanh
@@ -258,11 +260,11 @@ class CarliniWagnerL2(object):
                         if total_pert_norm < best_l2.sum():
                             best_l2_ppreds = pert_predictions
                             best_l2_successful[0] = 1 # True
-                            for i, index in enumerate(adv_context_indices):
+                            for i, index in enumerate(adv_indices):
                                 best_l2[i] = pert_norms[index]
                         if total_pert_norm < o_best_l2.sum():
                             o_best_l2_ppreds = pert_predictions
-                            for i, index in enumerate(adv_context_indices):
+                            for i, index in enumerate(adv_indices):
                                 o_best_l2[i] = pert_norms[index]
                                 o_best_advx[index] = adv_image_set[index].clone()
                 else:
@@ -304,10 +306,8 @@ class CarliniWagnerL2(object):
                         scale_consts[i] = (lower_bounds[i] + upper_bounds[i]) / 2
                     else:
                         scale_consts[i] *= 10
-        if self.attack_mode == 'context':
-            return o_best_advx, adv_context_indices
-        else:
-            return o_best_advx
+
+        return o_best_advx, adv_indices
 
 
 
@@ -468,6 +468,24 @@ class CarliniWagnerL2(object):
 
     def get_attack_mode(self):
         return self.attack_mode
+
+    def set_attack_mode(self, new_mode):
+        assert new_mode == 'context' or new_mode == 'target'
+        self.attack_mode = new_mode
+
+    def get_shot_fraction(self, new_shot_frac):
+        return self.shot_fraction
+
+    def set_shot_fraction(self, new_shot_frac):
+        assert new_shot_frac <= 1.0 and new_shot_frac >= 0.0
+        self.shot_fraction = new_shot_frac
+
+    def get_class_fraction(self, new_class_frac):
+        return self.class_fraction
+
+    def set_class_fraction(self, new_class_frac):
+        assert new_class_frac <= 1.0 and new_class_frac >= 0.0
+        self.class_fraction = new_class_frac
 
     @staticmethod
     def _to_tanh_space(x, box):

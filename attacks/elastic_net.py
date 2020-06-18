@@ -54,7 +54,8 @@ class ElasticNet():
                  binary_search_steps=9, max_iterations=1000,
                  abort_early=False, beta=1e-2, decision_rule='EN',
                  attack_mode='context', class_fraction=1.0, shot_fraction=0.1,
-                 success_fraction=0.5, c_upper=10e10, c_lower=1e-3):
+                 success_fraction=0.5, c_upper=10e10, c_lower=1e-3,
+                 use_true_target_labels=False):
         """ElasticNet L1 Attack implementation in pytorch."""
 
         self.confidence = confidence
@@ -71,6 +72,7 @@ class ElasticNet():
         self.shot_fraction = shot_fraction
         self.success_fraction = success_fraction
         self.c_range = (c_lower, c_upper)
+        self.use_true_target_labels = use_true_target_labels
 
         self.init_learning_rate = learning_rate
         self.global_step = 0
@@ -80,6 +82,24 @@ class ElasticNet():
 
     def get_attack_mode(self):
         return self.attack_mode
+
+    def set_attack_mode(self, new_mode):
+        assert new_mode == 'context' or new_mode == 'target'
+        self.attack_mode = new_mode
+
+    def get_shot_fraction(self, new_shot_frac):
+        return self.shot_fraction
+
+    def set_shot_fraction(self, new_shot_frac):
+        assert new_shot_frac <= 1.0 and new_shot_frac >= 0.0
+        self.shot_fraction = new_shot_frac
+
+    def get_class_fraction(self, new_class_frac):
+        return self.class_fraction
+
+    def set_class_fraction(self, new_class_frac):
+        assert new_class_frac <= 1.0 and new_class_frac >= 0.0
+        self.class_fraction = new_class_frac
 
     def _loss_fn(self, target_outputs, target_labels_oh, l1_dist, l2_dist_squared, const, exclude_l1=False):
         real = (target_labels_oh * target_outputs).sum(dim=1)
@@ -172,10 +192,10 @@ class ElasticNet():
         self.logger.print_and_log(
             "class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
 
-        if self.targeted and target_labels is None:
-            raise ValueError("Target labels `y` need to be provided for a targeted attack.")
+        if (self.targeted or self.use_true_target_labels) and target_labels is None:
+            raise ValueError("Target labels `y` need to be provided for a targeted attack or attacks that use true labels.")
 
-        if target_labels is not None:
+        if self.use_true_target_labels:
             assert len(target_labels.size()) == 1
         else:
             # Generate target labels based on model's initial prediction:
@@ -190,15 +210,16 @@ class ElasticNet():
         if self.attack_mode == 'context':
             # These indices are tensors. I'm not sure that's what we want, but I don't want to change it without further discussion
             adv_context_indices_t = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
-            adv_context_indices = [index_tensor.item() for index_tensor in adv_context_indices_t]
+            adv_indices = [index_tensor.item() for index_tensor in adv_context_indices_t]
             attack_set = context_images
             # We are conceptually only performing one attack, albeit over a set of images
             num_attacks = 1
-            num_inputs = len(adv_context_indices)
         else:
             attack_set = target_images
+            adv_indices = range(target_images.shape[0])
             num_attacks = len(target_images)
-            num_inputs = num_attacks
+
+        num_inputs = len(adv_indices)
 
         clip_max = attack_set.max().item()
         clip_min = attack_set.min().item()
@@ -246,7 +267,7 @@ class ElasticNet():
                 # we don't update L1 loss with SGD because we use ISTA
                 if self.attack_mode == 'context':
                     target_outputs = fix_logits(get_logits_fn(yy_k, context_labels, target_images))
-                    l2_dist = distance_l2_squared(yy_k[adv_context_indices], context_images[adv_context_indices])
+                    l2_dist = distance_l2_squared(yy_k[adv_indices], context_images[adv_indices])
                 else:
                     target_outputs = fix_logits(get_logits_fn(context_images, context_labels, yy_k))
                     l2_dist = distance_l2_squared(yy_k, target_images)
@@ -258,7 +279,7 @@ class ElasticNet():
                 yy_k = yy_k.detach()
                 # Gradient step
                 if self.attack_mode == 'context':
-                    for i, index in enumerate(adv_context_indices):
+                    for i, index in enumerate(adv_indices):
                         yy_k[index] = yy_k[index] - lr* yy_k_grad[index]
                 else:
                     yy_k = yy_k - lr * yy_k_grad
@@ -269,9 +290,9 @@ class ElasticNet():
                 lr = self.init_learning_rate * (1 - self.global_step / self.max_iterations)**0.5
 
                 if self.attack_mode == 'context':
-                    yy_k_new, xx_k_new = self._fast_iterative_shrinkage_thresholding(context_images[adv_context_indices], yy_k[adv_context_indices], xx_k[adv_context_indices], clip_min, clip_max)
+                    yy_k_new, xx_k_new = self._fast_iterative_shrinkage_thresholding(context_images[adv_indices], yy_k[adv_indices], xx_k[adv_indices], clip_min, clip_max)
 
-                    for (i, index) in enumerate(adv_context_indices):
+                    for (i, index) in enumerate(adv_indices):
                         yy_k[index] = yy_k_new[i]
                         xx_k[index] = xx_k_new[i]
                 else:
@@ -281,8 +302,8 @@ class ElasticNet():
                 with torch.no_grad():
                     if self.attack_mode == 'context':
                         target_outputs = fix_logits(get_logits_fn(xx_k, context_labels, target_images))
-                        l2_dist = distance_l2_squared(xx_k[adv_context_indices], context_images[adv_context_indices])
-                        l1_dist = distance_l1(xx_k[adv_context_indices], context_images[adv_context_indices])
+                        l2_dist = distance_l2_squared(xx_k[adv_indices], context_images[adv_indices])
+                        l1_dist = distance_l1(xx_k[adv_indices], context_images[adv_indices])
                     else:
                         target_outputs = fix_logits(get_logits_fn(context_images, context_labels, xx_k))
                         l2_dist = distance_l2_squared(xx_k, target_images)
@@ -340,7 +361,4 @@ class ElasticNet():
                     else:
                         c_current[i] *= 10
 
-        if self.attack_mode == 'context':
-            return o_best_attack, adv_context_indices
-        else:
-            return o_best_attack
+        return o_best_attack, adv_indices

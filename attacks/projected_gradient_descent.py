@@ -114,7 +114,7 @@ class ProjectedGradientDescent:
 
             del logits
 
-        return adv_target_images
+        return adv_target_images, range(adv_target_images.shape[0])
 
     def _generate_context(self, context_images, context_labels, target_images, labels, model, get_logits_fn, device):
         clip_min = target_images.min().item()
@@ -172,6 +172,24 @@ class ProjectedGradientDescent:
 
     def get_attack_mode(self):
         return self.attack_mode
+
+    def set_attack_mode(self, new_mode):
+        assert new_mode == 'context' or new_mode == 'target'
+        self.attack_mode = new_mode
+
+    def get_shot_fraction(self, new_shot_frac):
+        return self.shot_fraction
+
+    def set_shot_fraction(self, new_shot_frac):
+        assert new_shot_frac <= 1.0 and new_shot_frac >= 0.0
+        self.shot_fraction = new_shot_frac
+
+    def get_class_fraction(self, new_class_frac):
+        return self.class_fraction
+
+    def set_class_fraction(self, new_class_frac):
+        assert new_class_frac <= 1.0 and new_class_frac >= 0.0
+        self.class_fraction = new_class_frac
 
     @staticmethod
     def projection(values, eps, norm_p, device):
