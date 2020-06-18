@@ -34,10 +34,10 @@ default_attack_parameters = {
         'c_upper': 1.0e+10,
         'binary_search_steps': 15,
         'max_iterations': 100,
-        'abort_early': True,
+        'abort_early': False,
         'optimizer_lr': 1.0e-2,
         'init_rand': False,
-        'success_fraction': 0.5,
+        'success_fraction': 0.2,
         'vary_success_criteria': False,
         'attack_mode': None,
         'class_fraction': None,
@@ -197,7 +197,7 @@ def main(gpu_num, output_dir, script_name,  num_tasks, attack_mode):
                     {'model': 'cnaps', 'problem': ('ilsvrc_2012', 5, 5)},
                     ]
 
-    attacks = ['pgd']
+    attacks = ['carlini_wagner']
 
     # Tuples with (fraction_adv_images_per_class, fraction_classes_with_adv_images)
     # Minimum num of adv images per class will be 1, so setting the first number very small gives us one per class
@@ -211,7 +211,7 @@ def main(gpu_num, output_dir, script_name,  num_tasks, attack_mode):
     # Specifying n parameters, each with v_i many values will result in
     # v_1 x v_2 .. x v_n many configurations per attack
     attack_parameters = {
-        'carlini_wagner': [('vary_success_criteria', [True, False])],
+        'pgd': [('epsilon', [0.1, 0.2])],
     }
 
     root_data_dir = '/scratches/stroustrup/jfb54/'

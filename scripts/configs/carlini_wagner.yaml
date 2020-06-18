@@ -12,4 +12,4 @@ vary_success_criteria: False
 success_fraction: 0.2
 attack_mode: context
 class_fraction: 1.0
-shot_fraction: 0.1
+shot_fraction: 0.001
