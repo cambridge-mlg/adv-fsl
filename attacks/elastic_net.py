@@ -87,14 +87,14 @@ class ElasticNet():
         assert new_mode == 'context' or new_mode == 'target'
         self.attack_mode = new_mode
 
-    def get_shot_fraction(self, new_shot_frac):
+    def get_shot_fraction(self):
         return self.shot_fraction
 
     def set_shot_fraction(self, new_shot_frac):
         assert new_shot_frac <= 1.0 and new_shot_frac >= 0.0
         self.shot_fraction = new_shot_frac
 
-    def get_class_fraction(self, new_class_frac):
+    def get_class_fraction(self):
         return self.class_fraction
 
     def set_class_fraction(self, new_class_frac):
