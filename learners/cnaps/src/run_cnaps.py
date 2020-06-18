@@ -361,6 +361,7 @@ class Learner:
 
         for item in self.test_set:
             clean_accuracies = []
+            clean_target_as_context_accuracies = []
             adv_context_accuracies = []
             adv_target_accuracies = []
             adv_target_as_context_accuracies = []
@@ -387,6 +388,7 @@ class Learner:
 
                 with torch.no_grad():
                     clean_accuracies.append(self.accuracy(context_images, context_labels, target_images, target_labels))
+                    clean_target_as_context_accuracies.append(self.accuracy(target_images, target_labels, context_images, context_labels))
 
                     adv_context_accuracies.append(
                         self.accuracy(adv_context_images, context_labels, target_images, target_labels))
@@ -406,6 +408,7 @@ class Learner:
                 del adv_context_images, adv_target_images
 
             self.print_average_accuracy(clean_accuracies, "Clean accuracy", item)
+            self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy", item)
             self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", item)
             self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", item)
             self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", item)
