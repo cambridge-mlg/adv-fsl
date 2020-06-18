@@ -340,6 +340,7 @@ class Learner:
                         context_images,
                         context_labels,
                         target_images,
+                        target_labels,
                         self.model,
                         self.model,
                         self.model.device)
@@ -359,8 +360,8 @@ class Learner:
                     del adv_context_images
 
                 else:  # target
-                    adv_target_images = attack.generate(context_images, context_labels, target_images, self.model,
-                        self.model, self.model.device)
+                    adv_target_images = attack.generate(context_images, context_labels, target_images, target_labels,
+                                                        self.model, self.model, self.model.device)
 
                     if t < 10:
                         for i in range(len(target_images)):

@@ -211,6 +211,7 @@ class Learner:
                     context_images,
                     context_labels,
                     target_images,
+                    target_labels,
                     self.model,
                     self.model,
                     self.device)
@@ -228,8 +229,8 @@ class Learner:
                     del logits_adv
 
             else:  # target
-                adv_target_images = attack.generate(context_images, context_labels, target_images, self.model,
-                    self.model, self.device)
+                adv_target_images = attack.generate(context_images, context_labels, target_images, target_labels,
+                                                    self.model, self.model, self.device)
                 if t < 10:
                     for i in range(len(target_images)):
                         save_image(adv_target_images[i].cpu().detach().numpy(),
