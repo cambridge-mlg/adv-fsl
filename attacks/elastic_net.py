@@ -318,28 +318,29 @@ class ElasticNet():
                         for i in range(num_attacks):
                             if self._target_attack_successful(target_outputs[i], target_labels[i], is_logits=True):
                                 # If dist is better than best dist for curr c, update
-                                if dist.sum[i] < curr_dist[i]:
+                                if dist[i] < curr_dist[i]:
                                     curr_dist[i] = dist[i]
                                     curr_labels[i] = target_output_labels[i]
                                 if dist[i] < o_best_dist[i]:
                                     o_best_dist[i] = dist[i]
-                                    o_best_attack[i] = xx_k.data.clone()
+                                    o_best_attack[i] = xx_k[i].data.clone()
 
             # Update c_current for next iteration:
             for i in range(num_attacks):
                 if (self.attack_mode == 'context' and self._context_attack_successful(curr_labels, target_labels, is_logits=False)) \
                         or (self.attack_mode == 'target' and self._target_attack_successful(curr_labels[i], target_labels[i], is_logits=False)):
-                    self.logger.print_and_log("Found successful attack")
                     c_upper_bound[i] = min(c_upper_bound[i], c_current[i])
 
                     if c_upper_bound[i] < UPPER_CHECK:
                         c_current[i] = (c_lower_bound[i] + c_upper_bound[i]) / 2.0
                 else:
-                    self.logger.print_and_log("Not successful attack")
                     c_lower_bound[i] = max(c_lower_bound[i], c_current[i])
                     if c_upper_bound[i] < UPPER_CHECK:
                         c_current[i] = (c_lower_bound[i] + c_upper_bound[i]) / 2.0
                     else:
                         c_current[i] *= 10
 
-        return o_best_attack, adv_context_indices
+        if self.attack_mode == 'context':
+            return o_best_attack, adv_context_indices
+        else:
+            return o_best_attack
