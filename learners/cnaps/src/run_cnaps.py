@@ -347,6 +347,7 @@ class Learner:
         save_image(clean_img, os.path.join(self.checkpoint_dir, 'in_task_{}_index_{}.png'.format(task_no, index)))
 
     def attack_swap(self, path, session):
+        import pdb; pdb.set_trace()
         print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
         self.model = self.init_model()
         self.model.load_state_dict(torch.load(path))
@@ -357,7 +358,7 @@ class Learner:
         assert context_attack.get_class_fraction() == 1.0
 
         target_attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
-        context_attack.set_attack_mode('target')
+        target_attack.set_attack_mode('target')
 
         for item in self.test_set:
             clean_accuracies = []
@@ -384,7 +385,7 @@ class Learner:
                                                                                target_labels, self.model, self.model,
                                                                                self.model.device)
 
-                assert adv_context_indices == adv_target_indices
+                assert [x.item() for x in adv_context_indices] == adv_target_indices
 
                 with torch.no_grad():
                     clean_accuracies.append(self.accuracy(context_images, context_labels, target_images, target_labels))
