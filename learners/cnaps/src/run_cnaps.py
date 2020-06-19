@@ -347,7 +347,6 @@ class Learner:
         save_image(clean_img, os.path.join(self.checkpoint_dir, 'in_task_{}_index_{}.png'.format(task_no, index)))
 
     def attack_swap(self, path, session):
-        import pdb; pdb.set_trace()
         print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
         self.model = self.init_model()
         self.model.load_state_dict(torch.load(path))
@@ -361,12 +360,12 @@ class Learner:
         target_attack.set_attack_mode('target')
 
         for item in self.test_set:
-            clean_target_as_context_accuracies = []
             clean_accuracies = []
-            adv_target_accuracies = []
+            clean_target_as_context_accuracies = []
             adv_context_accuracies = []
-            adv_context_as_target_accuracies = []
+            adv_target_accuracies = []
             adv_target_as_context_accuracies = []
+            adv_context_as_target_accuracies = []
 
             for t in range(self.args.attack_tasks):
                 task_dict = self.dataset.get_test_task(item, session)
@@ -375,33 +374,31 @@ class Learner:
 
                 assert context_images.shape[0] == target_images.shape[0]
 
-                adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels,
-                                                                               target_images,
-                                                                               target_labels, self.model, self.model,
-                                                                               self.model.device)
-
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels,
                                                                                   target_images,
                                                                                   target_labels, self.model, self.model,
                                                                                   self.model.device)
 
+                adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels,
+                                                                               target_images,
+                                                                               target_labels, self.model, self.model,
+                                                                               self.model.device)
+
                 assert [x.item() for x in adv_context_indices] == adv_target_indices
 
                 with torch.no_grad():
-                    clean_target_as_context_accuracies.append(self.accuracy(target_images, target_labels, context_images, context_labels))
                     clean_accuracies.append(self.accuracy(context_images, context_labels, target_images, target_labels))
-
-                    adv_target_accuracies.append(
-                        self.accuracy(context_images, context_labels, adv_target_images, target_labels))
+                    clean_target_as_context_accuracies.append(self.accuracy(target_images, target_labels, context_images, context_labels))
 
                     adv_context_accuracies.append(
                         self.accuracy(adv_context_images, context_labels, target_images, target_labels))
+                    adv_target_accuracies.append(
+                        self.accuracy(context_images, context_labels, adv_target_images, target_labels))
 
-                    adv_context_as_target_accuracies.append(
-                        self.accuracy(target_images, target_labels, adv_context_images, context_labels))
-                    
                     adv_target_as_context_accuracies.append(
                         self.accuracy(adv_target_images, target_labels, context_images, context_labels))
+                    adv_context_as_target_accuracies.append(
+                        self.accuracy(target_images, target_labels, adv_context_images, context_labels))
 
                 if t < 10:
                     for index in adv_target_indices:
