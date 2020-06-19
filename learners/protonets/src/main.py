@@ -229,7 +229,7 @@ class Learner:
                     del logits_adv
 
             else:  # target
-                adv_target_images = attack.generate(context_images, context_labels, target_images, target_labels,
+                adv_target_images, _ = attack.generate(context_images, context_labels, target_images, target_labels,
                                                     self.model, self.model, self.device)
                 if t < 10:
                     for i in range(len(target_images)):
