@@ -365,7 +365,7 @@ class Learner:
             adv_context_accuracies = []
             adv_target_accuracies = []
             adv_target_as_context_accuracies = []
-            adv_context_as_target_accuraies = []
+            adv_context_as_target_accuracies = []
 
             for t in range(self.args.attack_tasks):
                 task_dict = self.dataset.get_test_task(item, session)
@@ -397,7 +397,7 @@ class Learner:
 
                     adv_target_as_context_accuracies.append(
                         self.accuracy(adv_target_images, target_labels, context_images, context_labels))
-                    adv_context_as_target_accuraies.append(
+                    adv_context_as_target_accuracies.append(
                         self.accuracy(target_images, target_labels, adv_context_images, context_labels))
 
                 if t < 10:
@@ -412,7 +412,7 @@ class Learner:
             self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", item)
             self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", item)
             self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", item)
-            self.print_average_accuracy(adv_context_as_target_accuraies, "Adv Context as Target", item)
+            self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", item)
 
     def attack_homebrew(self, path, session):
         print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
