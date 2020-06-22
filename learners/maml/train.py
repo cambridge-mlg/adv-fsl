@@ -11,7 +11,7 @@ from learners.maml.src.shrinkage_maml import SigmaMAML as sMAML
 from learners.maml.src.shrinkage_maml import PredCPMAML as pMAML
 from learners.maml.src.utils import save_image
 from attacks.attack_helpers import create_attack
-from attacks.attack_utils import extract_class_indices, Logger
+from attacks.attack_utils import extract_class_indices, Logger, split_target_set
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -194,6 +194,98 @@ def test_by_class(model, data, model_path):
     logger.print_and_log('\nGroup: {0:3.1f}+/-{1:2.1f}'.format(group_accuracy, group_accuracy_confidence))
 
 
+def print_average_accuracy( accuracies, descriptor):
+    accuracy = np.array(accuracies).mean() * 100.0
+    accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
+    logger.print_and_log('{0:} : {1:3.1f}+/-{2:2.1f}'.format(descriptor, accuracy, accuracy_confidence))
+
+
+def save_image_pair(checkpoint_dir, adv_img, clean_img, task_no, index):
+    save_image(adv_img.cpu().detach().numpy(),
+               os.path.join(checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task_no, index)))
+    save_image(clean_img.cpu().detach().numpy(), os.path.join(checkpoint_dir, 'in_task_{}_index_{}.png'.format(task_no, index)))
+
+def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
+    # load the model
+    if device.type == 'cpu':
+            load_dict = torch.load(model_path, map_location='cpu')
+    else:
+            load_dict = torch.load(model_path)
+    model.load_state_dict(load_dict)
+
+    model.set_gradient_steps(test_gradient_steps)
+
+    attack = create_attack(config_path, checkpoint_dir)
+
+    context_attack = create_attack(config_path, checkpoint_dir)
+    context_attack.set_attack_mode('context')
+    assert context_attack.get_shot_fraction() == 1.0
+    assert context_attack.get_class_fraction() == 1.0
+
+    target_attack = create_attack(config_path, checkpoint_dir)
+    target_attack.set_attack_mode('target')
+
+    # Accuracies for setting in which we generate attacks.
+    # Useful for debugging attacks
+    gen_clean_accuracies = []
+    gen_adv_context_accuracies = []
+    gen_adv_target_accuracies = []
+
+    # Accuracies for evaluation setting
+    clean_accuracies = []
+    clean_target_as_context_accuracies = []
+    adv_context_accuracies = []
+    adv_target_accuracies = []
+    adv_target_as_context_accuracies = []
+    adv_context_as_target_accuracies = []
+
+    for task in range(tasks):
+        # when testing, target_shot is just shot
+        task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.shot)
+        xc, xt_all, yc, yt_all = prepare_task(task_dict)
+
+        # Select as many target images as context images to be used on the attack
+        # The rest will be used for evaluation
+        assert xc.shape[0] <= xt_all.shape[0]
+        split_xt, split_yt = split_target_set(xt_all, yt_all, args.shot)
+        xt = split_xt[0]
+        yt = split_yt[0]
+
+        adv_context_images, adv_context_indices = context_attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
+
+        adv_target_images, adv_target_indices = target_attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
+
+        assert [xi.item() for xi in adv_context_indices] == adv_target_indices
+
+        if task < 10:
+            for i in range(len(xt)):
+                save_image_pair(checkpoint_dir, adv_context_images[i], xc[i], task, i)
+                save_image_pair(checkpoint_dir, adv_target_images[i], xt[i], task, i)
+
+        gen_clean_accuracies.append(model.compute_objective(xc, yc, xt, yt, accuracy=True).item())
+        gen_adv_context_accuracies.append(model.compute_objective(adv_context_images, yc, xt, yt, accuracy=True).item())
+        gen_adv_target_accuracies.append(model.compute_objective(xc, yc, adv_target_images, yt, accuracy=True).item())
+        # Evaluate on independent target sets
+        for s in range(1, len(split_xt)):
+            clean_accuracies.append(model.compute_objective(xc, yc, split_xt[s], split_yt[s], accuracy=True).item())
+            clean_target_as_context_accuracies.append(model.compute_objective(xt, yt, split_xt[s], split_yt[s], accuracy=True).item())
+            adv_context_accuracies.append(model.compute_objective(adv_context_images, yc, split_xt[s], split_yt[s], accuracy=True).item())
+            adv_target_accuracies.append(model.compute_objective(split_xt[s], split_yt[s], adv_target_images, yt, accuracy=True).item())
+            adv_target_as_context_accuracies.append(model.compute_objective(adv_target_images, yc, split_xt[s], split_yt[s], accuracy=True).item())
+            adv_context_as_target_accuracies.append(model.compute_objective(split_xt[s], split_yt[s], adv_context_images, yt, accuracy=True).item())
+
+    print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy")
+    print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy")
+    print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy")
+
+    print_average_accuracy(clean_accuracies, "Clean accuracy")
+    print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy")
+    print_average_accuracy(adv_context_accuracies, "Context attack accuracy")
+    print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy")
+    print_average_accuracy(adv_target_accuracies, "Target attack accuracy")
+    print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target")
+
+
 def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     # load the model
     if device.type == 'cpu':
@@ -217,11 +309,8 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
             adv_context_images, adv_context_indices = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
 
             if task < 10:
-                for index in adv_context_indices:
-                    save_image(adv_context_images[index].cpu().detach().numpy(),
-                               os.path.join(checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task, index)))
-                    save_image(xc[index].cpu().detach().numpy(),
-                               os.path.join(checkpoint_dir, 'in_task_{}_index_{}.png'.format(task, index)))
+                for i in range(len(xc)):
+                    save_image_pair(checkpoint_dir, adv_context_images[i], xc[i], task, i)
 
             _, acc_after = model.compute_objective(adv_context_images, yc, xt, yt, accuracy=True)
 
@@ -229,10 +318,7 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
             adv_target_images, _ = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
             if task < 10:
                 for i in range(len(xt)):
-                    save_image(adv_target_images[i].cpu().detach().numpy(),
-                               os.path.join(checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task, i)))
-                    save_image(xt[i].cpu().detach().numpy(),
-                               os.path.join(checkpoint_dir, 'in_task_{}_index_{}.png'.format(task, i)))
+                    save_image_pair(checkpoint_dir, adv_target_images[i], xt[i], task, i)
 
             _, acc_after = model.compute_objective(xc, yc, adv_target_images, yt, accuracy=True)
 
@@ -241,13 +327,8 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         accuracies_before.append(acc_before.item())
         accuracies_after.append(acc_after.item())
 
-    accuracy = np.array(accuracies_before).mean() * 100.0
-    accuracy_confidence = (196.0 * np.array(accuracies_before).std()) / np.sqrt(len(accuracies_before))
-    logger.print_and_log('Before attack: {0:3.1f}+/-{1:2.1f}'.format(accuracy, accuracy_confidence))
-
-    accuracy = np.array(accuracies_after).mean() * 100.0
-    accuracy_confidence = (196.0 * np.array(accuracies_after).std()) / np.sqrt(len(accuracies_after))
-    logger.print_and_log('After attack: {0:3.1f}+/-{1:2.1f}'.format(accuracy, accuracy_confidence))
+    print_average_accuracy(accuracies_before, "Before attack")
+    print_average_accuracy(accuracies_after, "After attack")
 
 
 # Parse arguments given to the script.

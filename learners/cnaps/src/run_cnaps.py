@@ -330,7 +330,7 @@ class Learner:
 
                 print_and_log(self.logfile, '{0:}: {1:3.1f}+/-{2:2.1f}'.format(item, accuracy, accuracy_confidence))
 
-    def accuracy(self, context_images, context_labels, target_images, target_labels):
+    def calc_accuracy(self, context_images, context_labels, target_images, target_labels):
         logits = self.model(context_images, context_labels, target_images)
         acc = torch.mean(torch.eq(target_labels.long(), torch.argmax(logits, dim=-1).long()).float()).item()
         del logits
@@ -401,26 +401,26 @@ class Learner:
 
                 with torch.no_grad():
                     # Evaluate in normal/generation setting
-                    gen_clean_accuracies.append(self.accuracy(context_images, context_labels, target_images, target_labels))
+                    gen_clean_accuracies.append(self.calc_accuracy(context_images, context_labels, target_images, target_labels))
                     gen_adv_context_accuracies.append(
-                        self.accuracy(adv_context_images, context_labels, target_images, target_labels))
+                        self.calc_accuracy(adv_context_images, context_labels, target_images, target_labels))
                     gen_adv_target_accuracies.append(
-                        self.accuracy(context_images, context_labels, adv_target_images, target_labels))
+                        self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels))
 
                     # Evaluate on independent target sets
                     for s in range(1, len(split_target_images)):
-                        clean_accuracies.append(self.accuracy(context_images, context_labels, split_target_images[s], split_target_labels[s]))
-                        clean_target_as_context_accuracies.append(self.accuracy(target_images, target_labels, split_target_images[s], split_target_labels[s]))
+                        clean_accuracies.append(self.calc_accuracy(context_images, context_labels, split_target_images[s], split_target_labels[s]))
+                        clean_target_as_context_accuracies.append(self.calc_accuracy(target_images, target_labels, split_target_images[s], split_target_labels[s]))
 
                         adv_context_accuracies.append(
-                            self.accuracy(adv_context_images, context_labels, split_target_images[s], split_target_labels[s]))
+                            self.calc_accuracy(adv_context_images, context_labels, split_target_images[s], split_target_labels[s]))
                         adv_target_accuracies.append(
-                            self.accuracy(split_target_images[s], split_target_labels[s], adv_target_images, target_labels))
+                            self.calc_accuracy(split_target_images[s], split_target_labels[s], adv_target_images, target_labels))
 
                         adv_target_as_context_accuracies.append(
-                            self.accuracy(adv_target_images, target_labels, split_target_images[s], split_target_labels[s]))
+                            self.calc_accuracy(adv_target_images, target_labels, split_target_images[s], split_target_labels[s]))
                         adv_context_as_target_accuracies.append(
-                            self.accuracy(split_target_images[s], split_target_labels[s], adv_context_images, context_labels))
+                            self.calc_accuracy(split_target_images[s], split_target_labels[s], adv_context_images, context_labels))
 
                 if t < 10:
                     for index in adv_target_indices:
