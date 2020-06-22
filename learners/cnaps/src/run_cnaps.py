@@ -383,7 +383,7 @@ class Learner:
                 # Select as many target images as context images to be used on the attack
                 # The rest will be used for evaluation
                 assert context_images.shape[0] <= all_target_images.shape[0]
-                split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, context_images.shape[0])
+                split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, self.args.shot)
                 target_images = split_target_images[0]
                 target_labels = split_target_labels[0]
 
@@ -430,8 +430,8 @@ class Learner:
                 del adv_context_images, adv_target_images
 
             self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", item)
-            self.print_average_accuracy(adv_context_accuracies, "Gen setting: Context attack accuracy", item)
-            self.print_average_accuracy(adv_target_accuracies, "Gen setting: Target attack accuracy", item)
+            self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy", item)
+            self.print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy", item)
 
             self.print_average_accuracy(clean_accuracies, "Clean accuracy", item)
             self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy", item)

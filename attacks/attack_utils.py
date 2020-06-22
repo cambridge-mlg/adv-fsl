@@ -63,26 +63,28 @@ def extract_class_indices(labels, which_class):
 
 
 def split_target_set(target_images, target_labels, shot):
-    import pdb; pdb.set_trace()
     classes = torch.unique(target_labels)
     way = len(classes)
 
     new_target_size = shot * way
-    num_sets = len(target_images)/new_target_size
-    split_indices = [[]] * num_sets
+    num_sets = int(len(target_images)/new_target_size)
+    split_indices = []
+    for s in range(num_sets):
+        split_indices.append([])
+
     for c in range(way):
         c_indices_tensor = extract_class_indices(target_labels, c)
         c_indices = [val.item() for val in c_indices_tensor]
 
         for s in range(num_sets):
-            split_indices[s].append(c_indices[ s*shot : (s+1)*shot ])
+            split_indices[s].extend(c_indices[ s*shot : (s+1)*shot ])
 
     # So now we have num_sets-many lists of indices. Each list corresponds to the indices for a different target set.
     split_target_images = []
     split_target_labels = []
     for s in range(num_sets):
         split_target_images.append(target_images[split_indices[s]])
-        split_target_labels.append(target_images[split_target_labels[s]])
+        split_target_labels.append(target_labels[split_indices[s]])
 
     return split_target_images, split_target_labels
 
