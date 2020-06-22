@@ -63,6 +63,7 @@ from PIL import Image
 import sys
 # sys.path.append(os.path.abspath('attacks'))
 from attacks.attack_helpers import create_attack
+from attacks.attack_utils import split_target_set
 
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
@@ -360,6 +361,13 @@ class Learner:
         target_attack.set_attack_mode('target')
 
         for item in self.test_set:
+            # Accuracies for setting in which we generate attacks.
+            # Useful for debugging attacks
+            gen_clean_accuracies = []
+            gen_adv_context_accuracies = []
+            gen_adv_target_accuracies = []
+
+            # Accuracies for evaluation setting
             clean_accuracies = []
             clean_target_as_context_accuracies = []
             adv_context_accuracies = []
@@ -369,10 +377,15 @@ class Learner:
 
             for t in range(self.args.attack_tasks):
                 task_dict = self.dataset.get_test_task(item, session)
-                context_images, target_images, context_labels, target_labels, context_images_np, target_images_np = \
+                context_images, all_target_images, context_labels, all_target_labels, context_images_np, target_images_np = \
                     self.prepare_task(task_dict, shuffle=False)
 
-                assert context_images.shape[0] == target_images.shape[0]
+                # Select as many target images as context images to be used on the attack
+                # The rest will be used for evaluation
+                assert context_images.shape[0] <= all_target_images.shape[0]
+                split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, context_images.shape[0])
+                target_images = split_target_images[0]
+                target_labels = split_target_labels[0]
 
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels,
                                                                                   target_images,
@@ -387,18 +400,27 @@ class Learner:
                 assert [x.item() for x in adv_context_indices] == adv_target_indices
 
                 with torch.no_grad():
-                    clean_accuracies.append(self.accuracy(context_images, context_labels, target_images, target_labels))
-                    clean_target_as_context_accuracies.append(self.accuracy(target_images, target_labels, context_images, context_labels))
-
-                    adv_context_accuracies.append(
+                    # Evaluate in normal/generation setting
+                    gen_clean_accuracies.append(self.accuracy(context_images, context_labels, target_images, target_labels))
+                    gen_adv_context_accuracies.append(
                         self.accuracy(adv_context_images, context_labels, target_images, target_labels))
-                    adv_target_accuracies.append(
+                    gen_adv_target_accuracies.append(
                         self.accuracy(context_images, context_labels, adv_target_images, target_labels))
 
-                    adv_target_as_context_accuracies.append(
-                        self.accuracy(adv_target_images, target_labels, context_images, context_labels))
-                    adv_context_as_target_accuracies.append(
-                        self.accuracy(target_images, target_labels, adv_context_images, context_labels))
+                    # Evaluate on independent target sets
+                    for s in range(1, len(split_target_images)):
+                        clean_accuracies.append(self.accuracy(context_images, context_labels, split_target_images[s], split_target_labels[s]))
+                        clean_target_as_context_accuracies.append(self.accuracy(target_images, target_labels, split_target_images[s], split_target_labels[s]))
+
+                        adv_context_accuracies.append(
+                            self.accuracy(adv_context_images, context_labels, split_target_images[s], split_target_labels[s]))
+                        adv_target_accuracies.append(
+                            self.accuracy(split_target_images[s], split_target_labels[s], adv_target_images, target_labels))
+
+                        adv_target_as_context_accuracies.append(
+                            self.accuracy(adv_target_images, target_labels, split_target_images[s], split_target_labels[s]))
+                        adv_context_as_target_accuracies.append(
+                            self.accuracy(split_target_images[s], split_target_labels[s], adv_context_images, context_labels))
 
                 if t < 10:
                     for index in adv_target_indices:
@@ -407,11 +429,15 @@ class Learner:
 
                 del adv_context_images, adv_target_images
 
+            self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", item)
+            self.print_average_accuracy(adv_context_accuracies, "Gen setting: Context attack accuracy", item)
+            self.print_average_accuracy(adv_target_accuracies, "Gen setting: Target attack accuracy", item)
+
             self.print_average_accuracy(clean_accuracies, "Clean accuracy", item)
             self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy", item)
             self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", item)
-            self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", item)
             self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", item)
+            self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", item)
             self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", item)
 
     def attack_homebrew(self, path, session):
