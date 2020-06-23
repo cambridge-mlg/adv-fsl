@@ -249,7 +249,7 @@ class Learner:
             # Select as many target images as context images to be used on the attack
             # The rest will be used for evaluation
             assert context_images.shape[0] <= all_target_images.shape[0]
-            split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, self.args.shot)
+            split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, self.args.test_shot)
             target_images = split_target_images[0]
             target_labels = split_target_labels[0]
 

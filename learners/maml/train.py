@@ -215,8 +215,6 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
     model.set_gradient_steps(test_gradient_steps)
 
-    attack = create_attack(config_path, checkpoint_dir)
-
     context_attack = create_attack(config_path, checkpoint_dir)
     context_attack.set_attack_mode('context')
     assert context_attack.get_shot_fraction() == 1.0
@@ -241,7 +239,7 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
     for task in range(tasks):
         # when testing, target_shot is just shot
-        task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.shot)
+        task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.target_shot)
         xc, xt_all, yc, yt_all = prepare_task(task_dict)
 
         # Select as many target images as context images to be used on the attack
@@ -255,24 +253,26 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
         adv_target_images, adv_target_indices = target_attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
 
-        assert [xi.item() for xi in adv_context_indices] == adv_target_indices
+        tmp_adv_c_indices = [xi.item() for xi in adv_context_indices]
+        tmp_adv_c_indices.sort()
+        assert tmp_adv_c_indices == adv_target_indices
 
         if task < 10:
             for i in range(len(xt)):
                 save_image_pair(checkpoint_dir, adv_context_images[i], xc[i], task, i)
                 save_image_pair(checkpoint_dir, adv_target_images[i], xt[i], task, i)
 
-        gen_clean_accuracies.append(model.compute_objective(xc, yc, xt, yt, accuracy=True).item())
-        gen_adv_context_accuracies.append(model.compute_objective(adv_context_images, yc, xt, yt, accuracy=True).item())
-        gen_adv_target_accuracies.append(model.compute_objective(xc, yc, adv_target_images, yt, accuracy=True).item())
+        gen_clean_accuracies.append(model.compute_objective(xc, yc, xt, yt, accuracy=True)[1].item())
+        gen_adv_context_accuracies.append(model.compute_objective(adv_context_images, yc, xt, yt, accuracy=True)[1].item())
+        gen_adv_target_accuracies.append(model.compute_objective(xc, yc, adv_target_images, yt, accuracy=True)[1].item())
         # Evaluate on independent target sets
         for s in range(1, len(split_xt)):
-            clean_accuracies.append(model.compute_objective(xc, yc, split_xt[s], split_yt[s], accuracy=True).item())
-            clean_target_as_context_accuracies.append(model.compute_objective(xt, yt, split_xt[s], split_yt[s], accuracy=True).item())
-            adv_context_accuracies.append(model.compute_objective(adv_context_images, yc, split_xt[s], split_yt[s], accuracy=True).item())
-            adv_target_accuracies.append(model.compute_objective(split_xt[s], split_yt[s], adv_target_images, yt, accuracy=True).item())
-            adv_target_as_context_accuracies.append(model.compute_objective(adv_target_images, yc, split_xt[s], split_yt[s], accuracy=True).item())
-            adv_context_as_target_accuracies.append(model.compute_objective(split_xt[s], split_yt[s], adv_context_images, yt, accuracy=True).item())
+            clean_accuracies.append(model.compute_objective(xc, yc, split_xt[s], split_yt[s], accuracy=True)[1].item())
+            clean_target_as_context_accuracies.append(model.compute_objective(xt, yt, split_xt[s], split_yt[s], accuracy=True)[1].item())
+            adv_context_accuracies.append(model.compute_objective(adv_context_images, yc, split_xt[s], split_yt[s], accuracy=True)[1].item())
+            adv_target_accuracies.append(model.compute_objective(split_xt[s], split_yt[s], adv_target_images, yt, accuracy=True)[1].item())
+            adv_target_as_context_accuracies.append(model.compute_objective(adv_target_images, yc, split_xt[s], split_yt[s], accuracy=True)[1].item())
+            adv_context_as_target_accuracies.append(model.compute_objective(split_xt[s], split_yt[s], adv_context_images, yt, accuracy=True)[1].item())
 
     print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy")
     print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy")
