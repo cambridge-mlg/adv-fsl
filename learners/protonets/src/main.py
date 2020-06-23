@@ -301,16 +301,16 @@ class Learner:
 
                 del adv_context_images, adv_target_images
 
-            self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy")
-            self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy")
-            self.print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy")
+        self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy")
+        self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy")
+        self.print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy")
 
-            self.print_average_accuracy(clean_accuracies, "Clean accuracy")
-            self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy")
-            self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy")
-            self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy")
-            self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy")
-            self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target")
+        self.print_average_accuracy(clean_accuracies, "Clean accuracy")
+        self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy")
+        self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy")
+        self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy")
+        self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy")
+        self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target")
 
     def attack(self, path):
         print_and_log(self.logfile, "")  # add a blank line
