@@ -79,6 +79,8 @@ class Learner:
         parser.add_argument("--test_way", type=int, default=5, help="Way of meta-test task.")
         parser.add_argument("--test_shot", type=int, default=5, help="Shots per class for meta-test context sets.")
         parser.add_argument("--query", type=int, default=15, help="Shots per class for target")
+        parser.add_argument("--swap_attack", default=False,
+                            help="When attacking, should the attack be a swap attack or not.")
 
         args = parser.parse_args()
 
@@ -134,7 +136,10 @@ class Learner:
             self.test(self.args.test_model_path)
 
         if self.args.mode == 'attack':
-            self.attack(self.args.test_model_path)
+            if not self.args.swap_attack:
+                self.attack(self.args.test_model_path)
+            else:
+                self.attack_swap(self.args.test_model_path)
 
         self.logfile.close()
 

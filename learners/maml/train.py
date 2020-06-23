@@ -419,6 +419,8 @@ parser.add_argument("--test_by_example", dest="test_by_example",
 parser.add_argument("--test_by_class", dest="test_by_class",
                     default=False, action="store_true",
                     help="Test one class at a time.")
+parser.add_argument("--swap_attack", default=False,
+                    help="When attacking, should the attack be a swap attack or not.")
 args = parser.parse_args()
 
 # Create checkpoint directory (if required)
@@ -547,7 +549,10 @@ if args.mode == 'train_and_test':
     test(model, data, os.path.join(args.checkpoint_dir, 'best_validation.pt'))
 
 elif args.mode == 'attack':
-    attack(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
+    if not args.swap_attack:
+        attack(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
+    else:
+        attack_swap(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
 
 else:  # test only
     if args.test_by_example:
