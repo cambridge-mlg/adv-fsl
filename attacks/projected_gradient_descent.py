@@ -114,7 +114,7 @@ class ProjectedGradientDescent:
 
             del logits
 
-        return adv_target_images, range(adv_target_images.shape[0])
+        return adv_target_images, list(range(adv_target_images.shape[0]))
 
     def _generate_context(self, context_images, context_labels, target_images, labels, model, get_logits_fn, device):
         clip_min = target_images.min().item()
