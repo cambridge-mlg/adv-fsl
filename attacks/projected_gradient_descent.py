@@ -33,7 +33,7 @@ class ProjectedGradientDescent:
         self.normalize_perturbation = normalize_perturbation
         self.loss = nn.CrossEntropyLoss()
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
-        self.debug_grad = False
+        self.debug_grad = True
 
     # Epsilon and epsilon_step are specified for inputs normalized to [0,1].
     # Use a sample of the images to recalculate the required perturbation size (for actual image normalization)
