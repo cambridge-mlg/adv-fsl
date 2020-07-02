@@ -105,14 +105,15 @@ class ProjectedGradientDescent:
             grad = adv_target_images.grad
 
             if (self.debug_grad):
+                bins = np.linspace(-0.05, 0.05, num=1000)
                 for j in range(0, 5):
                     plt.figure()
-                    gradj = grad[j].view(-1)
-                    plt.hist(gradj.cpu(), bins=1000)
+                    gradj = grad[j].view(-1).cpu()
+                    plt.hist(gradj, bins=bins)
+                    plt.ylim(0, 1000)
                     plt.savefig(path.join(model.args.checkpoint_dir, 'target_{}_iter_{}.png'.format(j, i)))
                     plt.close()
-
-
+                    self.logger.print_and_log("Target {} iter {}: (min = {}, max = {}, mean= {}, std = {})".format(j, i, gradj.min(), gradj.max(), gradj.mean(), gradj.std()))
 
             adv_target_images = adv_target_images.detach()
 
@@ -166,12 +167,15 @@ class ProjectedGradientDescent:
             grad = adv_context_images.grad
 
             if (self.debug_grad):
+                bins = np.linspace(-0.05, 0.05, num=1000)
                 for j in range(0, 5):
                     plt.figure()
-                    gradj = grad[j].view(-1)
-                    plt.hist(gradj.cpu(), bins=1000)
+                    gradj = grad[j].view(-1).cpu()
+                    plt.hist(gradj, bins=bins)
+                    plt.ylim(0, 1000)
                     plt.savefig(path.join(model.args.checkpoint_dir, 'context_{}_iter_{}.png'.format(j, i)))
                     plt.close()
+                    self.logger.print_and_log("Context {} iter {}: (min = {}, max = {}, mean= {}, std = {})".format(j, i, gradj.min(), gradj.max(), gradj.mean(), gradj.std()))
 
             adv_context_images = adv_context_images.detach()
 
