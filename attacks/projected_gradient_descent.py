@@ -3,6 +3,8 @@ import torch
 import math
 import torch.distributions.uniform as uniform
 import numpy as np
+from matplotlib import pyplot as plt
+import os.path as path
 from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, Logger
 
 
@@ -31,6 +33,7 @@ class ProjectedGradientDescent:
         self.normalize_perturbation = normalize_perturbation
         self.loss = nn.CrossEntropyLoss()
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
+        self.debug_grad = False
 
     # Epsilon and epsilon_step are specified for inputs normalized to [0,1].
     # Use a sample of the images to recalculate the required perturbation size (for actual image normalization)
@@ -100,6 +103,15 @@ class ProjectedGradientDescent:
             # compute gradient
             loss.backward()
             grad = adv_target_images.grad
+
+            if (self.debug_grad):
+                for j in range(0, 5):
+                    gradj = grad[j].view(-1)
+                    plt.hist(gradj.cpu(), bins=1000)
+                    plt.savefig(path.join(model.args.checkpoint_dir, 'target_{}_iter_{}.png'.format(j, i)))
+
+
+
             adv_target_images = adv_target_images.detach()
 
             # apply norm bound
@@ -150,6 +162,12 @@ class ProjectedGradientDescent:
             # compute gradients
             loss.backward()
             grad = adv_context_images.grad
+
+            if (self.debug_grad):
+                for j in range(0, 5):
+                    gradj = grad[j].view(-1)
+                    plt.hist(gradj.cpu(), bins=1000)
+                    plt.savefig(path.join(model.args.checkpoint_dir, 'context_{}_iter_{}.png'.format(j, i)))
 
             adv_context_images = adv_context_images.detach()
 
