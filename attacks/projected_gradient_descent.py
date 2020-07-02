@@ -106,9 +106,11 @@ class ProjectedGradientDescent:
 
             if (self.debug_grad):
                 for j in range(0, 5):
+                    plt.figure()
                     gradj = grad[j].view(-1)
                     plt.hist(gradj.cpu(), bins=1000)
                     plt.savefig(path.join(model.args.checkpoint_dir, 'target_{}_iter_{}.png'.format(j, i)))
+                    plt.close()
 
 
 
@@ -165,9 +167,11 @@ class ProjectedGradientDescent:
 
             if (self.debug_grad):
                 for j in range(0, 5):
+                    plt.figure()
                     gradj = grad[j].view(-1)
                     plt.hist(gradj.cpu(), bins=1000)
                     plt.savefig(path.join(model.args.checkpoint_dir, 'context_{}_iter_{}.png'.format(j, i)))
+                    plt.close()
 
             adv_context_images = adv_context_images.detach()
 
