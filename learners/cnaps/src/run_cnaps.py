@@ -207,6 +207,8 @@ class Learner:
                             help="Shots per class for target  of single dataset task.")
         parser.add_argument("--swap_attack", default=False,
                             help="When attacking, should the attack be a swap attack or not.")
+        parser.add_argument("--target_set_size_multiplier", type=int, default=1,
+                            help="For swap attacks, the relative size of the target set used when generating the adv context set (eg. x times larger)")
 
         args = parser.parse_args()
 
@@ -349,6 +351,7 @@ class Learner:
 
     def attack_swap(self, path, session):
         print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
+        assert self.args.target_set_size_multiplier >= 1
         self.model = self.init_model()
         self.model.load_state_dict(torch.load(path))
 
@@ -384,12 +387,19 @@ class Learner:
                 # The rest will be used for evaluation
                 assert context_images.shape[0] <= all_target_images.shape[0]
                 split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, self.args.shot)
+                eval_start_index = self.args.target_set_size_multiplier
+                import pdb; pdb.set_trace()
+                assert self.args.target_set_size_multiplier < len(split_target_images)
+                # Larger target set, used for generating adv context set; flatten somehow
+                target_images_mult = torch.stack(split_target_images[0:eval_start_index])
+                target_labels_mult = torch.stack(split_target_labels[0:eval_start_index])
+                # Default size target set, used for generating adv target set
                 target_images = split_target_images[0]
                 target_labels = split_target_labels[0]
 
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels,
-                                                                                  target_images,
-                                                                                  target_labels, self.model, self.model,
+                                                                                  target_images_mult,
+                                                                                  target_labels_mult, self.model, self.model,
                                                                                   self.model.device)
 
                 adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels,
@@ -401,14 +411,14 @@ class Learner:
 
                 with torch.no_grad():
                     # Evaluate in normal/generation setting
-                    gen_clean_accuracies.append(self.calc_accuracy(context_images, context_labels, target_images, target_labels))
+                    gen_clean_accuracies.append(self.calc_accuracy(context_images, context_labels, target_images_mult, target_labels_mult))
                     gen_adv_context_accuracies.append(
-                        self.calc_accuracy(adv_context_images, context_labels, target_images, target_labels))
+                        self.calc_accuracy(adv_context_images, context_labels, target_images_mult, target_labels_mult))
                     gen_adv_target_accuracies.append(
                         self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels))
 
                     # Evaluate on independent target sets
-                    for s in range(1, len(split_target_images)):
+                    for s in range(eval_start_index, len(split_target_images)):
                         clean_accuracies.append(self.calc_accuracy(context_images, context_labels, split_target_images[s], split_target_labels[s]))
                         clean_target_as_context_accuracies.append(self.calc_accuracy(target_images, target_labels, split_target_images[s], split_target_labels[s]))
 
