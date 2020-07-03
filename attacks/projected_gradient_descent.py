@@ -110,9 +110,9 @@ class ProjectedGradientDescent:
             grad = adv_target_images.grad
 
             if (self.debug_grad):
-                bins = np.linspace(-0.05, 0.05, num=1000)
+                bins = np.linspace(-0.06, 0.06, num=2000)
                 for j in range(0, 5):
-                    gradj = grad[j].view(-1).cpu()
+                    gradj = grad[j].view(-1).cpu().numpy()
                     adv_grads[j].append(gradj)
                     plt.figure()
                     plt.hist(gradj, bins=bins)
@@ -139,13 +139,15 @@ class ProjectedGradientDescent:
             for j in range(0, 5):
                 plt.figure()
                 plt.boxplot(adv_grads[j])
-                plt.savefig(model.args.checkpoint_dir, 'target_num_{}_across_iters.png'.format(j))
+                plt.ylim(-0.06, 0.06)
+                plt.savefig(path.join(model.args.checkpoint_dir, 'target_num_{}_across_iters.png'.format(j)))
                 plt.close()
             for i in range(0, self.num_iterations):
                 plt.figure()
-                list_by_iter = (adv_grads[j][i] for j in range(0, 5))
+                list_by_iter = [adv_grads[j][i] for j in range(0, 5)]
                 plt.boxplot(list_by_iter)
-                plt.savefig(model.args.checkpoint_dir, 'targets_iter_{}.png'.format(i))
+                plt.ylim(-0.06, 0.06)
+                plt.savefig(path.join(model.args.checkpoint_dir, 'targets_iter_{}.png'.format(i)))
         return adv_target_images, list(range(adv_target_images.shape[0]))
 
     def _generate_context(self, context_images, context_labels, target_images, labels, model, get_logits_fn, device):
@@ -189,10 +191,10 @@ class ProjectedGradientDescent:
             grad = adv_context_images.grad
 
             if self.debug_grad:
-                bins = np.linspace(-0.05, 0.05, num=1000)
+                bins = np.linspace(-0.06, 0.06, num=2000)
                 for j in range(0, 5):
                     plt.figure()
-                    gradj = grad[j].view(-1).cpu()
+                    gradj = grad[j].view(-1).cpu().numpy()
                     adv_grads[j].append(gradj)
                     plt.hist(gradj, bins=bins)
                     plt.ylim(0, 1000)
@@ -221,13 +223,15 @@ class ProjectedGradientDescent:
             for j in range(0, 5):
                 plt.figure()
                 plt.boxplot(adv_grads[j])
-                plt.savefig(model.args.checkpoint_dir, 'context_num_{}_across_iters.png'.format(j))
+                plt.ylim(-0.06, 0.06)
+                plt.savefig(path.join(model.args.checkpoint_dir, 'context_num_{}_across_iters.png'.format(j)))
                 plt.close()
             for i in range(0, self.num_iterations):
                 plt.figure()
-                list_by_iter = (adv_grads[j][i] for j in range(0, 5))
+                list_by_iter = [adv_grads[j][i] for j in range(0, 5)]
                 plt.boxplot(list_by_iter)
-                plt.savefig(model.args.checkpoint_dir, 'context_iter_{}.png'.format(i))
+                plt.ylim(-0.06, 0.06)
+                plt.savefig(path.join(model.args.checkpoint_dir, 'context_iter_{}.png'.format(i)))
         return adv_context_images, adv_context_indices
 
     def get_attack_mode(self):
