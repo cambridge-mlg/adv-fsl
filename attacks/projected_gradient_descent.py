@@ -90,6 +90,11 @@ class ProjectedGradientDescent:
 
         adv_target_images = torch.clamp(adv_target_images + initial_perturb, clip_min, clip_max)
 
+        if self.debug_grad:
+            adv_grads = []
+            for p in range(0, 5):
+                adv_grads.append([])
+
         for i in range(self.num_iterations):
             adv_target_images.requires_grad = True
             logits = fix_logits(get_logits_fn(context_images, context_labels, adv_target_images))
@@ -107,8 +112,9 @@ class ProjectedGradientDescent:
             if (self.debug_grad):
                 bins = np.linspace(-0.05, 0.05, num=1000)
                 for j in range(0, 5):
-                    plt.figure()
                     gradj = grad[j].view(-1).cpu()
+                    adv_grads[j].append(gradj)
+                    plt.figure()
                     plt.hist(gradj, bins=bins)
                     plt.ylim(0, 1000)
                     plt.savefig(path.join(model.args.checkpoint_dir, 'target_{}_iter_{}.png'.format(j, i)))
@@ -129,6 +135,17 @@ class ProjectedGradientDescent:
 
             del logits
 
+        if self.debug_grad:
+            for j in range(0, 5):
+                plt.figure()
+                plt.boxplot(adv_grads[j])
+                plt.savefig(model.args.checkpoint_dir, 'target_num_{}_across_iters.png'.format(j))
+                plt.close()
+            for i in range(0, self.num_iterations):
+                plt.figure()
+                list_by_iter = (adv_grads[j][i] for j in range(0, 5))
+                plt.boxplot(list_by_iter)
+                plt.savefig(model.args.checkpoint_dir, 'targets_iter_{}.png'.format(i))
         return adv_target_images, list(range(adv_target_images.shape[0]))
 
     def _generate_context(self, context_images, context_labels, target_images, labels, model, get_logits_fn, device):
@@ -152,6 +169,11 @@ class ProjectedGradientDescent:
             adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], clip_min,
                                                     clip_max)
 
+        if self.debug_grad:
+            adv_grads = []
+            for p in range(0, 5):
+                adv_grads.append([])
+
         for i in range(0, self.num_iterations):
             adv_context_images.requires_grad = True
             logits = fix_logits(get_logits_fn(adv_context_images, context_labels, target_images))
@@ -166,11 +188,12 @@ class ProjectedGradientDescent:
             loss.backward()
             grad = adv_context_images.grad
 
-            if (self.debug_grad):
+            if self.debug_grad:
                 bins = np.linspace(-0.05, 0.05, num=1000)
                 for j in range(0, 5):
                     plt.figure()
                     gradj = grad[j].view(-1).cpu()
+                    adv_grads[j].append(gradj)
                     plt.hist(gradj, bins=bins)
                     plt.ylim(0, 1000)
                     plt.savefig(path.join(model.args.checkpoint_dir, 'context_{}_iter_{}.png'.format(j, i)))
@@ -194,6 +217,17 @@ class ProjectedGradientDescent:
 
             del logits
 
+        if self.debug_grad:
+            for j in range(0, 5):
+                plt.figure()
+                plt.boxplot(adv_grads[j])
+                plt.savefig(model.args.checkpoint_dir, 'context_num_{}_across_iters.png'.format(j))
+                plt.close()
+            for i in range(0, self.num_iterations):
+                plt.figure()
+                list_by_iter = (adv_grads[j][i] for j in range(0, 5))
+                plt.boxplot(list_by_iter)
+                plt.savefig(model.args.checkpoint_dir, 'context_iter_{}.png'.format(i))
         return adv_context_images, adv_context_indices
 
     def get_attack_mode(self):
