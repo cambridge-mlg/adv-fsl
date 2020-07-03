@@ -463,7 +463,7 @@ class Learner:
                 context_images, target_images, context_labels, target_labels, context_images_np, target_images_np = \
                     self.prepare_task(task_dict, shuffle=False)
 
-                acc_before = self.accuracy(context_images, context_labels, target_images, target_labels)
+                acc_before = self.calc_accuracy(context_images, context_labels, target_images, target_labels)
 
                 if attack.get_attack_mode() == 'context':
                     clean_version = context_images_np
@@ -479,9 +479,9 @@ class Learner:
 
                 with torch.no_grad():
                     if attack.get_attack_mode() == 'context':
-                        acc_after = self.accuracy(adv_images, context_labels, target_images, target_labels)
+                        acc_after = self.calc_accuracy(adv_images, context_labels, target_images, target_labels)
                     else:
-                        acc_after = self.accuracy(context_images, context_labels, adv_images, target_labels)
+                        acc_after = self.calc_accuracy(context_images, context_labels, adv_images, target_labels)
 
                 del adv_images
                 accuracies_before.append(acc_before)
