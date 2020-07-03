@@ -115,7 +115,7 @@ class ProjectedGradientDescent:
                 for j in range(0, 5):
                     gradj = grad[j].view(-1).cpu().numpy()
                     adv_grads[j].append(gradj)
-                    self._make_hist(self, gradj, bins, j, i)
+                    self._make_hist(gradj, bins, j, i, model.args.checkpoint_dir)
 
             adv_target_images = adv_target_images.detach()
 
@@ -132,7 +132,7 @@ class ProjectedGradientDescent:
             del logits
 
         if self.debug_grad:
-            self._make_boxplots(adv_grads)
+            self._make_boxplots(adv_grads, model.args.checkpoint_dir)
 
         return adv_target_images, list(range(adv_target_images.shape[0]))
 
@@ -181,7 +181,7 @@ class ProjectedGradientDescent:
                 for j in range(0, 5):
                     gradj = grad[j].view(-1).cpu().numpy()
                     adv_grads[j].append(gradj)
-                    self._make_hist(self, gradj, bins, j, i)
+                    self._make_hist(gradj, bins, j, i, model.args.checkpoint_dir)
 
             adv_context_images = adv_context_images.detach()
 
@@ -201,7 +201,7 @@ class ProjectedGradientDescent:
             del logits
 
         if self.debug_grad:
-            self._make_boxplots(adv_grads)
+            self._make_boxplots(adv_grads, model.args.checkpoint_dir)
 
         return adv_context_images, adv_context_indices
 
@@ -226,19 +226,19 @@ class ProjectedGradientDescent:
         assert new_class_frac <= 1.0 and new_class_frac >= 0.0
         self.class_fraction = new_class_frac
 
-    def _make_hist(self, gradj, bins, img_index, iter_num):
+    def _make_hist(self, gradj, bins, img_index, iter_num, checkpoint_dir):
         plt.figure()
         plt.hist(gradj, bins=bins)
         plt.ylim(0, 1000)
         plt.xlabel("gradient")
         plt.title("{} pattern {}, iteration {}".format(self.attack_mode, img_index, iter_num))
-        plt.savefig(path.join(self.model.args.checkpoint_dir, '{}_{}_iter_{}.png'.format(self.attack_mode, img_index, iter_num)))
+        plt.savefig(path.join(checkpoint_dir, '{}_{}_iter_{}.png'.format(self.attack_mode, img_index, iter_num)))
         plt.close()
         self.logger.print_and_log(
             "{} {} iter {}: (min = {}, max = {}, mean= {}, std = {})".format(self.attack_mode, img_index, iter_num, gradj.min(), gradj.max(),
                                                                                   gradj.mean(), gradj.std()))
 
-    def _make_boxplots(self, grads):
+    def _make_boxplots(self, grads, checkpoint_dir):
         num_patterns = len(grads)
         for j in range(0, num_patterns):
             plt.figure()
@@ -247,7 +247,7 @@ class ProjectedGradientDescent:
             plt.xlabel("iteration")
             plt.ylabel("gradient")
             plt.title("{} pattern {} gradients".format(self.attack_mode, j))
-            plt.savefig(path.join(self.model.args.checkpoint_dir, '{}_num_{}_across_iters.png'.format(self.attack_mode, j)))
+            plt.savefig(path.join(checkpoint_dir, '{}_num_{}_across_iters.png'.format(self.attack_mode, j)))
             plt.close()
         for i in range(0, self.num_iterations):
             plt.figure()
@@ -257,7 +257,7 @@ class ProjectedGradientDescent:
             plt.xlabel("pattern index")
             plt.ylabel("gradient")
             plt.title("{} set gradients, iteration {}".format(self.attack_mode, i))
-            plt.savefig(path.join(self.model.args.checkpoint_dir, '{}_iter_{}.png'.format(self.attack_mode, i)))
+            plt.savefig(path.join(checkpoint_dir, '{}_iter_{}.png'.format(self.attack_mode, i)))
 
     @staticmethod
     def projection(values, eps, norm_p, device):
