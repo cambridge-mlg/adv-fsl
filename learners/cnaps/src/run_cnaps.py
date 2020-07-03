@@ -388,11 +388,10 @@ class Learner:
                 assert context_images.shape[0] <= all_target_images.shape[0]
                 split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, self.args.shot)
                 eval_start_index = self.args.target_set_size_multiplier
-                import pdb; pdb.set_trace()
-                assert self.args.target_set_size_multiplier < len(split_target_images)
+                assert self.args.target_set_size_multiplier <= len(split_target_images)
                 # Larger target set, used for generating adv context set; flatten somehow
-                target_images_mult = torch.stack(split_target_images[0:eval_start_index])
-                target_labels_mult = torch.stack(split_target_labels[0:eval_start_index])
+                target_images_mult = torch.stack(split_target_images[0:eval_start_index]).view(-1, context_images.shape[1], context_images.shape[2], context_images.shape[3])
+                target_labels_mult = torch.stack(split_target_labels[0:eval_start_index]).view(-1)
                 # Default size target set, used for generating adv target set
                 target_images = split_target_images[0]
                 target_labels = split_target_labels[0]
