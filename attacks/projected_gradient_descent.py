@@ -232,7 +232,7 @@ class ProjectedGradientDescent:
         plt.ylim(0, 1000)
         plt.xlabel("gradient")
         plt.title("{} pattern {}, iteration {}".format(self.attack_mode, img_index, iter_num))
-        plt.savefig(path.join(checkpoint_dir, '{}_{}_iter_{}.png'.format(self.attack_mode, img_index, iter_num)))
+        plt.savefig(path.join(checkpoint_dir, '{}_{:02d}_iter_{:02d}.png'.format(self.attack_mode, img_index, iter_num)))
         plt.close()
         self.logger.print_and_log(
             "{} {} iter {}: (min = {}, max = {}, mean= {}, std = {})".format(self.attack_mode, img_index, iter_num, gradj.min(), gradj.max(),
@@ -247,7 +247,7 @@ class ProjectedGradientDescent:
             plt.xlabel("iteration")
             plt.ylabel("gradient")
             plt.title("{} pattern {} gradients".format(self.attack_mode, j))
-            plt.savefig(path.join(checkpoint_dir, '{}_num_{}_across_iters.png'.format(self.attack_mode, j)))
+            plt.savefig(path.join(checkpoint_dir, '{}_num_{:02d}_across_iters.png'.format(self.attack_mode, j)))
             plt.close()
         for i in range(0, self.num_iterations):
             plt.figure()
@@ -257,7 +257,7 @@ class ProjectedGradientDescent:
             plt.xlabel("pattern index")
             plt.ylabel("gradient")
             plt.title("{} set gradients, iteration {}".format(self.attack_mode, i))
-            plt.savefig(path.join(checkpoint_dir, '{}_iter_{}.png'.format(self.attack_mode, i)))
+            plt.savefig(path.join(checkpoint_dir, '{}_iter_{:02d}.png'.format(self.attack_mode, i)))
 
     @staticmethod
     def projection(values, eps, norm_p, device):
