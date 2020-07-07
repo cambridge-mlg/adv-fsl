@@ -123,6 +123,9 @@ class ProjectedGradientDescent:
             if self.norm == 'inf':
                 perturbation = torch.sign(grad)
 
+            # for index in range(0, len(adv_target_images)):
+            #    self._plot_signs(perturbation[index], index, i, model.args.checkpoint_dir)
+
             adv_target_images = torch.clamp(adv_target_images + epsilon_step * perturbation, clip_min, clip_max)
 
             diff = adv_target_images - target_images
@@ -135,6 +138,13 @@ class ProjectedGradientDescent:
             self._make_boxplots(adv_grads, model.args.checkpoint_dir)
 
         return adv_target_images, list(range(adv_target_images.shape[0]))
+
+    def _plot_signs(self, grad_signs, img_index, iter,  checkpoint_dir):
+        for c in range(0, 3):
+            plt.figure()
+            plt.imshow(grad_signs[c].cpu(), cmap='hot', interpolation='nearest')
+            plt.savefig(path.join(checkpoint_dir, "{}_{}_grad_signs_chan_{}_iter_{:02d}.png".format(self.attack_mode, img_index, c, iter)))
+            plt.close()
 
     def _generate_context(self, context_images, context_labels, target_images, labels, model, get_logits_fn, device):
         clip_min = target_images.min().item()
@@ -190,6 +200,7 @@ class ProjectedGradientDescent:
                 perturbation = torch.sign(grad)
 
             for index in adv_context_indices:
+                #self._plot_signs(perturbation[index], index, i, model.args.checkpoint_dir)
                 adv_context_images[index] = torch.clamp(adv_context_images[index] +
                                                         epsilon_step * perturbation[index],
                                                         clip_min, clip_max)
