@@ -35,6 +35,7 @@ class ProjectedGradientDescent:
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
         self.debug_grad = False
         self.debug_grad_bin_bounds = (-0.1, 0.1)
+        self.single_target_loss = False
 
     # Epsilon and epsilon_step are specified for inputs normalized to [0,1].
     # Use a sample of the images to recalculate the required perturbation size (for actual image normalization)
@@ -154,8 +155,7 @@ class ProjectedGradientDescent:
             (len(adv_context_indices), size[1], size[2], size[3])).to(device)
 
         for i, index in enumerate(adv_context_indices):
-            adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], clip_min,
-                                                    clip_max)
+            adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], clip_min, clip_max)
 
         if self.debug_grad:
             adv_grads = []
@@ -166,7 +166,11 @@ class ProjectedGradientDescent:
             adv_context_images.requires_grad = True
             logits = fix_logits(get_logits_fn(adv_context_images, context_labels, target_images))
             # compute loss
-            loss = self.loss(logits, labels)
+            if self.single_target_loss:
+                # Literally, just try to ensure that the first target image is definitely wrong.
+                loss = self.loss(logits[0], labels[0])
+            else:
+                loss = self.loss(logits, labels)
             model.zero_grad()
 
             if i % 5 == 0 or i == self.num_iterations-1:
