@@ -168,7 +168,7 @@ class ProjectedGradientDescent:
             # compute loss
             if self.single_target_loss:
                 # Literally, just try to ensure that the first target image is definitely wrong.
-                loss = self.loss(logits[0], labels[0])
+                loss = self.loss(logits[i % len(target_images)].unsqueeze(0), labels[i % len(target_images)].unsqueeze(0))
             else:
                 loss = self.loss(logits, labels)
             model.zero_grad()
