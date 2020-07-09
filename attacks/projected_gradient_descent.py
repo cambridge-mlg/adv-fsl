@@ -20,7 +20,8 @@ class ProjectedGradientDescent:
                  class_fraction=1.0,
                  shot_fraction=1.0,
                  use_true_target_labels=False,
-                 normalize_perturbation=True):
+                 normalize_perturbation=True,
+                 target_loss_mode='all'):
         self.norm = norm
         self.epsilon = epsilon
         self.num_iterations = num_iterations
@@ -35,7 +36,8 @@ class ProjectedGradientDescent:
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
         self.debug_grad = False
         self.debug_grad_bin_bounds = (-0.1, 0.1)
-        self.single_target_loss = False
+        assert target_loss_mode == 'all' or target_loss_mode == 'round_robin' or target_loss_mode == 'random'
+        self.target_loss_mode = target_loss_mode
 
     # Epsilon and epsilon_step are specified for inputs normalized to [0,1].
     # Use a sample of the images to recalculate the required perturbation size (for actual image normalization)
@@ -166,9 +168,12 @@ class ProjectedGradientDescent:
             adv_context_images.requires_grad = True
             logits = fix_logits(get_logits_fn(adv_context_images, context_labels, target_images))
             # compute loss
-            if self.single_target_loss:
+            if self.target_loss_mode == 'round_robin':
                 # Literally, just try to ensure that the first target image is definitely wrong.
                 loss = self.loss(logits[i % len(target_images)].unsqueeze(0), labels[i % len(target_images)].unsqueeze(0))
+            elif self.target_loss_mode == 'random':
+                index = np.random.randint(0, len(target_images))
+                loss = self.loss(logits[index].unsqueeze(0), labels[index].unsqueeze(0))
             else:
                 loss = self.loss(logits, labels)
             model.zero_grad()
