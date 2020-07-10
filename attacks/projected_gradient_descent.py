@@ -92,9 +92,9 @@ class ProjectedGradientDescent:
         adv_target_images = torch.clamp(adv_target_images + initial_perturb, clip_min, clip_max)
 
         if self.debug_grad:
-            adv_grads = []
-            for p in range(0, 5):
-                adv_grads.append([])
+            num_patterns = 5 # np.min(5, len(target_images))
+            num_channels = target_images[0].shape[0]
+            adv_grads = np.empty((num_patterns, num_channels, self.num_iterations, target_images[0].shape[1] * target_images[0].shape[2]))
 
         for i in range(self.num_iterations):
             adv_target_images.requires_grad = True
@@ -111,11 +111,13 @@ class ProjectedGradientDescent:
             grad = adv_target_images.grad
 
             if self.debug_grad:
-                bins = np.linspace(self.debug_grad_bin_bounds[0], self.debug_grad_bin_bounds[1], num=2000)
+                # bins = np.linspace(self.debug_grad_bin_bounds[0], self.debug_grad_bin_bounds[1], num=2000)
                 for j in range(0, 5):
-                    gradj = grad[j].view(-1).cpu().numpy()
-                    adv_grads[j].append(gradj)
-                    self._make_hist(gradj, bins, j, i, model.args.checkpoint_dir)
+                    for c in range(0, num_channels):
+                        gradjc = grad[j][c].view(-1).cpu().numpy()
+                        adv_grads[j][c][i] = np.sign(gradjc)
+                        # adv_grads[j].append(gradj)
+                        # self._make_hist(gradj, bins, j, i, model.args.checkpoint_dir)
 
             adv_target_images = adv_target_images.detach()
 
@@ -135,7 +137,8 @@ class ProjectedGradientDescent:
             del logits
 
         if self.debug_grad:
-            self._make_boxplots(adv_grads, model.args.checkpoint_dir)
+            self._plot_signs2(adv_grads, model.args.checkpoint_dir)
+            # self._make_boxplots(adv_grads, model.args.checkpoint_dir)
 
         return adv_target_images, list(range(adv_target_images.shape[0]))
 
