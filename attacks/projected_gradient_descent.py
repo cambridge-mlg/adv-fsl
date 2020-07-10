@@ -146,6 +146,17 @@ class ProjectedGradientDescent:
             plt.savefig(path.join(checkpoint_dir, "{}_{}_grad_signs_chan_{}_iter_{:02d}.png".format(self.attack_mode, img_index, c, iter)))
             plt.close()
 
+    # num_patterns x num_channels x num_iter x (width * height)
+    def _plot_signs2(self, grad_signs, checkpoint_dir):
+        num_patterns = grad_signs.shape[0]
+        num_channels = grad_signs.shape[1]
+        for p in range(0, num_patterns):
+            for c in range(0, num_channels):
+                plt.figure()
+                plt.imshow(grad_signs[p][c].cpu(), cmap='hot', interpolation='nearest')
+                plt.savefig(path.join(checkpoint_dir, "{}_{}_grad_signs_chan_{}.png".format(self.attack_mode, p, c)))
+                plt.close()
+
     def _generate_context(self, context_images, context_labels, target_images, labels, model, get_logits_fn, device):
         clip_min = target_images.min().item()
         clip_max = target_images.max().item()
@@ -168,9 +179,10 @@ class ProjectedGradientDescent:
                                                     clip_max)
 
         if self.debug_grad:
-            adv_grads = []
-            for p in range(0, 5):
-                adv_grads.append([])
+            num_patterns = np.min(5, len(target_images))
+            num_channels = target_images[0].shape[0]
+            adv_grads = np.array(num_patterns, num_channels, self.num_iterations,
+                                 target_images[0].shape[1] * target_images[0].shape[2])
 
         for i in range(0, self.num_iterations):
             adv_context_images.requires_grad = True
@@ -187,11 +199,13 @@ class ProjectedGradientDescent:
             grad = adv_context_images.grad
 
             if self.debug_grad:
-                bins = np.linspace(self.debug_grad_bin_bounds[0], self.debug_grad_bin_bounds[1], num=2000)
-                for j in range(0, 5):
-                    gradj = grad[j].view(-1).cpu().numpy()
-                    adv_grads[j].append(gradj)
-                    self._make_hist(gradj, bins, j, i, model.args.checkpoint_dir)
+                # bins = np.linspace(self.debug_grad_bin_bounds[0], self.debug_grad_bin_bounds[1], num=2000)
+                for j in range(0, num_patterns):
+                    for c in num_channels:
+                        gradjc = grad[j][c].view(-1).cpu().numpy()
+                        adv_grads[j][c][i] = gradjc
+                        # adv_grads[j].append(gradj)
+                        # self._make_hist(gradj, bins, j, i, model.args.checkpoint_dir)
 
             adv_context_images = adv_context_images.detach()
 
@@ -212,7 +226,9 @@ class ProjectedGradientDescent:
             del logits
 
         if self.debug_grad:
-            self._make_boxplots(adv_grads, model.args.checkpoint_dir)
+            import pdb; pdb.set_trace()
+            self._plot_signs2(adv_grads, model.args.checkpoint_dir)
+            # self._make_boxplots(adv_grads, model.args.checkpoint_dir)
 
         return adv_context_images, adv_context_indices
 
