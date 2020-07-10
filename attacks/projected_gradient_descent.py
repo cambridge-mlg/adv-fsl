@@ -33,7 +33,7 @@ class ProjectedGradientDescent:
         self.normalize_perturbation = normalize_perturbation
         self.loss = nn.CrossEntropyLoss()
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
-        self.debug_grad = False
+        self.debug_grad = True
         self.debug_grad_bin_bounds = (-0.1, 0.1)
 
     # Epsilon and epsilon_step are specified for inputs normalized to [0,1].
@@ -153,7 +153,8 @@ class ProjectedGradientDescent:
         for p in range(0, num_patterns):
             for c in range(0, num_channels):
                 plt.figure()
-                plt.imshow(grad_signs[p][c].cpu(), cmap='hot', interpolation='nearest')
+                plt.ylim(0, 20)
+                plt.imshow(grad_signs[p][c], cmap='hot', interpolation='nearest', aspect='auto')
                 plt.savefig(path.join(checkpoint_dir, "{}_{}_grad_signs_chan_{}.png".format(self.attack_mode, p, c)))
                 plt.close()
 
@@ -179,10 +180,9 @@ class ProjectedGradientDescent:
                                                     clip_max)
 
         if self.debug_grad:
-            num_patterns = np.min(5, len(target_images))
+            num_patterns = 5 # np.min(5, len(target_images))
             num_channels = target_images[0].shape[0]
-            adv_grads = np.array(num_patterns, num_channels, self.num_iterations,
-                                 target_images[0].shape[1] * target_images[0].shape[2])
+            adv_grads = np.empty((num_patterns, num_channels, self.num_iterations, target_images[0].shape[1] * target_images[0].shape[2]))
 
         for i in range(0, self.num_iterations):
             adv_context_images.requires_grad = True
@@ -201,9 +201,9 @@ class ProjectedGradientDescent:
             if self.debug_grad:
                 # bins = np.linspace(self.debug_grad_bin_bounds[0], self.debug_grad_bin_bounds[1], num=2000)
                 for j in range(0, num_patterns):
-                    for c in num_channels:
+                    for c in range(0, num_channels):
                         gradjc = grad[j][c].view(-1).cpu().numpy()
-                        adv_grads[j][c][i] = gradjc
+                        adv_grads[j][c][i] = np.sign(gradjc)
                         # adv_grads[j].append(gradj)
                         # self._make_hist(gradj, bins, j, i, model.args.checkpoint_dir)
 
@@ -226,7 +226,6 @@ class ProjectedGradientDescent:
             del logits
 
         if self.debug_grad:
-            import pdb; pdb.set_trace()
             self._plot_signs2(adv_grads, model.args.checkpoint_dir)
             # self._make_boxplots(adv_grads, model.args.checkpoint_dir)
 
