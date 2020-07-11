@@ -81,7 +81,8 @@ class Learner:
         parser.add_argument("--query", type=int, default=15, help="Shots per class for target")
         parser.add_argument("--swap_attack", default=False,
                             help="When attacking, should the attack be a swap attack or not.")
-
+        parser.add_argument("--bottleneck", dest="bottleneck", default=False, action="store_true",
+                            help="Use the 2D bottleneck feature extractor for analysis.")
         args = parser.parse_args()
 
         return args

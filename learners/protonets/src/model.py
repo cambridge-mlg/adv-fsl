@@ -1,5 +1,5 @@
 import torch.nn as nn
-from learners.protonets.src.feature_extractor import ConvNet
+from learners.protonets.src.feature_extractor import ConvNet, BottleneckNet
 from learners.protonets.src.utils import euclidean_metric
 
 
@@ -15,7 +15,11 @@ class ProtoNets(nn.Module):
             in_channels = 1
         else:
             in_channels = 3
-        self.feature_extractor = ConvNet(in_channels)
+
+        if self.args.bottleneck:
+            self.feature_extractor = BottleneckNet(in_channels=in_channels)
+        else:
+            self.feature_extractor = ConvNet(in_channels=in_channels)
 
     def forward(self, context_images, context_labels, target_images):
         """
@@ -33,7 +37,6 @@ class ProtoNets(nn.Module):
         else:
             shot = self.args.test_shot
             way = self.args.test_way
-        #prototypes = context_features.reshape(shot, way, -1).mean(dim=0)
         prototypes = context_features.reshape(way, shot, -1).mean(dim=1)
 
         target_features = self.feature_extractor(target_images)
