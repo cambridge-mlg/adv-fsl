@@ -38,7 +38,7 @@ class ProjectedGradientDescent:
         self.loss = nn.CrossEntropyLoss()
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
 
-        self.return_all_steps
+        self.return_all_steps = False
         self.debug_grad = False
         self.debug_grad_bin_bounds = (-0.1, 0.1)
 
