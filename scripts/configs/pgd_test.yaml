@@ -4,7 +4,7 @@ epsilon: 0.0314
 num_iterations: 20
 epsilon_step: 0.007843
 project_step: True
-attack_mode: target
+attack_mode: context
 class_fraction: 1.0
 shot_fraction: 1.0
 use_true_target_labels: True

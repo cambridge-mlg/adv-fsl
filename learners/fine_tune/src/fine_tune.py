@@ -29,7 +29,7 @@ class Learner:
         self.model = self.init_model()
         self.dataset = AdversarialDataset(self.args.data_path)
 
-        self.max_test_tasks = min(self.dataset.get_num_tasks, self.args.test_tasks)
+        self.max_test_tasks = min(self.dataset.get_num_tasks(), self.args.test_tasks)
 
         self.accuracy_fn = accuracy
 
@@ -68,7 +68,8 @@ class Learner:
     def eval(self, task_index):
         eval_acc = []
         target_image_sets, target_label_sets = self.dataset.get_eval_task(task_index)
-        for s in range(target_image_sets.shape[0]):
+        for s in range(len(target_image_sets)):
+            target_label_sets[s] = target_label_sets[s].type(torch.LongTensor).to(self.device)
             accuracy = self.model.test_linear(target_image_sets[s], target_label_sets[s])
             eval_acc.append(accuracy)
         return np.array(eval_acc).mean()
@@ -76,7 +77,7 @@ class Learner:
     def print_average_accuracy(self, accuracies, descriptor):
         accuracy = np.array(accuracies).mean() * 100.0
         accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
-        self.logger.print_and_log(self.logfile, '{0:} {1:}: {2:3.1f}+/-{3:2.1f}'.format(descriptor, accuracy, accuracy_confidence))
+        self.logger.print_and_log('{0:} {1:3.1f}+/-{2:2.1f}'.format(descriptor, accuracy, accuracy_confidence))
 
     def finetune(self, session):
         self.logger.print_and_log("")  # add a blank line
@@ -90,6 +91,7 @@ class Learner:
             for task in range(self.max_test_tasks):
                 # Clean task
                 context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task)
+                context_labels = context_labels.type(torch.LongTensor).to(self.device)
                 # fine tune the model to the current task
                 self.model.fine_tune(context_images, context_labels)
                 accuracy = self.model.test_linear(target_images, target_labels)
@@ -99,6 +101,7 @@ class Learner:
 
                 # Adversarial task
                 adv_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task)
+                context_labels = context_labels.type(torch.LongTensor).to(self.device)
                 # fine tune the model to the current task
                 self.model.fine_tune(adv_images, context_labels)
                 accuracy = self.model.test_linear(target_images, target_labels)

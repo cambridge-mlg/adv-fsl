@@ -7,8 +7,9 @@ import pickle
 
 class AdversarialDataset:
     def __init__(self, pickle_file_path):
-        fin = os.open(pickle_file_path, "rb")
+        fin = open(pickle_file_path, 'rb')
         task_dict_list = pickle.load(fin)
+        fin.close()
         assert len(task_dict_list) > 0
         self.tasks = task_dict_list
 
