@@ -61,10 +61,11 @@ class ProjectedGradientDescent:
             labels = convert_labels(logits)
 
         self.logger.print_and_log("Performing PGD attack on {} set. Settings = (norm={}, epsilon={}, epsilon_step={}, "
-                                  "num_iterations={}, use_true_labels={})"
+                                  "num_iterations={}, use_true_labels={},target_loss_mode={})"
                                   .format(self.attack_mode, self.norm, self.epsilon, self.epsilon_step,
-                                          self.num_iterations, self.use_true_target_labels))
+                                          self.num_iterations, self.use_true_target_labels, self.target_loss_mode))
         self.logger.print_and_log("class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
+        self.logger.print_and_log("context set size = {}, target set size = {}".format(context_images.shape[0], target_images.shape[0]))
 
         if self.attack_mode == 'target':
             return self._generate_target(context_images, context_labels, target_images, labels, model, get_logits_fn,
@@ -169,7 +170,6 @@ class ProjectedGradientDescent:
             logits = fix_logits(get_logits_fn(adv_context_images, context_labels, target_images))
             # compute loss
             if self.target_loss_mode == 'round_robin':
-                # Literally, just try to ensure that the first target image is definitely wrong.
                 loss = self.loss(logits[i % len(target_images)].unsqueeze(0), labels[i % len(target_images)].unsqueeze(0))
             elif self.target_loss_mode == 'random':
                 index = np.random.randint(0, len(target_images))
