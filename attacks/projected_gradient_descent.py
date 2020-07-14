@@ -32,12 +32,14 @@ class ProjectedGradientDescent:
         self.shot_fraction = shot_fraction
         self.use_true_target_labels = use_true_target_labels
         self.normalize_perturbation = normalize_perturbation
-        self.loss = nn.CrossEntropyLoss()
-        self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
-        self.debug_grad = True
-        self.debug_grad_bin_bounds = (-0.1, 0.1)
         assert target_loss_mode == 'all' or target_loss_mode == 'round_robin' or target_loss_mode == 'random'
         self.target_loss_mode = target_loss_mode
+
+        self.loss = nn.CrossEntropyLoss()
+        self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
+
+        self.debug_grad = False
+        self.debug_grad_bin_bounds = (-0.1, 0.1)
 
     # Epsilon and epsilon_step are specified for inputs normalized to [0,1].
     # Use a sample of the images to recalculate the required perturbation size (for actual image normalization)
