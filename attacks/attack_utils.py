@@ -3,7 +3,34 @@ import math
 from PIL import Image
 import numpy as np
 import os
+import pickle
 
+class AdversarialDataset:
+    def __init__(self, pickle_file_path):
+        fin = os.open(pickle_file_path, "rb")
+        task_dict_list = pickle.load(fin)
+        assert len(task_dict_list) > 0
+        self.tasks = task_dict_list
+
+        self.shot = task_dict_list[0]['shot']
+        self.way = task_dict_list[0]['way']
+        self.query = task_dict_list[0]['query']
+        self.mode = task_dict_list[0]['mode']
+
+    def get_clean_task(self, task_index):
+        return self.tasks[task_index]['context_images'], self.tasks[task_index]['context_labels'], self.tasks[task_index]['target_images'], self.tasks[task_index]['target_labels']
+
+    def get_adversarial_task(self, task_index):
+        return self.tasks[task_index]['adv_images'], self.tasks[task_index]['context_labels'], self.tasks[task_index]['target_images'], self.tasks[task_index]['target_labels']
+
+    def get_eval_task(self, task_index):
+        return self.tasks[task_index]['eval_images'], self.tasks[task_index]['eval_labels']
+
+    def get_num_tasks(self):
+        return len(self.tasks)
+
+    def get_way(self):
+        return self.way
 
 def convert_labels(predictions):
     return torch.argmax(predictions, dim=1, keepdim=False)

@@ -511,6 +511,9 @@ class Learner:
                         'adv_images': adv_images,
                         'adv_indices': adv_indices,
                         'mode': attack.get_attack_mode(),
+                        'way': self.args.way,
+                        'shot':self.args.shot,
+                        'query': self.args.query_test,
                     }
                     if self.args.indep_eval:
                         adv_task_dict['eval_images'] = split_target_images[1:]

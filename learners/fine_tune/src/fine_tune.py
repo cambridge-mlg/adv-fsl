@@ -5,6 +5,7 @@ import os
 from utils import Logger, accuracy
 from model import FineTuner
 from meta_dataset_reader import MetaDatasetReader, SingleDatasetReader
+from attacks.attack_utils import AdversarialDataset
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Quiet TensorFlow warnings
 import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)  # Quiet TensorFlow warningsimport globals
@@ -26,33 +27,9 @@ class Learner:
         gpu_device = 'cuda:0'
         self.device = torch.device(gpu_device if torch.cuda.is_available() else 'cpu')
         self.model = self.init_model()
-        self.test_set = self.init_data()
-        if self.args.dataset == "meta-dataset":
-            self.dataset = MetaDatasetReader(
-                data_path=self.args.data_path,
-                mode='test',
-                train_set=None,
-                validation_set=None,
-                test_set=self.test_set,
-                max_way_train=0,
-                max_way_test=50,
-                max_support_train=0,
-                max_support_test=500,
-                max_query_train=0,
-                max_query_test=10,
-                image_size=self.args.image_size
-            )
-        else:
-            self.dataset = SingleDatasetReader(
-                data_path=self.args.data_path,
-                mode='test',
-                dataset=self.args.dataset,
-                way=self.args.way,
-                shot=self.args.shot,
-                query_train=0,
-                query_test=10,
-                image_size=self.args.image_size
-            )
+        self.dataset = AdversarialDataset(self.args.data_path)
+
+        self.max_test_tasks = min(self.dataset.get_num_tasks, self.args.test_tasks)
 
         self.accuracy_fn = accuracy
 
@@ -60,29 +37,12 @@ class Learner:
         model = FineTuner(args=self.args, device=self.device)
         return model
 
-    def init_data(self):
-        if self.args.dataset == "meta-dataset":
-            test_set = self.args.test_datasets
-        else:
-            test_set = [self.args.dataset]
-
-        return test_set
 
     """
     Command line parser
     """
     def parse_command_line(self):
         parser = argparse.ArgumentParser()
-
-        parser.add_argument("--dataset", choices=["meta-dataset", "ilsvrc_2012", "omniglot", "aircraft", "cu_birds",
-                                                  "dtd", "quickdraw", "fungi", "vgg_flower", "traffic_sign", "mscoco",
-                                                  "mnist", "cifar10", "cifar100"], default="meta-dataset",
-                            help="Dataset to use.")
-        parser.add_argument('--test_datasets', nargs='+', help='Datasets to use for testing',
-                            default=["ilsvrc_2012", "omniglot", "aircraft", "cu_birds", "dtd", "quickdraw", "fungi",
-                                     "vgg_flower", "traffic_sign", "mscoco", "mnist", "cifar10", "cifar100"])
-        # parser.add_argument('--test_datasets', nargs='+', help='Datasets to use for testing',
-        #                     default=["omniglot"])
         parser.add_argument("--data_path", default="../datasets", help="Path to dataset records.")
         parser.add_argument("--pretrained_feature_extractor_path", default="./learners/fine_tune/models/pretrained_mnasnet.pth",
                             help="Path to pretrained feature extractor model.")
@@ -92,12 +52,9 @@ class Learner:
         parser.add_argument("--checkpoint_dir", "-c", default='./checkpoints', help="Directory to save checkpoint to.")
         parser.add_argument("--feature_adaptation", choices=["no_adaptation", "film"], default="film",
                             help="Method to adapt feature extractor parameters.")
-        parser.add_argument("--way", type=int, default=5, help="Way of meta-train task.")
-        parser.add_argument("--shot", type=int, default=1, help="Shots per class for context.")
-        parser.add_argument("--image_size", type=int, default=84, help="Image height and width.")
         parser.add_argument("--iterations", "-i", type=int, default=50, help="Number of fine-tune iterations.")
-        parser.add_argument("--test_tasks", "-t", type=int, default=600, help="Number of tasks to test for each dataset.")
-        parser.add_argument("--batch_size", "-b", type=int, default=100, help="Batch size.")
+        parser.add_argument("--test_tasks", "-t", type=int, default=1000, help="Number of tasks to test for each dataset.")
+        parser.add_argument("--batch_size", "-b", type=int, default=1000, help="Batch size.")
         args = parser.parse_args()
 
         return args
@@ -106,29 +63,57 @@ class Learner:
         config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
         with tf.compat.v1.Session(config=config) as session:
-            self.test(session)
+            self.finetune(session)
 
-    def test(self, session):
+    def eval(self, task_index):
+        eval_acc = []
+        target_image_sets, target_label_sets = self.dataset.get_eval_task(task_index)
+        for s in range(target_image_sets.shape[0]):
+            accuracy = self.model.test_linear(target_image_sets[s], target_label_sets[s])
+            eval_acc.append(accuracy)
+        return np.array(eval_acc).mean()
+
+    def print_average_accuracy(self, accuracies, descriptor):
+        accuracy = np.array(accuracies).mean() * 100.0
+        accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
+        self.logger.print_and_log(self.logfile, '{0:} {1:}: {2:3.1f}+/-{3:2.1f}'.format(descriptor, accuracy, accuracy_confidence))
+
+    def finetune(self, session):
         self.logger.print_and_log("")  # add a blank line
 
         with torch.no_grad():
-            for item in self.test_set:
-                linear_accuracies = []
-                for task in range(self.args.test_tasks):
-                    task_dict = self.dataset.get_test_task(item, session)
-                    context_images, target_images, context_labels, target_labels = self.prepare_task(task_dict)
+            clean_acc_0 = []
+            adv_acc_0 = []
+            clean_acc = []
+            adv_acc = []
 
-                    # fine tune the model to the current task
-                    self.model.fine_tune(context_images, context_labels)
+            for task in range(self.max_test_tasks):
+                # Clean task
+                context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task)
+                # fine tune the model to the current task
+                self.model.fine_tune(context_images, context_labels)
+                accuracy = self.model.test_linear(target_images, target_labels)
+                clean_acc_0.append(accuracy)
 
-                    # test the linear version of the model
-                    accuracy = self.model.test_linear(target_images, target_labels)
-                    # print("Linear: dataset={}, task={} accuracy={}".format(item, task, accuracy.item()))
-                    linear_accuracies.append(accuracy)
+                clean_acc.append(self.eval(task))
 
-                linear_accuracy = np.array(linear_accuracies).mean() * 100.0
-                linear_accuracy_confidence = (196.0 * np.array(linear_accuracies).std()) / np.sqrt(len(linear_accuracies))
-                self.logger.print_and_log('Linear: {0:}: {1:3.1f}+/-{2:2.1f}'.format(item, linear_accuracy, linear_accuracy_confidence))
+                # Adversarial task
+                adv_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task)
+                # fine tune the model to the current task
+                self.model.fine_tune(adv_images, context_labels)
+                accuracy = self.model.test_linear(target_images, target_labels)
+                adv_acc_0.append(accuracy)
+
+                adv_acc.append(self.eval(task))
+
+            self.print_average_accuracy(clean_acc_0, "Clean Acc (gen setting)")
+            self.print_average_accuracy(clean_acc, "Clean Acc")
+            self.print_average_accuracy(adv_acc_0, "Adv Acc (gen setting)")
+            self.print_average_accuracy(adv_acc, "Adv Acc")
+
+            #linear_accuracy = np.array(linear_accuracies).mean() * 100.0
+            #linear_accuracy_confidence = (196.0 * np.array(linear_accuracies).std()) / np.sqrt(len(linear_accuracies))
+            #self.logger.print_and_log('Linear: {0:}: {1:3.1f}+/-{2:2.1f}'.format(item, linear_accuracy, linear_accuracy_confidence))
 
     def prepare_task(self, task_dict):
         context_images_np, context_labels_np = task_dict['context_images'], task_dict['context_labels']
