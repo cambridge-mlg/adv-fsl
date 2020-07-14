@@ -69,7 +69,6 @@ class Learner:
         eval_acc = []
         target_image_sets, target_label_sets = self.dataset.get_eval_task(task_index)
         for s in range(len(target_image_sets)):
-            target_label_sets[s] = target_label_sets[s].type(torch.LongTensor).to(self.device)
             accuracy = self.model.test_linear(target_image_sets[s], target_label_sets[s])
             eval_acc.append(accuracy)
         return np.array(eval_acc).mean()
@@ -91,7 +90,6 @@ class Learner:
             for task in range(self.max_test_tasks):
                 # Clean task
                 context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task)
-                context_labels = context_labels.type(torch.LongTensor).to(self.device)
                 # fine tune the model to the current task
                 self.model.fine_tune(context_images, context_labels)
                 accuracy = self.model.test_linear(target_images, target_labels)
@@ -101,7 +99,6 @@ class Learner:
 
                 # Adversarial task
                 adv_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task)
-                context_labels = context_labels.type(torch.LongTensor).to(self.device)
                 # fine tune the model to the current task
                 self.model.fine_tune(adv_images, context_labels)
                 accuracy = self.model.test_linear(target_images, target_labels)
