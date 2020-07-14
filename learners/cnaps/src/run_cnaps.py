@@ -211,8 +211,12 @@ class Learner:
                             help="Shots per class for target  of single dataset task.")
         parser.add_argument("--swap_attack", default=False,
                             help="When attacking, should the attack be a swap attack or not.")
+        # Currently, target_set_size_multiplier only applies to swap attacks
         parser.add_argument("--target_set_size_multiplier", type=int, default=1,
-                            help="For swap attacks, the relative size of the target set used when generating the adv context set (eg. x times larger)")
+                            help="For swap attacks, the relative size of the target set used when generating the adv context set (eg. x times larger). Currently only implemented for swap attacks")
+        # Currently only implemented for non-swap attacks
+        parser.add_argument("--save_attack", default=False,
+                            help="Save all the tasks and adversarial images to a pickle file. Currently only applicable to non-swap attacks.")
         parser.add_argument("--indep_eval", default=False,
                             help="Whether to use independent target sets for evaluation automagically")
 
@@ -355,104 +359,6 @@ class Learner:
                    os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task_no, index)))
         save_image(clean_img, os.path.join(self.checkpoint_dir, 'in_task_{}_index_{}.png'.format(task_no, index)))
 
-    def attack_swap_single(self, path, session):
-        print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
-        assert self.args.indep_eval
-        self.model = self.init_model()
-        self.model.load_state_dict(torch.load(path))
-
-        context_attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
-        context_attack.set_attack_mode('context')
-        context_attack.single_target_loss = True
-        assert context_attack.get_class_fraction() == 1.0
-        assert context_attack.get_shot_fraction() == 0.001
-
-        target_attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
-        target_attack.set_attack_mode('target')
-
-        for item in self.test_set:
-            # Accuracies for setting in which we generate attacks.
-            # Useful for debugging attacks
-            gen_clean_accuracies = []
-            gen_adv_context_accuracies = []
-            gen_adv_target_accuracies = []
-
-            # Accuracies for evaluation setting
-            clean_accuracies = []
-            clean_target_as_context_accuracies = []
-            adv_context_accuracies = []
-            adv_target_accuracies = []
-            adv_target_as_context_accuracies = []
-            adv_context_as_target_accuracies = []
-
-            for t in range(self.args.attack_tasks):
-                task_dict = self.dataset.get_test_task(item, session)
-                context_images, all_target_images, context_labels, all_target_labels, context_images_np, target_images_np = \
-                    self.prepare_task(task_dict, shuffle=False)
-
-                # Select as many target images as context images to be used on the attack
-                # The rest will be used for evaluation
-                assert context_images.shape[0] <= all_target_images.shape[0]
-                split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, self.args.shot)
-                target_images = split_target_images[0]
-                target_labels = split_target_labels[0]
-
-                adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels,
-                                                                                  target_images,
-                                                                                  target_labels, self.model, self.model,
-                                                                                  self.model.device)
-
-                adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels,
-                                                                               target_images,
-                                                                               target_labels, self.model, self.model,
-                                                                               self.model.device)
-                #We generate a full set of adversarial target images, but we only want as many as we have adversarial context images
-                modified_target_images = target_images.clone()
-                for k in range(0, len(adv_context_indices)):
-                    modified_target_images[k] = adv_target_images[adv_context_indices[k].item()]
-                adv_target_images = modified_target_images
-
-                with torch.no_grad():
-                    # Evaluate in normal/generation setting
-                    gen_clean_accuracies.append(self.calc_accuracy(context_images, context_labels, target_images, target_labels))
-                    gen_adv_context_accuracies.append(
-                        self.calc_accuracy(adv_context_images, context_labels, target_images, target_labels))
-                    gen_adv_target_accuracies.append(
-                        self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels))
-
-                    # Evaluate on independent target sets
-                    for s in range(1, len(split_target_images)):
-                        clean_accuracies.append(self.calc_accuracy(context_images, context_labels, split_target_images[s], split_target_labels[s]))
-                        clean_target_as_context_accuracies.append(self.calc_accuracy(target_images, target_labels, split_target_images[s], split_target_labels[s]))
-
-                        adv_context_accuracies.append(
-                            self.calc_accuracy(adv_context_images, context_labels, split_target_images[s], split_target_labels[s]))
-                        adv_target_accuracies.append(
-                            self.calc_accuracy(split_target_images[s], split_target_labels[s], adv_target_images, target_labels))
-
-                        adv_target_as_context_accuracies.append(
-                            self.calc_accuracy(adv_target_images, target_labels, split_target_images[s], split_target_labels[s]))
-                        adv_context_as_target_accuracies.append(
-                            self.calc_accuracy(split_target_images[s], split_target_labels[s], adv_context_images, context_labels))
-
-                if t < 10:
-                    for index in adv_target_indices:
-                        self.save_image_pair(adv_context_images[index], context_images_np[index], t, index)
-                        self.save_image_pair(adv_target_images[index], target_images_np[index], t, index)
-
-                del adv_context_images, adv_target_images
-
-            self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", item)
-            self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy", item)
-            self.print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy", item)
-
-            self.print_average_accuracy(clean_accuracies, "Clean accuracy", item)
-            self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy", item)
-            self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", item)
-            self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", item)
-            self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", item)
-            self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", item)
-
     def attack_swap(self, path, session):
         print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
         # Swap attacks only make sense if doing evaluation with independent target sets
@@ -566,6 +472,8 @@ class Learner:
             accuracies_after = []
             if self.args.indep_eval:
                 indep_eval_accuracies = []
+            if self.args.save_attack:
+                saved_tasks = []
 
             for t in range(self.args.attack_tasks):
                 task_dict = self.dataset.get_test_task(item, session)
@@ -594,6 +502,22 @@ class Learner:
                     for index in adv_indices:
                         self.save_image_pair(adv_images[index], clean_version[index], t, index)
 
+                if self.args.save_attack:
+                    adv_task_dict = {
+                        'context_images': context_images,
+                        'context_labels': context_labels,
+                        'target_images': target_images,
+                        'target_labels': target_labels,
+                        'adv_images': adv_images,
+                        'adv_indices': adv_indices,
+                        'mode': attack.get_attack_mode(),
+                    }
+                    if self.args.indep_eval:
+                        adv_task_dict['eval_images'] = split_target_images[1:]
+                        adv_task_dict['eval_labels'] = split_target_labels[1:]
+                    saved_tasks.append(adv_task_dict)
+
+
                 with torch.no_grad():
                     if attack.get_attack_mode() == 'context':
                         acc_after = self.calc_accuracy(adv_images, context_labels, target_images, target_labels)
@@ -615,6 +539,11 @@ class Learner:
             self.print_average_accuracy(accuracies_after, "After attack", item)
             if self.args.indep_eval:
                 self.print_average_accuracy(indep_eval_accuracies, "Indep eval after attack:", item)
+
+            if self.args.save_attack:
+                fout = open(os.path.join(self.args.checkpoint_dir, "adv_task.pickle"), "wb")
+                pickle.dump(saved_tasks, fout)
+                fout.close()
 
     def prepare_task(self, task_dict, shuffle=True):
         context_images_np, context_labels_np = task_dict['context_images'], task_dict['context_labels']
