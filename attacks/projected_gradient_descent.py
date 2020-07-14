@@ -38,6 +38,7 @@ class ProjectedGradientDescent:
         self.loss = nn.CrossEntropyLoss()
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
 
+        self.return_all_steps
         self.debug_grad = False
         self.debug_grad_bin_bounds = (-0.1, 0.1)
 
@@ -97,6 +98,9 @@ class ProjectedGradientDescent:
 
         adv_target_images = torch.clamp(adv_target_images + initial_perturb, clip_min, clip_max)
 
+        if self.return_all_steps:
+            adv_images_all_steps = [adv_target_images.detatch()]
+
         if self.debug_grad:
             num_patterns = min(5, len(target_images))
             num_channels = target_images[0].shape[0]
@@ -134,10 +138,15 @@ class ProjectedGradientDescent:
             new_perturbation = self.projection(diff, epsilon, self.norm, device)
             adv_target_images = target_images + new_perturbation
 
+            if self.return_all_steps:
+                adv_images_all_steps.append(adv_target_images.detatch())
             del logits
 
         if self.debug_grad:
             self._plot_signs2(adv_grads, model.args.checkpoint_dir)
+
+        if self.return_all_steps:
+            return adv_target_images, list(range(adv_target_images.shape[0])), adv_images_all_steps
 
         return adv_target_images, list(range(adv_target_images.shape[0]))
 
@@ -160,6 +169,9 @@ class ProjectedGradientDescent:
 
         for i, index in enumerate(adv_context_indices):
             adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], clip_min, clip_max)
+
+        if self.return_all_steps:
+            adv_images_all_steps = [adv_context_images.detatch()]
 
         if self.debug_grad:
             num_patterns = min(5, len(target_images))
@@ -208,12 +220,23 @@ class ProjectedGradientDescent:
                 new_perturbation = self.projection(diff, epsilon, self.norm, device)
                 adv_context_images[index] = context_images[index] + new_perturbation
 
+            if self.return_all_steps:
+                adv_images_all_steps = [adv_context_images.detatch()]
             del logits
 
         if self.debug_grad:
             self._plot_signs2(adv_grads, model.args.checkpoint_dir)
 
+        if self.return_all_steps:
+            return adv_context_images, adv_context_indices, adv_images_all_steps
+
         return adv_context_images, adv_context_indices
+
+    def get_return_all_steps(self):
+        return self.return_all_steps
+
+    def set_return_all_steps(self, new_val):
+        self.return_all_steps = new_val
 
     def get_attack_mode(self):
         return self.attack_mode
