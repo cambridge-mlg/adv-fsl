@@ -96,7 +96,7 @@ class ProjectedGradientDescent:
         adv_target_images = torch.clamp(adv_target_images + initial_perturb, clip_min, clip_max)
 
         if self.debug_grad:
-            num_patterns = 5 # np.min(5, len(target_images))
+            num_patterns = min(5, len(target_images))
             num_channels = target_images[0].shape[0]
             adv_grads = np.empty((num_patterns, num_channels, self.num_iterations, target_images[0].shape[1] * target_images[0].shape[2]))
 
@@ -115,22 +115,16 @@ class ProjectedGradientDescent:
             grad = adv_target_images.grad
 
             if self.debug_grad:
-                # bins = np.linspace(self.debug_grad_bin_bounds[0], self.debug_grad_bin_bounds[1], num=2000)
                 for j in range(0, 5):
                     for c in range(0, num_channels):
                         gradjc = grad[j][c].view(-1).cpu().numpy()
                         adv_grads[j][c][i] = np.sign(gradjc)
-                        # adv_grads[j].append(gradj)
-                        # self._make_hist(gradj, bins, j, i, model.args.checkpoint_dir)
 
             adv_target_images = adv_target_images.detach()
 
             # apply norm bound
             if self.norm == 'inf':
                 perturbation = torch.sign(grad)
-
-            # for index in range(0, len(adv_target_images)):
-            #    self._plot_signs(perturbation[index], index, i, model.args.checkpoint_dir)
 
             adv_target_images = torch.clamp(adv_target_images + epsilon_step * perturbation, clip_min, clip_max)
 
@@ -142,28 +136,8 @@ class ProjectedGradientDescent:
 
         if self.debug_grad:
             self._plot_signs2(adv_grads, model.args.checkpoint_dir)
-            # self._make_boxplots(adv_grads, model.args.checkpoint_dir)
 
         return adv_target_images, list(range(adv_target_images.shape[0]))
-
-    def _plot_signs(self, grad_signs, img_index, iter,  checkpoint_dir):
-        for c in range(0, 3):
-            plt.figure()
-            plt.imshow(grad_signs[c].cpu(), cmap='hot', interpolation='nearest')
-            plt.savefig(path.join(checkpoint_dir, "{}_{}_grad_signs_chan_{}_iter_{:02d}.png".format(self.attack_mode, img_index, c, iter)))
-            plt.close()
-
-    # num_patterns x num_channels x num_iter x (width * height)
-    def _plot_signs2(self, grad_signs, checkpoint_dir):
-        num_patterns = grad_signs.shape[0]
-        num_channels = grad_signs.shape[1]
-        for p in range(0, num_patterns):
-            for c in range(0, num_channels):
-                plt.figure()
-                plt.ylim(0, 20)
-                plt.imshow(grad_signs[p][c], cmap='hot', interpolation='nearest', aspect='auto')
-                plt.savefig(path.join(checkpoint_dir, "{}_{}_grad_signs_chan_{}.png".format(self.attack_mode, p, c)))
-                plt.close()
 
     def _generate_context(self, context_images, context_labels, target_images, labels, model, get_logits_fn, device):
         clip_min = target_images.min().item()
@@ -186,7 +160,7 @@ class ProjectedGradientDescent:
             adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], clip_min, clip_max)
 
         if self.debug_grad:
-            num_patterns = 5 # np.min(5, len(target_images))
+            num_patterns = min(5, len(target_images))
             num_channels = target_images[0].shape[0]
             adv_grads = np.empty((num_patterns, num_channels, self.num_iterations, target_images[0].shape[1] * target_images[0].shape[2]))
 
@@ -204,20 +178,18 @@ class ProjectedGradientDescent:
             model.zero_grad()
 
             if i % 5 == 0 or i == self.num_iterations-1:
-                self.logger.print_and_log("Iter {}, loss = {:.5f}".format(i, loss))
+                acc = torch.mean(torch.eq(labels.long(), torch.argmax(logits, dim=-1).long()).float()).item()
+                self.logger.print_and_log("Iter {}, loss = {:.5f}, acc = {:.5f}".format(i, loss, acc))
 
             # compute gradients
             loss.backward()
             grad = adv_context_images.grad
 
             if self.debug_grad:
-                # bins = np.linspace(self.debug_grad_bin_bounds[0], self.debug_grad_bin_bounds[1], num=2000)
                 for j in range(0, num_patterns):
                     for c in range(0, num_channels):
                         gradjc = grad[j][c].view(-1).cpu().numpy()
                         adv_grads[j][c][i] = np.sign(gradjc)
-                        # adv_grads[j].append(gradj)
-                        # self._make_hist(gradj, bins, j, i, model.args.checkpoint_dir)
 
             adv_context_images = adv_context_images.detach()
 
@@ -226,7 +198,6 @@ class ProjectedGradientDescent:
                 perturbation = torch.sign(grad)
 
             for index in adv_context_indices:
-                #self._plot_signs(perturbation[index], index, i, model.args.checkpoint_dir)
                 adv_context_images[index] = torch.clamp(adv_context_images[index] +
                                                         epsilon_step * perturbation[index],
                                                         clip_min, clip_max)
@@ -239,7 +210,6 @@ class ProjectedGradientDescent:
 
         if self.debug_grad:
             self._plot_signs2(adv_grads, model.args.checkpoint_dir)
-            # self._make_boxplots(adv_grads, model.args.checkpoint_dir)
 
         return adv_context_images, adv_context_indices
 
@@ -263,6 +233,26 @@ class ProjectedGradientDescent:
     def set_class_fraction(self, new_class_frac):
         assert new_class_frac <= 1.0 and new_class_frac >= 0.0
         self.class_fraction = new_class_frac
+
+    # Some helper functions for gradient debugging
+    def _plot_signs(self, grad_signs, img_index, iter,  checkpoint_dir):
+        for c in range(0, 3):
+            plt.figure()
+            plt.imshow(grad_signs[c].cpu(), cmap='hot', interpolation='nearest')
+            plt.savefig(path.join(checkpoint_dir, "{}_{}_grad_signs_chan_{}_iter_{:02d}.png".format(self.attack_mode, img_index, c, iter)))
+            plt.close()
+
+    # num_patterns x num_channels x num_iter x (width * height)
+    def _plot_signs2(self, grad_signs, checkpoint_dir):
+        num_patterns = grad_signs.shape[0]
+        num_channels = grad_signs.shape[1]
+        for p in range(0, num_patterns):
+            for c in range(0, num_channels):
+                plt.figure()
+                plt.ylim(0, 20)
+                plt.imshow(grad_signs[p][c], cmap='hot', interpolation='nearest', aspect='auto')
+                plt.savefig(path.join(checkpoint_dir, "{}_{}_grad_signs_chan_{}.png".format(self.attack_mode, p, c)))
+                plt.close()
 
     def _make_hist(self, gradj, bins, img_index, iter_num, checkpoint_dir):
         plt.figure()
