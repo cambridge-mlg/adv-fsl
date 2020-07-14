@@ -20,7 +20,8 @@ class ProjectedGradientDescent:
                  class_fraction=1.0,
                  shot_fraction=1.0,
                  use_true_target_labels=False,
-                 normalize_perturbation=True):
+                 normalize_perturbation=True,
+                 target_loss_mode='all'):
         self.norm = norm
         self.epsilon = epsilon
         self.num_iterations = num_iterations
@@ -35,6 +36,8 @@ class ProjectedGradientDescent:
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
         self.debug_grad = True
         self.debug_grad_bin_bounds = (-0.1, 0.1)
+        assert target_loss_mode == 'all' or target_loss_mode == 'round_robin' or target_loss_mode == 'random'
+        self.target_loss_mode = target_loss_mode
 
     # Epsilon and epsilon_step are specified for inputs normalized to [0,1].
     # Use a sample of the images to recalculate the required perturbation size (for actual image normalization)
@@ -58,10 +61,11 @@ class ProjectedGradientDescent:
             labels = convert_labels(logits)
 
         self.logger.print_and_log("Performing PGD attack on {} set. Settings = (norm={}, epsilon={}, epsilon_step={}, "
-                                  "num_iterations={}, use_true_labels={})"
+                                  "num_iterations={}, use_true_labels={},target_loss_mode={})"
                                   .format(self.attack_mode, self.norm, self.epsilon, self.epsilon_step,
-                                          self.num_iterations, self.use_true_target_labels))
+                                          self.num_iterations, self.use_true_target_labels, self.target_loss_mode))
         self.logger.print_and_log("class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
+        self.logger.print_and_log("context set size = {}, target set size = {}".format(context_images.shape[0], target_images.shape[0]))
 
         if self.attack_mode == 'target':
             return self._generate_target(context_images, context_labels, target_images, labels, model, get_logits_fn,
@@ -179,8 +183,7 @@ class ProjectedGradientDescent:
             (len(adv_context_indices), size[1], size[2], size[3])).to(device)
 
         for i, index in enumerate(adv_context_indices):
-            adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], clip_min,
-                                                    clip_max)
+            adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], clip_min, clip_max)
 
         if self.debug_grad:
             num_patterns = 5 # np.min(5, len(target_images))
@@ -191,7 +194,13 @@ class ProjectedGradientDescent:
             adv_context_images.requires_grad = True
             logits = fix_logits(get_logits_fn(adv_context_images, context_labels, target_images))
             # compute loss
-            loss = self.loss(logits, labels)
+            if self.target_loss_mode == 'round_robin':
+                loss = self.loss(logits[i % len(target_images)].unsqueeze(0), labels[i % len(target_images)].unsqueeze(0))
+            elif self.target_loss_mode == 'random':
+                index = np.random.randint(0, len(target_images))
+                loss = self.loss(logits[index].unsqueeze(0), labels[index].unsqueeze(0))
+            else:
+                loss = self.loss(logits, labels)
             model.zero_grad()
 
             if i % 5 == 0 or i == self.num_iterations-1:
