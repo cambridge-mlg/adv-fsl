@@ -44,6 +44,8 @@ class Learner:
     def parse_command_line(self):
         parser = argparse.ArgumentParser()
         parser.add_argument("--data_path", default="../datasets", help="Path to dataset records.")
+        parser.add_argument("--feature_extractor", choices=["mnasnet", "resnet"], default="mnasnet",
+                            help="Dataset to use.")
         parser.add_argument("--pretrained_feature_extractor_path", default="./learners/fine_tune/models/pretrained_mnasnet.pth",
                             help="Path to pretrained feature extractor model.")
         parser.add_argument("--learning_rate", "-lr", type=float, default=0.05, help="Learning rate.")
