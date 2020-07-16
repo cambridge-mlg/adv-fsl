@@ -414,7 +414,7 @@ class Learner:
                     context_features = context_features.cpu()
                     if context_features.min() < min:
                         min = context_features.min().item()
-                    if context_features.max() < max:
+                    if context_features.max() > max:
                         max = context_features.max().item()
 
                     plt.figure()
@@ -477,7 +477,7 @@ class Learner:
                     context_features = context_features.cpu()
                     if context_features.min() < min:
                         min = context_features.min().item()
-                    if context_features.max() < max:
+                    if context_features.max() > max:
                         max = context_features.max().item()
 
                     plt.figure()
