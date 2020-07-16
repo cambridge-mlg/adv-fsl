@@ -99,7 +99,7 @@ class ProjectedGradientDescent:
         adv_target_images = torch.clamp(adv_target_images + initial_perturb, clip_min, clip_max)
 
         if self.return_all_steps:
-            adv_images_all_steps = [adv_target_images.detatch()]
+            adv_images_all_steps = [adv_target_images.detach()]
 
         if self.debug_grad:
             num_patterns = min(5, len(target_images))
@@ -139,7 +139,7 @@ class ProjectedGradientDescent:
             adv_target_images = target_images + new_perturbation
 
             if self.return_all_steps:
-                adv_images_all_steps.append(adv_target_images.detatch())
+                adv_images_all_steps.append(adv_target_images.detach())
             del logits
 
         if self.debug_grad:
@@ -171,7 +171,7 @@ class ProjectedGradientDescent:
             adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], clip_min, clip_max)
 
         if self.return_all_steps:
-            adv_images_all_steps = [adv_context_images.detatch()]
+            adv_images_all_steps = [adv_context_images.detach()]
 
         if self.debug_grad:
             num_patterns = min(5, len(target_images))
@@ -221,7 +221,7 @@ class ProjectedGradientDescent:
                 adv_context_images[index] = context_images[index] + new_perturbation
 
             if self.return_all_steps:
-                adv_images_all_steps = [adv_context_images.detatch()]
+                adv_images_all_steps = [adv_context_images.detach()]
             del logits
 
         if self.debug_grad:
