@@ -372,6 +372,8 @@ class Learner:
         attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
         attack.set_return_all_steps(True)
 
+        attack.target_loss_mode = 'all'
+
         accuracies_before = []
         accuracies_after = []
         for t in range(self.args.attack_tasks):
@@ -404,7 +406,6 @@ class Learner:
             accuracies_before.append(acc_before)
             accuracies_after.append(acc_after)
 
-            import pdb; pdb.set_trace()
             with torch.no_grad():
                 min, max = np.Inf, -np.Inf
                 clean_context_features = self.model.feature_extractor(context_images).cpu()
@@ -417,12 +418,79 @@ class Learner:
                         max = context_features.max().item()
 
                     plt.figure()
+                    plt.ylim(-6, 6)
+                    plt.xlim(-6, 6)
                     plt.scatter(clean_context_features[:, 0], clean_context_features[:, 1], marker='s', c='b')
                     plt.scatter(context_features[:, 0], context_features[:, 1], marker='.', c='r')
                     plt.savefig(os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_{}_iter_{:02d}.png".format(t, attack.attack_mode, attack.target_loss_mode, k)))
                     plt.close()
             print("Min = {}, max = {}".format(min, max))
 
+        self.print_average_accuracy(accuracies_before, "Before tattack:")
+        self.print_average_accuracy(accuracies_after, "After attack:")
+
+        attack.target_loss_mode = 'round_robin'
+
+        accuracies_before = []
+        accuracies_after = []
+        for t in range(self.args.attack_tasks):
+            task_dict = self.dataset.get_test_task(self.args.test_way, self.args.test_shot, self.args.query)
+            context_images, target_images, context_labels, target_labels = self.prepare_task(task_dict, shuffle=False)
+
+            if attack.get_attack_mode() == 'context':
+                adv_context_images, adv_context_indices, intermediate_attack_imgs = attack.generate(context_images,
+                                                                                                    context_labels,
+                                                                                                    target_images,
+                                                                                                    target_labels,
+                                                                                                    self.model,
+                                                                                                    self.model,
+                                                                                                    self.device)
+
+                if t < 10:
+                    for index in adv_context_indices:
+                        self.save_image_pair(adv_context_images[index], context_images[index], t, index)
+
+                with torch.no_grad():
+                    acc_after = self.calc_accuracy(adv_context_images, context_labels, target_images, target_labels)
+
+            else:  # target
+                adv_target_images, _, intermediate_attack_imgs = attack.generate(context_images, context_labels,
+                                                                                 target_images, target_labels,
+                                                                                 self.model, self.model, self.device)
+                if t < 10:
+                    for i in range(len(target_images)):
+                        self.save_image_pair(adv_target_images[index], target_images[index], t, i)
+
+                with torch.no_grad():
+                    acc_after = self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels)
+
+            acc_before = self.calc_accuracy(context_images, context_labels, target_images, target_labels)
+
+            accuracies_before.append(acc_before)
+            accuracies_after.append(acc_after)
+
+            with torch.no_grad():
+                min, max = np.Inf, -np.Inf
+                clean_context_features = self.model.feature_extractor(context_images).cpu()
+                for k in range(0, len(intermediate_attack_imgs)):
+                    context_features = self.model.feature_extractor(intermediate_attack_imgs[k])
+                    context_features = context_features.cpu()
+                    if context_features.min() < min:
+                        min = context_features.min().item()
+                    if context_features.max() < max:
+                        max = context_features.max().item()
+
+                    plt.figure()
+                    plt.ylim(-6, 6)
+                    plt.xlim(-6, 6)
+                    plt.scatter(clean_context_features[:, 0], clean_context_features[:, 1], marker='s', c='b')
+                    plt.scatter(context_features[:, 0], context_features[:, 1], marker='.', c='r')
+                    plt.savefig(os.path.join(self.checkpoint_dir,
+                                             "task_{}_pgd_attack_{}_{}_iter_{:02d}.png".format(t, attack.attack_mode,
+                                                                                               attack.target_loss_mode,
+                                                                                               k)))
+                    plt.close()
+            print("Min = {}, max = {}".format(min, max))
 
         self.print_average_accuracy(accuracies_before, "Before attack:")
         self.print_average_accuracy(accuracies_after, "After attack:")
