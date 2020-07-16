@@ -407,8 +407,9 @@ class Learner:
             import pdb; pdb.set_trace()
             with torch.no_grad():
                 min, max = np.Inf, -np.Inf
+                clean_context_features = self.model.feature_extractor(context_images).cpu()
                 for k in range(0, len(intermediate_attack_imgs)):
-                    context_features = self.model.feature_extractor(intermediate_attack_imgs[0])
+                    context_features = self.model.feature_extractor(intermediate_attack_imgs[k])
                     context_features = context_features.cpu()
                     if context_features.min() < min:
                         min = context_features.min().item()
@@ -416,11 +417,11 @@ class Learner:
                         max = context_features.max().item()
 
                     plt.figure()
-                    plt.scatter(context_features[:, 0], context_features[:, 1])
+                    plt.scatter(clean_context_features[:, 0], clean_context_features[:, 1], marker='s', c='b')
+                    plt.scatter(context_features[:, 0], context_features[:, 1], marker='.', c='r')
                     plt.savefig(os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_{}_iter_{:02d}.png".format(t, attack.attack_mode, attack.target_loss_mode, k)))
                     plt.close()
-                import pdb; pdb.set_trace()
-
+            print("Min = {}, max = {}".format(min, max))
 
 
         self.print_average_accuracy(accuracies_before, "Before attack:")
