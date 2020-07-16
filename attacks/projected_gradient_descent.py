@@ -221,7 +221,7 @@ class ProjectedGradientDescent:
                 adv_context_images[index] = context_images[index] + new_perturbation
 
             if self.return_all_steps:
-                adv_images_all_steps = [adv_context_images.detach()]
+                adv_images_all_steps.append(adv_context_images.detach())
             del logits
 
         if self.debug_grad:
