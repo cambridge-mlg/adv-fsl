@@ -138,10 +138,14 @@ class Learner:
             self.test(self.args.test_model_path)
 
         if self.args.mode == 'attack':
-            if not self.args.swap_attack:
+            if self.args.swap_attack and not self.args.bottleneck:
+                self.attack_swap(self.args.test_model_path)
+            elif not self.args.swap_attack and self.args.bottleneck:
+                self.plot_attacks(self.args.test_model_path)
+            elif not self.args.swap_attack and not self.args.bottleneck:
                 self.attack(self.args.test_model_path)
             else:
-                self.attack_swap(self.args.test_model_path)
+                print("Invalid command line parameters for attack. Attack must be either a bottleneck, or a swap, or a normal attack.")
 
         self.logfile.close()
 
@@ -411,7 +415,7 @@ class Learner:
 
                 plt.figure()
                 plt.scatter(context_features)
-                plt.savefig(path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_iter_{:02d}.png".format(t, self.attack_mode, k)))
+                plt.savefig(path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_{}_iter_{:02d}.png".format(t, self.attack_mode, attack.target_loss_mode, k)))
                 plt.close()
             import pdb; pdb.set_trace()
 
