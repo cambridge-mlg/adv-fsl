@@ -405,19 +405,21 @@ class Learner:
             accuracies_after.append(acc_after)
 
             import pdb; pdb.set_trace()
-            min, max = np.Inf, -np.Inf
-            for k in range(0, len(intermediate_attack_imgs)):
-                context_features = self.model.feature_extractor(intermediate_attack_imgs[0])
-                if context_features.min() < min:
-                    min = context_features.min()
-                if context_features.max() < max:
-                    max = context_features.max()
+            with torch.no_grad():
+                min, max = np.Inf, -np.Inf
+                for k in range(0, len(intermediate_attack_imgs)):
+                    context_features = self.model.feature_extractor(intermediate_attack_imgs[0])
+                    context_features = context_features.cpu()
+                    if context_features.min() < min:
+                        min = context_features.min().item()
+                    if context_features.max() < max:
+                        max = context_features.max().item()
 
-                plt.figure()
-                plt.scatter(context_features)
-                plt.savefig(path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_{}_iter_{:02d}.png".format(t, self.attack_mode, attack.target_loss_mode, k)))
-                plt.close()
-            import pdb; pdb.set_trace()
+                    plt.figure()
+                    plt.scatter(context_features[:, 0], context_features[:, 1])
+                    plt.savefig(os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_{}_iter_{:02d}.png".format(t, attack.attack_mode, attack.target_loss_mode, k)))
+                    plt.close()
+                import pdb; pdb.set_trace()
 
 
 
