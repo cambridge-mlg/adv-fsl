@@ -7,6 +7,7 @@ from learners.protonets.src.model import ProtoNets
 from learners.protonets.src.data import MiniImageNetData, OmniglotData
 from attacks.attack_helpers import create_attack
 from attacks.attack_utils import save_image, split_target_set
+from matplotlib import pyplot as plt
 
 NUM_VALIDATION_TASKS = 400
 NUM_TEST_TASKS = 1000
@@ -353,6 +354,68 @@ class Learner:
 
             accuracies_before.append(acc_before)
             accuracies_after.append(acc_after)
+
+        self.print_average_accuracy(accuracies_before, "Before attack:")
+        self.print_average_accuracy(accuracies_after, "After attack:")
+
+    def plot_attacks(self, path):
+        print_and_log(self.logfile, "")  # add a blank line
+        print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
+        self.model = self.init_model()
+        self.model.load_state_dict(torch.load(path))
+        self.model.eval()
+
+        attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
+        attack.set_return_all_steps(True)
+
+        accuracies_before = []
+        accuracies_after = []
+        for t in range(self.args.attack_tasks):
+            task_dict = self.dataset.get_test_task(self.args.test_way, self.args.test_shot, self.args.query)
+            context_images, target_images, context_labels, target_labels = self.prepare_task(task_dict, shuffle=False)
+
+            if attack.get_attack_mode() == 'context':
+                adv_context_images, adv_context_indices, intermediate_attack_imgs = attack.generate(context_images, context_labels, target_images,
+                                                                target_labels, self.model, self.model, self.device)
+
+                if t < 10:
+                    for index in adv_context_indices:
+                        self.save_image_pair(adv_context_images[index], context_images[index], t, index)
+
+                with torch.no_grad():
+                    acc_after = self.calc_accuracy(adv_context_images, context_labels, target_images, target_labels)
+
+            else:  # target
+                adv_target_images, _, intermediate_attack_imgs = attack.generate(context_images, context_labels, target_images, target_labels,
+                                                    self.model, self.model, self.device)
+                if t < 10:
+                    for i in range(len(target_images)):
+                        self.save_image_pair(adv_target_images[index], target_images[index], t, i)
+
+                with torch.no_grad():
+                    acc_after = self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels)
+
+            acc_before = self.calc_accuracy(context_images, context_labels, target_images, target_labels)
+
+            accuracies_before.append(acc_before)
+            accuracies_after.append(acc_after)
+
+            import pdb; pdb.set_trace()
+            min, max = np.Inf, -np.Inf
+            for k in range(0, len(intermediate_attack_imgs)):
+                context_features = self.model.feature_extractor(intermediate_attack_imgs[0])
+                if context_features.min() < min:
+                    min = context_features.min()
+                if context_features.max() < max:
+                    max = context_features.max()
+
+                plt.figure()
+                plt.scatter(context_features)
+                plt.savefig(path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_iter_{:02d}.png".format(t, self.attack_mode, k)))
+                plt.close()
+            import pdb; pdb.set_trace()
+
+
 
         self.print_average_accuracy(accuracies_before, "Before attack:")
         self.print_average_accuracy(accuracies_after, "After attack:")
