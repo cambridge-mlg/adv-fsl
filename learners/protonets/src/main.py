@@ -8,6 +8,7 @@ from learners.protonets.src.data import MiniImageNetData, OmniglotData
 from attacks.attack_helpers import create_attack
 from attacks.attack_utils import save_image, split_target_set, extract_class_indices
 from matplotlib import pyplot as plt
+import pickle
 
 NUM_VALIDATION_TASKS = 400
 NUM_TEST_TASKS = 1000
@@ -372,8 +373,6 @@ class Learner:
         attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
         attack.set_return_all_steps(True)
 
-        attack.target_loss_mode = 'all'
-
         accuracies_before = []
         accuracies_after = []
         for t in range(self.args.attack_tasks):
@@ -396,7 +395,7 @@ class Learner:
                                                     self.model, self.model, self.device)
                 if t < 10:
                     for i in range(len(target_images)):
-                        self.save_image_pair(adv_target_images[index], target_images[index], t, i)
+                        self.save_image_pair(adv_target_images[i], target_images[i], t, i)
 
                 with torch.no_grad():
                     acc_after = self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels)
@@ -407,36 +406,48 @@ class Learner:
             accuracies_after.append(acc_after)
 
             classes = torch.unique(context_labels)
-            colors = ['b', 'r', 'g', 'y', 'k', 'c', 'm']
+            clean_colors = ['navy', 'darkred', 'darkgreen', 'gold', 'darkviolet', 'c', 'm']
+            colors = ['b', 'r', 'g', 'y', 'purple', 'cyan', 'm']
+            edge_colors = ['k', 'k', 'k', 'k', 'k', 'k', 'k']
+            markers = ['v', '^', '<', '>', 'd']
+            target_markers = ['1', '2', '3', '4', '+']
             assert len(classes) <= len(colors)
 
             with torch.no_grad():
                 min, max = np.Inf, -np.Inf
                 clean_context_features = self.model.feature_extractor(context_images).cpu()
+                # self._quick_dump(clean_context_features, os.path.join(self.checkpoint_dir, 'clean_features.pickle'))
                 for k in range(0, len(intermediate_attack_imgs)):
                     context_features = self.model.feature_extractor(intermediate_attack_imgs[k]).cpu()
+                    # self._quick_dump(context_features, os.path.join(self.checkpoint_dir, 'adv_features_{:02d}.pickle'.format(k)))
+
                     if context_features.min() < min:
                         min = context_features.min().item()
                     if context_features.max() > max:
                         max = context_features.max().item()
                     plt.figure()
                     ax = plt.gca()
-                    ax.set_yscale('log')
-                    ax.set_xscale('log')
-                    plt.ylim(-6, 6)
-                    plt.xlim(-6, 6)
+                    ax.set_yscale('symlog')
+                    ax.set_xscale('symlog')
+                    plt.ylim(-10, 10)
+                    plt.xlim(-10, 10)
                     for c in range(len(classes)):
                         shot_indices = extract_class_indices(context_labels, c)
-                        for i in shot_indices:
-                            plt.scatter(clean_context_features[i, 0], clean_context_features[i, 1], marker='s', c=colors[c])
-                            plt.scatter(context_features[i, 0], context_features[i, 1], marker='.', c=colors[c])
-                    plt.savefig(os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_{}_iter_{:02d}.png".format(t, attack.attack_mode, attack.target_loss_mode, k)))
+                        for j, i in enumerate(shot_indices):
+                            plt.scatter(clean_context_features[i, 0], clean_context_features[i, 1], marker='s', c=colors[c], edgecolors=edge_colors[c])
+                            plt.scatter(context_features[i, 0], context_features[i, 1], marker=markers[j], c=colors[c], alpha=0.8, edgecolors=edge_colors[c])
+                    plt.savefig(os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_{}_iter_{:03d}.png".format(t, attack.attack_mode, attack.target_loss_mode, k)))
                     plt.close()
             print("Min = {}, max = {}".format(min, max))
 
         self.print_average_accuracy(accuracies_before, "Before tattack:")
         self.print_average_accuracy(accuracies_after, "After attack:")
 
+
+    def _quick_dump(self, val, name):
+        fout = open(name, "wb")
+        pickle.dump(val, fout)
+        fout.close()
 
     def prepare_task(self, task_dict, shuffle):
         context_images, context_labels = task_dict['context_images'], task_dict['context_labels']
