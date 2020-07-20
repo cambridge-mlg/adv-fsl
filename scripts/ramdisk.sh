@@ -3,7 +3,6 @@
 #the first the file to add to ram disk
 #the second is a variable to place the new file path into
 #the thirds is whether to update the contents if they have changed (optional, default false)
-set -x 
 function ramdisk {
     local __file=$1
     local __ramdiskFolder=/tmp/ramdisk/$(basename -- $__file)
