@@ -19,7 +19,7 @@ def main():
 class Learner:
     def __init__(self):
         self.args = self.parse_command_line()
-        self.logger = Logger(self.args.checkpoint_dir, 'log.txt')
+        self.logger = Logger(self.args.checkpoint_dir, self.args.log_file)
 
         self.logger.print_and_log("Options: %s\n" % self.args)
         self.logger.print_and_log("Checkpoint Directory: %s\n" % self.args.checkpoint_dir)
@@ -44,6 +44,8 @@ class Learner:
     def parse_command_line(self):
         parser = argparse.ArgumentParser()
         parser.add_argument("--data_path", default="../datasets", help="Path to dataset records.")
+        parser.add_argument("--feature_extractor", choices=["mnasnet", "resnet"], default="mnasnet",
+                            help="Dataset to use.")
         parser.add_argument("--pretrained_feature_extractor_path", default="./learners/fine_tune/models/pretrained_mnasnet.pth",
                             help="Path to pretrained feature extractor model.")
         parser.add_argument("--learning_rate", "-lr", type=float, default=0.05, help="Learning rate.")
@@ -55,6 +57,7 @@ class Learner:
         parser.add_argument("--iterations", "-i", type=int, default=50, help="Number of fine-tune iterations.")
         parser.add_argument("--test_tasks", "-t", type=int, default=1000, help="Number of tasks to test for each dataset.")
         parser.add_argument("--batch_size", "-b", type=int, default=1000, help="Batch size.")
+        parser.add_argument("--log_file", default="log.tx", help="Name of log file")
         args = parser.parse_args()
 
         return args

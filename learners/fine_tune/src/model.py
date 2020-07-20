@@ -11,6 +11,7 @@ class FineTuner:
         self.device = device
         self.classifier = None
         self.feature_extractor = create_feature_extractor(
+            feature_extractor=self.args.feature_extractor,
             feature_adaptation=self.args.feature_adaptation,
             pretrained_path=self.args.pretrained_feature_extractor_path
         ).to(device)
@@ -21,7 +22,9 @@ class FineTuner:
         self.classifier = FilmClassifier(
             num_classes=len(torch.unique(context_labels)),
             feature_extractor=self.feature_extractor,
-            feature_adaptation=self.args.feature_adaptation).to(self.device)
+            feature_adaptation=self.args.feature_adaptation,
+            feature_extractor_family=self.args.feature_extractor
+        ).to(self.device)
         self.optimizer = torch.optim.SGD(
             self.classifier.parameters(),
             lr=self.args.learning_rate,
