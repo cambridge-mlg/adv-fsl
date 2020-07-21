@@ -480,21 +480,24 @@ class Learner:
 
             for t in range(self.args.attack_tasks):
                 task_dict = self.dataset.get_test_task(item, session)
-                context_images, all_target_images, context_labels, all_target_labels, context_images_np, target_images_np = \
+                context_images, all_target_images, context_labels, all_target_labels, context_images_np, all_target_images_np = \
                     self.prepare_task(task_dict, shuffle=False)
                 if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:
                     target_images, target_labels = all_target_images, all_target_labels
                 else:
                     # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
+                    assert self.args.target_set_size_multiplier * self.args.shot * self.args.way <= all_target_images.shape[0]
+                    split_target_images, split_target_labels, split_target_images_np = split_target_set(
+                        all_target_images,
+                        all_target_labels, self.args.shot, target_images_np=all_target_images_np)
+
                     # The first "target_set_size_multiplier"-many will be used when generating the attack
                     # The rest will be used for independent eval
-                    block_size = self.args.shot * self.args.way
-                    assert self.args.target_set_size_multiplier * block_size <= all_target_images.shape[0]
+                    # Note that we have to split them first, because this ensures each block has equal class representation
                     eval_start_index = self.args.target_set_size_multiplier
-                    target_images = all_target_images[0:block_size*eval_start_index]
-                    target_labels = all_target_labels[0:block_size*eval_start_index]
-                    target_images_np = target_images_np[0:block_size*eval_start_index]
-                    split_target_images, split_target_labels = split_target_set(all_target_images[block_size*eval_start_index:], all_target_labels[block_size*eval_start_index:], self.args.shot)
+                    target_images = torch.stack(split_target_images[0:eval_start_index]).view(-1, context_images.shape[1], context_images.shape[2], context_images.shape[3])
+                    target_labels = torch.stack(split_target_labels[0:eval_start_index]).view(-1)
+                    target_images_np = torch.stack(split_target_images_np[0:eval_start_index]).view(-1, context_images.shape[1], context_images.shape[2], context_images.shape[3])
 
                 acc_before = self.calc_accuracy(context_images, context_labels, target_images, target_labels)
                 accuracies_before.append(acc_before)
