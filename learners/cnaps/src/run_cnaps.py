@@ -477,7 +477,6 @@ class Learner:
                 indep_eval_accuracies = []
             if self.args.save_attack:
                 saved_tasks = []
-            import pdb; pdb.set_trace()
             for t in range(self.args.attack_tasks):
                 task_dict = self.dataset.get_test_task(item, session)
                 context_images, all_target_images, context_labels, all_target_labels, context_images_np, all_target_images_np = \
