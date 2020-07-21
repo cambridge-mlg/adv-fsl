@@ -477,7 +477,7 @@ class Learner:
                 indep_eval_accuracies = []
             if self.args.save_attack:
                 saved_tasks = []
-
+            import pdb; pdb.set_trace()
             for t in range(self.args.attack_tasks):
                 task_dict = self.dataset.get_test_task(item, session)
                 context_images, all_target_images, context_labels, all_target_labels, context_images_np, all_target_images_np = \
@@ -497,7 +497,7 @@ class Learner:
                     eval_start_index = self.args.target_set_size_multiplier
                     target_images = torch.stack(split_target_images[0:eval_start_index]).view(-1, context_images.shape[1], context_images.shape[2], context_images.shape[3])
                     target_labels = torch.stack(split_target_labels[0:eval_start_index]).view(-1)
-                    target_images_np = torch.stack(split_target_images_np[0:eval_start_index]).view(-1, context_images.shape[1], context_images.shape[2], context_images.shape[3])
+                    target_images_np = np.concatenate(split_target_images_np[0:eval_start_index], axis=0)
 
                 acc_before = self.calc_accuracy(context_images, context_labels, target_images, target_labels)
                 accuracies_before.append(acc_before)
