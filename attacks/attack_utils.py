@@ -96,7 +96,7 @@ def extract_class_indices(labels, which_class):
     return torch.reshape(class_mask_indices, (-1,))  # reshape to be a 1D vector
 
 
-def split_target_set(target_images, target_labels, shot):
+def split_target_set(target_images, target_labels, shot, target_images_np=None):
     classes = torch.unique(target_labels)
     way = len(classes)
 
@@ -120,7 +120,13 @@ def split_target_set(target_images, target_labels, shot):
         split_target_images.append(target_images[split_indices[s]])
         split_target_labels.append(target_labels[split_indices[s]])
 
-    return split_target_images, split_target_labels
+    if target_images_np is not None:
+        split_target_images_np = []
+        for s in range(num_sets):
+            split_target_images_np.append(target_images_np[split_indices[s]])
+        return split_target_images, split_target_labels, split_target_images_np
+    else:
+        return split_target_images, split_target_labels
 
 
 def one_hot_embedding(labels, num_classes):
