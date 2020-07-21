@@ -68,6 +68,7 @@ from attacks.attack_utils import split_target_set
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
 PRINT_FREQUENCY = 1000
+NUM_INDEP_EVAL_TASKS = 50
 
 
 def save_image(image_array, save_path):
@@ -113,9 +114,11 @@ class Learner:
         self.device = torch.device(gpu_device if torch.cuda.is_available() else 'cpu')
         self.model = self.init_model()
         self.train_set, self.validation_set, self.test_set = self.init_data()
-        num_target_sets = 1
+        # Must have at least one
+        assert self.args.target_set_size_multiplier >= 1
+        num_target_sets = self.args.target_set_size_multiplier
         if self.args.indep_eval:
-            num_target_sets = 50
+            num_target_sets += NUM_INDEP_EVAL_TASKS
 
         if self.args.dataset == "meta-dataset":
             self.dataset = MetaDatasetReader(self.args.data_path, self.args.mode, self.train_set, self.validation_set,
@@ -479,13 +482,19 @@ class Learner:
                 task_dict = self.dataset.get_test_task(item, session)
                 context_images, all_target_images, context_labels, all_target_labels, context_images_np, target_images_np = \
                     self.prepare_task(task_dict, shuffle=False)
-
-                if self.args.indep_eval:
-                    # We need to split out the extra datasets from the target images and target labels
-                    split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, self.args.shot)
-                    target_images, target_labels = split_target_images[0], split_target_labels[0]
-                else:
+                if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:
                     target_images, target_labels = all_target_images, all_target_labels
+                else:
+                    # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
+                    # The first "target_set_size_multiplier"-many will be used when generating the attack
+                    # The rest will be used for independent eval
+                    block_size = self.args.shot * self.args.way
+                    assert self.args.target_set_size_multiplier * block_size <= all_target_images.shape[0]
+                    eval_start_index = self.args.target_set_size_multiplier
+                    target_images = all_target_images[0:block_size*eval_start_index]
+                    target_labels = all_target_labels[0:block_size*eval_start_index]
+                    target_images_np = target_images_np[0:block_size*eval_start_index]
+                    split_target_images, split_target_labels = split_target_set(all_target_images[block_size*eval_start_index:], all_target_labels[block_size*eval_start_index:], self.args.shot)
 
                 acc_before = self.calc_accuracy(context_images, context_labels, target_images, target_labels)
                 accuracies_before.append(acc_before)
@@ -516,8 +525,8 @@ class Learner:
                         'query': self.args.query_test,
                     }
                     if self.args.indep_eval:
-                        adv_task_dict['eval_images'] = split_target_images[1:]
-                        adv_task_dict['eval_labels'] = split_target_labels[1:]
+                        adv_task_dict['eval_images'] = split_target_images[eval_start_index:]
+                        adv_task_dict['eval_labels'] = split_target_labels[eval_start_index:]
                     saved_tasks.append(adv_task_dict)
 
 
@@ -530,7 +539,7 @@ class Learner:
 
                     # Eval with indep sets as well, if required:
                     if self.args.indep_eval:
-                        for k in range(1, len(split_target_labels)):
+                        for k in range(eval_start_index, len(split_target_labels)):
                             if attack.get_attack_mode() == 'context':
                                 indep_eval_accuracies.append(self.calc_accuracy(adv_images, context_labels, split_target_images[k], split_target_labels[k]))
                             else:
