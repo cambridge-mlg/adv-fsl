@@ -21,7 +21,8 @@ class ProjectedGradientDescent:
                  shot_fraction=1.0,
                  use_true_target_labels=False,
                  normalize_perturbation=True,
-                 target_loss_mode='all'):
+                 target_loss_mode='all',
+                 targeted=False):
         self.norm = norm
         self.epsilon = epsilon
         self.num_iterations = num_iterations
@@ -30,17 +31,19 @@ class ProjectedGradientDescent:
         self.attack_mode = attack_mode
         self.class_fraction = class_fraction
         self.shot_fraction = shot_fraction
+        # Whether to use true or predicted labels when generating the attack
+        # Note that this is independent of whether the attack is targeted or not.
+        # We could use either true or predicted labels when selecting "target attack" labels for a targeted attack
         self.use_true_target_labels = use_true_target_labels
         self.normalize_perturbation = normalize_perturbation
         assert target_loss_mode == 'all' or target_loss_mode == 'round_robin' or target_loss_mode == 'random'
         self.target_loss_mode = target_loss_mode
+        self.targeted = targeted
 
         self.loss = nn.CrossEntropyLoss()
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
 
-        self.return_all_steps = False
-        self.debug_grad = False
-        self.debug_grad_bin_bounds = (-0.1, 0.1)
+        self.verbose = False
 
     # Epsilon and epsilon_step are specified for inputs normalized to [0,1].
     # Use a sample of the images to recalculate the required perturbation size (for actual image normalization)
@@ -55,13 +58,16 @@ class ProjectedGradientDescent:
             epsilon_step_new = epsilon_new * step_ratio
         return epsilon_new, epsilon_step_new
 
-    def generate(self, context_images, context_labels, target_images, target_labels, model, get_logits_fn, device):
+    def generate(self, context_images, context_labels, target_images, true_target_labels, model, get_logits_fn, device, targeted_labels=None):
         if self.use_true_target_labels:
-            labels = target_labels
+            labels = true_target_labels
         else:
             # get the predicted target labels
             logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
             labels = convert_labels(logits)
+
+        if self.targeted:
+            assert targeted_labels is not None
 
         self.logger.print_and_log("Performing PGD attack on {} set. Settings = (norm={}, epsilon={}, epsilon_step={}, "
                                   "num_iterations={}, use_true_labels={},target_loss_mode={})"
@@ -72,12 +78,12 @@ class ProjectedGradientDescent:
 
         if self.attack_mode == 'target':
             return self._generate_target(context_images, context_labels, target_images, labels, model, get_logits_fn,
-                                         device)
+                                         device, targeted_labels=targeted_labels)
         else:  # context
             return self._generate_context(context_images, context_labels, target_images, labels, model, get_logits_fn,
-                                          device)
+                                          device, targeted_labels=targeted_labels)
 
-    def _generate_target(self, context_images, context_labels, target_images, labels, model, get_logits_fn, device):
+    def _generate_target(self, context_images, context_labels, target_images, target_labels, model, get_logits_fn, device, targeted_labels=None):
         clip_min = target_images.min().item()
         clip_max = target_images.max().item()
         # Desired epsilon are given for images normalized to [0,1]. Adjust for when this is not the case
@@ -86,6 +92,11 @@ class ProjectedGradientDescent:
         else:
             epsilon, epsilon_step = self.epsilon, self.epsilon_step
         self.logger.print_and_log("Normalized perturbation sizes: eps={}, eps_step={}".format(epsilon, epsilon_step))
+
+        if self.targeted:
+            labels = targeted_labels # As in the labels we want the target set to be classified as, to be used as "targets"
+        else:
+            labels = target_labels # As in, the true/predicted labels for the target set
 
         adv_target_images = target_images.clone()
 
@@ -98,17 +109,15 @@ class ProjectedGradientDescent:
 
         adv_target_images = torch.clamp(adv_target_images + initial_perturb, clip_min, clip_max)
 
-        if self.return_all_steps:
-            adv_images_all_steps = [adv_target_images.clone().detach()]
-
-        if self.debug_grad:
-            num_patterns = min(5, len(target_images))
-            num_channels = target_images[0].shape[0]
-            adv_grads = np.empty((num_patterns, num_channels, self.num_iterations, target_images[0].shape[1] * target_images[0].shape[2]))
+        if self.verbose:
+            verbose_result = ProjectedGradientDescent.make_verbose_PGD_result()
+            verbose_result['adv_images'].append(adv_target_images.clone().detach())
 
         for i in range(self.num_iterations):
             adv_target_images.requires_grad = True
             logits = fix_logits(get_logits_fn(context_images, context_labels, adv_target_images))
+            if self.verbose:
+                verbose_result['target_logits'].append(logits.clone().detach())
             # compute loss
             loss = self.loss(logits, labels)
             model.zero_grad()
@@ -118,13 +127,7 @@ class ProjectedGradientDescent:
 
             # compute gradient
             loss.backward()
-            grad = adv_target_images.grad
-
-            if self.debug_grad:
-                for j in range(0, 5):
-                    for c in range(0, num_channels):
-                        gradjc = grad[j][c].view(-1).cpu().numpy()
-                        adv_grads[j][c][i] = np.sign(gradjc)
+            grad = adv_target_images.grad * (1 - 2 * int(self.targeted))
 
             adv_target_images = adv_target_images.detach()
 
@@ -138,19 +141,24 @@ class ProjectedGradientDescent:
             new_perturbation = self.projection(diff, epsilon, self.norm, device)
             adv_target_images = target_images + new_perturbation
 
-            if self.return_all_steps:
-                adv_images_all_steps.append(adv_target_images.clone().detach())
+            if self.verbose:
+                verbose_result['adv_images'].append(adv_target_images.clone().detach())
             del logits
 
-        if self.debug_grad:
-            self._plot_signs2(adv_grads, model.args.checkpoint_dir)
-
-        if self.return_all_steps:
-            return adv_target_images, list(range(adv_target_images.shape[0])), adv_images_all_steps
+        if self.verbose:
+            return adv_target_images, list(range(adv_target_images.shape[0])), verbose_result
 
         return adv_target_images, list(range(adv_target_images.shape[0]))
 
-    def _generate_context(self, context_images, context_labels, target_images, labels, model, get_logits_fn, device):
+    @staticmethod
+    def make_verbose_PGD_result():
+        result = {
+                  'adv_images': [],
+                  'target_logits': [],
+                  }
+        return result
+
+    def _generate_context(self, context_images, context_labels, target_images, target_labels, model, get_logits_fn, device, targeted_labels=None):
         clip_min = target_images.min().item()
         clip_max = target_images.max().item()
         if self.normalize_perturbation:
@@ -161,6 +169,11 @@ class ProjectedGradientDescent:
         adv_context_indices = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
         adv_context_images = context_images.clone()
 
+        if self.targeted:
+            labels = targeted_labels # As in the labels we want the target set to be classified as, to be used as "targets"
+        else:
+            labels = target_labels # As in, the true/predicted labels for the target set
+
         # Initial projection step
         size = adv_context_images.size()
         m = size[1] * size[2] * size[3]
@@ -170,17 +183,16 @@ class ProjectedGradientDescent:
         for i, index in enumerate(adv_context_indices):
             adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], clip_min, clip_max)
 
-        if self.return_all_steps:
-            adv_images_all_steps = [adv_context_images.clone().detach()]
-
-        if self.debug_grad:
-            num_patterns = min(5, len(target_images))
-            num_channels = target_images[0].shape[0]
-            adv_grads = np.empty((num_patterns, num_channels, self.num_iterations, target_images[0].shape[1] * target_images[0].shape[2]))
+        if self.verbose:
+            verbose_result = ProjectedGradientDescent.make_verbose_PGD_result()
+            verbose_result['adv_images'].append(adv_context_images.clone().detach())
 
         for i in range(0, self.num_iterations):
             adv_context_images.requires_grad = True
             logits = fix_logits(get_logits_fn(adv_context_images, context_labels, target_images))
+            if self.verbose:
+                verbose_result['target_logits'].append(logits.clone().detach())
+
             # compute loss
             if self.target_loss_mode == 'round_robin':
                 loss = self.loss(logits[i % len(target_images)].unsqueeze(0), labels[i % len(target_images)].unsqueeze(0))
@@ -192,18 +204,13 @@ class ProjectedGradientDescent:
             model.zero_grad()
 
             if i % 5 == 0 or i == self.num_iterations-1:
-                acc = torch.mean(torch.eq(labels.long(), torch.argmax(logits, dim=-1).long()).float()).item()
+                acc = torch.mean(torch.eq(target_labels.long(), torch.argmax(logits, dim=-1).long()).float()).item()
                 self.logger.print_and_log("Iter {}, loss = {:.5f}, acc = {:.5f}".format(i, loss, acc))
 
             # compute gradients
             loss.backward()
-            grad = adv_context_images.grad
-
-            if self.debug_grad:
-                for j in range(0, num_patterns):
-                    for c in range(0, num_channels):
-                        gradjc = grad[j][c].view(-1).cpu().numpy()
-                        adv_grads[j][c][i] = np.sign(gradjc)
+            # Invert the gradient if the attack is targeted
+            grad = adv_context_images.grad * (1 - 2 * int(self.targeted))
 
             adv_context_images = adv_context_images.detach()
 
@@ -220,23 +227,20 @@ class ProjectedGradientDescent:
                 new_perturbation = self.projection(diff, epsilon, self.norm, device)
                 adv_context_images[index] = context_images[index] + new_perturbation
 
-            if self.return_all_steps:
-                adv_images_all_steps.append(adv_context_images.clone().detach())
+            if self.verbose:
+                verbose_result['adv_images'].append(adv_context_images.clone().detach())
             del logits
 
-        if self.debug_grad:
-            self._plot_signs2(adv_grads, model.args.checkpoint_dir)
-
-        if self.return_all_steps:
-            return adv_context_images, adv_context_indices, adv_images_all_steps
+        if self.verbose:
+            return adv_context_images, adv_context_indices, verbose_result
 
         return adv_context_images, adv_context_indices
 
-    def get_return_all_steps(self):
-        return self.return_all_steps
+    def get_verbose(self):
+        return self.verbose
 
-    def set_return_all_steps(self, new_val):
-        self.return_all_steps = new_val
+    def set_verbose(self, new_val):
+        self.verbose = new_val
 
     def get_attack_mode(self):
         return self.attack_mode
@@ -266,51 +270,6 @@ class ProjectedGradientDescent:
             plt.imshow(grad_signs[c].cpu(), cmap='hot', interpolation='nearest')
             plt.savefig(path.join(checkpoint_dir, "{}_{}_grad_signs_chan_{}_iter_{:02d}.png".format(self.attack_mode, img_index, c, iter)))
             plt.close()
-
-    # num_patterns x num_channels x num_iter x (width * height)
-    def _plot_signs2(self, grad_signs, checkpoint_dir):
-        num_patterns = grad_signs.shape[0]
-        num_channels = grad_signs.shape[1]
-        for p in range(0, num_patterns):
-            for c in range(0, num_channels):
-                plt.figure()
-                plt.ylim(0, 20)
-                plt.imshow(grad_signs[p][c], cmap='hot', interpolation='nearest', aspect='auto')
-                plt.savefig(path.join(checkpoint_dir, "{}_{}_grad_signs_chan_{}.png".format(self.attack_mode, p, c)))
-                plt.close()
-
-    def _make_hist(self, gradj, bins, img_index, iter_num, checkpoint_dir):
-        plt.figure()
-        plt.hist(gradj, bins=bins)
-        plt.ylim(0, 1000)
-        plt.xlabel("gradient")
-        plt.title("{} pattern {}, iteration {}".format(self.attack_mode, img_index, iter_num))
-        plt.savefig(path.join(checkpoint_dir, '{}_{:02d}_iter_{:02d}.png'.format(self.attack_mode, img_index, iter_num)))
-        plt.close()
-        self.logger.print_and_log(
-            "{} {} iter {}: (min = {}, max = {}, mean= {}, std = {})".format(self.attack_mode, img_index, iter_num, gradj.min(), gradj.max(),
-                                                                                  gradj.mean(), gradj.std()))
-
-    def _make_boxplots(self, grads, checkpoint_dir):
-        num_patterns = len(grads)
-        for j in range(0, num_patterns):
-            plt.figure()
-            plt.boxplot(grads[j])
-            plt.ylim(self.debug_grad_bin_bounds[0], self.debug_grad_bin_bounds[1])
-            plt.xlabel("iteration")
-            plt.ylabel("gradient")
-            plt.title("{} pattern {} gradients".format(self.attack_mode, j))
-            plt.savefig(path.join(checkpoint_dir, '{}_num_{:02d}_across_iters.png'.format(self.attack_mode, j)))
-            plt.close()
-        for i in range(0, self.num_iterations):
-            plt.figure()
-            list_by_iter = [grads[j][i] for j in range(0, num_patterns)]
-            plt.boxplot(list_by_iter)
-            plt.ylim(self.debug_grad_bin_bounds[0], self.debug_grad_bin_bounds[1])
-            plt.xlabel("pattern index")
-            plt.ylabel("gradient")
-            plt.title("{} set gradients, iteration {}".format(self.attack_mode, i))
-            plt.savefig(path.join(checkpoint_dir, '{}_iter_{:02d}.png'.format(self.attack_mode, i)))
 
     @staticmethod
     def projection(values, eps, norm_p, device):
@@ -388,4 +347,3 @@ class ProjectedGradientDescent:
             raise NotImplementedError("Norm {} not supported".format(norm))
 
         return res
-

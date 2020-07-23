@@ -95,6 +95,10 @@ def extract_class_indices(labels, which_class):
     class_mask_indices = torch.nonzero(class_mask)  # indices of labels equal to which class
     return torch.reshape(class_mask_indices, (-1,))  # reshape to be a 1D vector
 
+def get_random_targeted_labels(true_labels, way, device):
+    targeted_labels = torch.randint(1, way).to(device)
+    targeted_labels = torch.fmod(targeted_labels + true_labels, way)
+    return targeted_labels
 
 def split_target_set(target_images, target_labels, shot, target_images_np=None):
     classes = torch.unique(target_labels)
