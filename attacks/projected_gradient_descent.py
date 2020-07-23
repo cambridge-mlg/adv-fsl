@@ -5,7 +5,7 @@ import torch.distributions.uniform as uniform
 import numpy as np
 from matplotlib import pyplot as plt
 import os.path as path
-from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, Logger
+from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, Logger, get_random_targeted_labels
 
 
 class ProjectedGradientDescent:
@@ -66,8 +66,10 @@ class ProjectedGradientDescent:
             logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
             labels = convert_labels(logits)
 
-        if self.targeted:
-            assert targeted_labels is not None
+        if self.targeted and targeted_labels is None:
+            self.logger.print_and_log("Generating random labels for targeted attack")
+            targeted_labels = get_random_targeted_labels(true_target_labels, device)
+
 
         self.logger.print_and_log("Performing PGD attack on {} set. Settings = (norm={}, epsilon={}, epsilon_step={}, "
                                   "num_iterations={}, use_true_labels={},target_loss_mode={})"
