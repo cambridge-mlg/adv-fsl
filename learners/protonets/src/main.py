@@ -371,7 +371,7 @@ class Learner:
         self.model.eval()
 
         attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
-        attack.set_return_all_steps(True)
+        attack.set_verbose(True)
 
         accuracies_before = []
         accuracies_after = []
