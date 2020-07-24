@@ -440,8 +440,11 @@ class Learner:
                 clean_context_features = self.model.feature_extractor(context_images).cpu()
                 target_features = self.model.feature_extractor(target_images).cpu()
                 num_classes = len(classes)
+                out_name = os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_clean_zoom.png".format(t, attack.attack_mode))
+                self._plot_decision_regions(clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name, sym_bound=1)
                 out_name = os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_clean.png".format(t, attack.attack_mode))
-                self._plot_decision_regions(clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name)
+                self._plot_decision_regions(clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name, sym_bound=5)
+
 
 
                 # self._quick_dump(clean_context_features, os.path.join(self.checkpoint_dir, 'clean_features.pickle'))
@@ -475,24 +478,32 @@ class Learner:
         self.print_average_accuracy(accuracies_before, "Before attack:")
         self.print_average_accuracy(accuracies_after, "After attack:")
 
-    def _plot_decision_regions(self, clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name, context_features=None):
+    def _plot_decision_regions(self, clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name, context_features=None, sym_bound=5):
         resolution = 50
         xx, yy = np.meshgrid(
-            np.linspace(-5, 5, resolution),  # np.geomspace(-10, 10, resolution)
-            np.linspace(-5, 5, resolution)
+            np.linspace(-sym_bound, sym_bound, resolution),  # np.geomspace(-10, 10, resolution)
+            np.linspace(-sym_bound, sym_bound, resolution)
         )
         grid_points = np.c_[xx.ravel(), yy.ravel()]
         grid_tensor = torch.from_numpy(grid_points).type(torch.DoubleTensor).to(self.device)
 
-        # Can I pass these in all at once? Or do I have to batch them?
-        grid_logits = self.model.forward_embeddings(clean_context_features.type(torch.DoubleTensor).to(self.device),
+        # If we have context_features, we should use them
+        if context_features is not None:
+            grid_logits = self.model.forward_embeddings(context_features.type(torch.DoubleTensor).to(self.device),
                                                     grid_tensor).cpu()
+        else:
+            grid_logits = self.model.forward_embeddings(clean_context_features.type(torch.DoubleTensor).to(self.device),
+                                                    grid_tensor).cpu()
+
         # normalize within each row
         grid_pred = torch.argmax(grid_logits, dim=-1)
         grid_conf = torch.max(F.softmax(grid_logits, dim=1), dim=1)[0]
 
         fig, ax = plt.subplots(1, 1)
         fig.set_size_inches(16, 16)
+        plt.ylim(-sym_bound, sym_bound)
+        plt.xlim(-sym_bound, sym_bound)
+
         for c in range(num_classes):
             grid_c = (grid_pred == c).type(torch.DoubleTensor)
             height = (grid_c * grid_conf).reshape(resolution, resolution)
@@ -501,13 +512,13 @@ class Learner:
         for c in range(num_classes):
             shot_indices = extract_class_indices(context_labels, c)
             for j, i in enumerate(shot_indices):
-                plt.scatter(clean_context_features[i, 0], clean_context_features[i, 1], marker='o', c=colors[c],
+                plt.scatter(clean_context_features[i, 0], clean_context_features[i, 1], marker='.', c=colors[c],
                             edgecolors=edge_colors[c], s=150)
-                plt.scatter(target_features[i, 0], target_features[i, 1], marker='.', c=colors[c],
+                plt.scatter(target_features[i, 0], target_features[i, 1], marker='o', c=colors[c],
                             alpha=0.8, edgecolors=edge_colors[c], s=150)
                 if context_features is not None:
                     plt.scatter(context_features[i, 0], context_features[i, 1], marker=markers[j], c=colors[c],
-                            edgecolors=edge_colors[c], s=150)
+                            edgecolors=edge_colors[c], s=150, alpha=0.8)
 
         # ax.scatter(grid_points[:, 0], grid_points[:, 1], c=grid_pred, s=grid_conf*100) #, s=grid_conf*10
         plt.savefig(out_name)
