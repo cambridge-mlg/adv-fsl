@@ -412,7 +412,7 @@ class Learner:
             intermediate_logits = extra_info['target_logits']
             classes = torch.unique(context_labels)
             clean_colors = ['navy', 'darkred', 'darkgreen', 'gold', 'darkviolet', 'c', 'm']
-            colors = ['b', 'r', 'g', 'y', 'purple', 'cyan', 'm']
+            colors = ['b', 'r', 'g', 'orange', 'purple', 'cyan', 'm']
             color_maps = []
             edge_colors = ['k', 'k', 'k', 'k', 'k', 'k', 'k']
             markers = ['v', '^', '<', '>', 'd']
@@ -442,8 +442,8 @@ class Learner:
 
                 resolution = 50
                 xx, yy = np.meshgrid(
-                    np.linspace(-2, 2, resolution),  # np.geomspace(-10, 10, resolution)
-                    np.linspace(-2, 2, resolution)
+                    np.linspace(-5, 5, resolution),  # np.geomspace(-10, 10, resolution)
+                    np.linspace(-5, 5, resolution)
                 )
                 grid_points = np.c_[xx.ravel(), yy.ravel()]
                 grid_tensor = torch.from_numpy(grid_points).type(torch.DoubleTensor).to(self.device)
@@ -465,10 +465,10 @@ class Learner:
                 for c in range(len(classes)):
                     shot_indices = extract_class_indices(context_labels, c)
                     for j, i in enumerate(shot_indices):
-                        plt.scatter(clean_context_features[i, 0], clean_context_features[i, 1], marker='s', c=colors[c],
-                                    edgecolors=edge_colors[c])
-                        plt.scatter(target_features[i, 0], target_features[i, 1], marker=markers[j], c=colors[c],
-                                    alpha=0.8, edgecolors=edge_colors[c])
+                        plt.scatter(clean_context_features[i, 0], clean_context_features[i, 1], marker='o', c=colors[c],
+                                    edgecolors=edge_colors[c], s=150)
+                        plt.scatter(target_features[i, 0], target_features[i, 1], marker='.', c=colors[c],
+                                    alpha=0.8, edgecolors=edge_colors[c], s=150)
 
 
                 # ax.scatter(grid_points[:, 0], grid_points[:, 1], c=grid_pred, s=grid_conf*100) #, s=grid_conf*10
