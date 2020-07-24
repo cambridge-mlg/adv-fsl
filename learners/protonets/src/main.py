@@ -9,6 +9,9 @@ from attacks.attack_helpers import create_attack
 from attacks.attack_utils import save_image, split_target_set, extract_class_indices
 from matplotlib import pyplot as plt
 import pickle
+import torch.nn.functional as F
+import matplotlib.pylab as pl
+from matplotlib.colors import ListedColormap
 
 NUM_VALIDATION_TASKS = 400
 NUM_TEST_TASKS = 1000
@@ -410,33 +413,65 @@ class Learner:
             classes = torch.unique(context_labels)
             clean_colors = ['navy', 'darkred', 'darkgreen', 'gold', 'darkviolet', 'c', 'm']
             colors = ['b', 'r', 'g', 'y', 'purple', 'cyan', 'm']
+            color_maps = []
             edge_colors = ['k', 'k', 'k', 'k', 'k', 'k', 'k']
             markers = ['v', '^', '<', '>', 'd']
             target_markers = ['1', '2', '3', '4', '+']
             assert len(classes) <= len(colors)
 
+
+            #Make custom colormaps with the transparency we need
+            #No, I don't know how I got here
+            def_color_maps = [pl.cm.Blues, pl.cm.Reds, pl.cm.Greens, pl.cm.Oranges, pl.cm.Purples]
+            # Get the colormap colors
+            for cmap in def_color_maps:
+                my_cmap = cmap(np.arange(cmap.N))
+                # Set alpha
+                my_cmap[:,-1] = np.linspace(0, 1, cmap.N)
+                # Create new colormap
+                my_cmap = ListedColormap(my_cmap)
+                color_maps.append(my_cmap)
+
+
+
+
             with torch.no_grad():
                 min, max = np.Inf, -np.Inf
-                import pdb; pdb.set_trace()
                 clean_context_features = self.model.feature_extractor(context_images).cpu()
                 target_features = self.model.feature_extractor(target_images).cpu()
 
-                resolution = 100
+                resolution = 50
                 xx, yy = np.meshgrid(
-                    np.linspace(-10, 10, resolution),  # np.geomspace(-10, 10, resolution)
-                    np.linspace(-10, 10, resolution)
+                    np.linspace(-2, 2, resolution),  # np.geomspace(-10, 10, resolution)
+                    np.linspace(-2, 2, resolution)
                 )
                 grid_points = np.c_[xx.ravel(), yy.ravel()]
+                grid_tensor = torch.from_numpy(grid_points).type(torch.DoubleTensor).to(self.device)
+                import pdb; pdb.set_trace()
                 # Can I pass these in all at once? Or do I have to batch them?
-                grid_logits = self.model.forward_embeddings(clean_context_features, grid_points).cpu()
+                grid_logits = self.model.forward_embeddings(clean_context_features.type(torch.DoubleTensor).to(self.device), grid_tensor).cpu()
                 # normalize within each row
                 grid_pred = torch.argmax(grid_logits, dim=-1)
-                grid_conf = torch.max(grid_logits, dim=-1)
+                grid_conf = torch.max(F.softmax(grid_logits, dim=1), dim=1)[0]
 
                 fig, ax = plt.subplots(1, 1)
-                ax.scatter(grid_points[:, 0], grid_points[:, 1], c=grid_pred) #, s=grid_conf*10
+                fig.set_size_inches(16, 16)
+                for c in range(len(classes)):
+                    grid_c = (grid_pred == c).type(torch.DoubleTensor)
+                    height = (grid_c*grid_conf).reshape(resolution, resolution)
+                    CS = ax.contourf(xx, yy, height, cmap=color_maps[c])
+
+                # ax.scatter(grid_points[:, 0], grid_points[:, 1], c=grid_pred, s=grid_conf*100) #, s=grid_conf*10
                 plt.savefig(os.path.join(self.checkpoint_dir, "clean_decision.png"))
                 plt.close()
+
+
+                fig, ax = plt.subplots()
+                height = (grid_pred.type(torch.DoubleTensor) + grid_conf).reshape(resolution, resolution)
+                CS = ax.contourf(xx, yy, height)
+                plt.savefig(os.path.join(self.checkpoint_dir, "clean_contour.png"))
+                plt.close()
+
 
                 '''
                 # self._quick_dump(clean_context_features, os.path.join(self.checkpoint_dir, 'clean_features.pickle'))
