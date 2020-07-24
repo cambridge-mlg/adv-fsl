@@ -439,56 +439,19 @@ class Learner:
                 min, max = np.Inf, -np.Inf
                 clean_context_features = self.model.feature_extractor(context_images).cpu()
                 target_features = self.model.feature_extractor(target_images).cpu()
-
-                resolution = 50
-                xx, yy = np.meshgrid(
-                    np.linspace(-5, 5, resolution),  # np.geomspace(-10, 10, resolution)
-                    np.linspace(-5, 5, resolution)
-                )
-                grid_points = np.c_[xx.ravel(), yy.ravel()]
-                grid_tensor = torch.from_numpy(grid_points).type(torch.DoubleTensor).to(self.device)
-                import pdb; pdb.set_trace()
-                # Can I pass these in all at once? Or do I have to batch them?
-                grid_logits = self.model.forward_embeddings(clean_context_features.type(torch.DoubleTensor).to(self.device), grid_tensor).cpu()
-                # normalize within each row
-                grid_pred = torch.argmax(grid_logits, dim=-1)
-                grid_conf = torch.max(F.softmax(grid_logits, dim=1), dim=1)[0]
-
-                fig, ax = plt.subplots(1, 1)
-                fig.set_size_inches(16, 16)
-                for c in range(len(classes)):
-                    grid_c = (grid_pred == c).type(torch.DoubleTensor)
-                    height = (grid_c*grid_conf).reshape(resolution, resolution)
-                    CS = ax.contourf(xx, yy, height, cmap=color_maps[c])
-                
-
-                for c in range(len(classes)):
-                    shot_indices = extract_class_indices(context_labels, c)
-                    for j, i in enumerate(shot_indices):
-                        plt.scatter(clean_context_features[i, 0], clean_context_features[i, 1], marker='o', c=colors[c],
-                                    edgecolors=edge_colors[c], s=150)
-                        plt.scatter(target_features[i, 0], target_features[i, 1], marker='.', c=colors[c],
-                                    alpha=0.8, edgecolors=edge_colors[c], s=150)
+                num_classes = len(classes)
+                out_name = os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_clean.png".format(t, attack.attack_mode))
+                self._plot_decision_regions(clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name)
 
 
-                # ax.scatter(grid_points[:, 0], grid_points[:, 1], c=grid_pred, s=grid_conf*100) #, s=grid_conf*10
-                plt.savefig(os.path.join(self.checkpoint_dir, "clean_decision.png"))
-                plt.close()
-
-
-                fig, ax = plt.subplots()
-                height = (grid_pred.type(torch.DoubleTensor) + grid_conf).reshape(resolution, resolution)
-                CS = ax.contourf(xx, yy, height)
-                plt.savefig(os.path.join(self.checkpoint_dir, "clean_contour.png"))
-                plt.close()
-
-
-                '''
                 # self._quick_dump(clean_context_features, os.path.join(self.checkpoint_dir, 'clean_features.pickle'))
                 for k in range(0, len(intermediate_attack_imgs)):
                     context_features = self.model.feature_extractor(intermediate_attack_imgs[k]).cpu()
                     # self._quick_dump(context_features, os.path.join(self.checkpoint_dir, 'adv_features_{:02d}.pickle'.format(k)))
-
+                    out_name = os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_{}_{}_iter_{:03d}.png".format(t, attack.attack_mode, attack.target_loss_mode, attack.targeted, k))
+                    self._plot_decision_regions(clean_context_features, target_features, num_classes, color_maps,
+                                                markers, colors, edge_colors, context_labels, out_name, context_features)
+                    '''
                     if context_features.min() < min:
                         min = context_features.min().item()
                     if context_features.max() > max:
@@ -506,12 +469,49 @@ class Learner:
                             plt.scatter(context_features[i, 0], context_features[i, 1], marker=markers[j], c=colors[c], alpha=0.8, edgecolors=edge_colors[c])
                     plt.savefig(os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_{}_iter_{:03d}.png".format(t, attack.attack_mode, attack.target_loss_mode, k)))
                     plt.close()
-            print("Min = {}, max = {}".format(min, max))
-            '''
+                    '''
+            # print("Min = {}, max = {}".format(min, max))
 
-        self.print_average_accuracy(accuracies_before, "Before tattack:")
+        self.print_average_accuracy(accuracies_before, "Before attack:")
         self.print_average_accuracy(accuracies_after, "After attack:")
 
+    def _plot_decision_regions(self, clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name, context_features=None):
+        resolution = 50
+        xx, yy = np.meshgrid(
+            np.linspace(-5, 5, resolution),  # np.geomspace(-10, 10, resolution)
+            np.linspace(-5, 5, resolution)
+        )
+        grid_points = np.c_[xx.ravel(), yy.ravel()]
+        grid_tensor = torch.from_numpy(grid_points).type(torch.DoubleTensor).to(self.device)
+
+        # Can I pass these in all at once? Or do I have to batch them?
+        grid_logits = self.model.forward_embeddings(clean_context_features.type(torch.DoubleTensor).to(self.device),
+                                                    grid_tensor).cpu()
+        # normalize within each row
+        grid_pred = torch.argmax(grid_logits, dim=-1)
+        grid_conf = torch.max(F.softmax(grid_logits, dim=1), dim=1)[0]
+
+        fig, ax = plt.subplots(1, 1)
+        fig.set_size_inches(16, 16)
+        for c in range(num_classes):
+            grid_c = (grid_pred == c).type(torch.DoubleTensor)
+            height = (grid_c * grid_conf).reshape(resolution, resolution)
+            ax.contourf(xx, yy, height, cmap=color_maps[c])
+
+        for c in range(num_classes):
+            shot_indices = extract_class_indices(context_labels, c)
+            for j, i in enumerate(shot_indices):
+                plt.scatter(clean_context_features[i, 0], clean_context_features[i, 1], marker='o', c=colors[c],
+                            edgecolors=edge_colors[c], s=150)
+                plt.scatter(target_features[i, 0], target_features[i, 1], marker='.', c=colors[c],
+                            alpha=0.8, edgecolors=edge_colors[c], s=150)
+                if context_features is not None:
+                    plt.scatter(context_features[i, 0], context_features[i, 1], marker=markers[j], c=colors[c],
+                            edgecolors=edge_colors[c], s=150)
+
+        # ax.scatter(grid_points[:, 0], grid_points[:, 1], c=grid_pred, s=grid_conf*100) #, s=grid_conf*10
+        plt.savefig(out_name)
+        plt.close()
 
     def _quick_dump(self, val, name):
         fout = open(name, "wb")
