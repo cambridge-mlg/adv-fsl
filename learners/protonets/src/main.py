@@ -460,6 +460,16 @@ class Learner:
                     grid_c = (grid_pred == c).type(torch.DoubleTensor)
                     height = (grid_c*grid_conf).reshape(resolution, resolution)
                     CS = ax.contourf(xx, yy, height, cmap=color_maps[c])
+                
+
+                for c in range(len(classes)):
+                    shot_indices = extract_class_indices(context_labels, c)
+                    for j, i in enumerate(shot_indices):
+                        plt.scatter(clean_context_features[i, 0], clean_context_features[i, 1], marker='s', c=colors[c],
+                                    edgecolors=edge_colors[c])
+                        plt.scatter(target_features[i, 0], target_features[i, 1], marker=markers[j], c=colors[c],
+                                    alpha=0.8, edgecolors=edge_colors[c])
+
 
                 # ax.scatter(grid_points[:, 0], grid_points[:, 1], c=grid_pred, s=grid_conf*100) #, s=grid_conf*10
                 plt.savefig(os.path.join(self.checkpoint_dir, "clean_decision.png"))
