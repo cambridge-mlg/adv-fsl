@@ -42,3 +42,25 @@ class ProtoNets(nn.Module):
         target_features = self.feature_extractor(target_images)
         logits = euclidean_metric(target_features, prototypes)
         return logits
+
+    def forward_embeddings(self, context_features, target_features):
+        """
+        Forward pass through the model for one episode.
+        :param context_images: (torch.tensor) Images in the context set (batch x C x H x W).
+        :param context_labels: (torch.tensor) Labels for the context set (batch x 1 -- integer representation).
+        :param target_images: (torch.tensor) Images in the target set (batch x C x H x W).
+        :return: (torch.tensor) Categorical distribution on label set for each image in target set (batch x num_labels).
+        """
+
+        #context_features = self.feature_extractor(context_images)
+        if self.training:
+            shot = self.args.train_shot
+            way = self.args.train_way
+        else:
+            shot = self.args.test_shot
+            way = self.args.test_way
+        prototypes = context_features.reshape(way, shot, -1).mean(dim=1)
+
+        #target_features = self.feature_extractor(target_images)
+        logits = euclidean_metric(target_features, prototypes)
+        return logits

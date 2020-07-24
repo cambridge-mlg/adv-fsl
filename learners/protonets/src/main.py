@@ -380,7 +380,7 @@ class Learner:
             context_images, target_images, context_labels, target_labels = self.prepare_task(task_dict, shuffle=False)
 
             if attack.get_attack_mode() == 'context':
-                adv_context_images, adv_context_indices, intermediate_attack_imgs = attack.generate(context_images, context_labels, target_images,
+                adv_context_images, adv_context_indices, extra_info = attack.generate(context_images, context_labels, target_images,
                                                                 target_labels, self.model, self.model, self.device)
 
                 if t < 10:
@@ -391,7 +391,7 @@ class Learner:
                     acc_after = self.calc_accuracy(adv_context_images, context_labels, target_images, target_labels)
 
             else:  # target
-                adv_target_images, _, intermediate_attack_imgs = attack.generate(context_images, context_labels, target_images, target_labels,
+                adv_target_images, _, extra_info = attack.generate(context_images, context_labels, target_images, target_labels,
                                                     self.model, self.model, self.device)
                 if t < 10:
                     for i in range(len(target_images)):
@@ -405,6 +405,8 @@ class Learner:
             accuracies_before.append(acc_before)
             accuracies_after.append(acc_after)
 
+            intermediate_attack_imgs = extra_info['adv_images']
+            intermediate_logits = extra_info['target_logits']
             classes = torch.unique(context_labels)
             clean_colors = ['navy', 'darkred', 'darkgreen', 'gold', 'darkviolet', 'c', 'm']
             colors = ['b', 'r', 'g', 'y', 'purple', 'cyan', 'm']
@@ -415,7 +417,28 @@ class Learner:
 
             with torch.no_grad():
                 min, max = np.Inf, -np.Inf
+                import pdb; pdb.set_trace()
                 clean_context_features = self.model.feature_extractor(context_images).cpu()
+                target_features = self.model.feature_extractor(target_images).cpu()
+
+                resolution = 100
+                xx, yy = np.meshgrid(
+                    np.linspace(-10, 10, resolution),  # np.geomspace(-10, 10, resolution)
+                    np.linspace(-10, 10, resolution)
+                )
+                grid_points = np.c_[xx.ravel(), yy.ravel()]
+                # Can I pass these in all at once? Or do I have to batch them?
+                grid_logits = self.model.forward_embeddings(clean_context_features, grid_points).cpu()
+                # normalize within each row
+                grid_pred = torch.argmax(grid_logits, dim=-1)
+                grid_conf = torch.max(grid_logits, dim=-1)
+
+                fig, ax = plt.subplots(1, 1)
+                ax.scatter(grid_points[:, 0], grid_points[:, 1], c=grid_pred) #, s=grid_conf*10
+                plt.savefig(os.path.join(self.checkpoint_dir, "clean_decision.png"))
+                plt.close()
+
+                '''
                 # self._quick_dump(clean_context_features, os.path.join(self.checkpoint_dir, 'clean_features.pickle'))
                 for k in range(0, len(intermediate_attack_imgs)):
                     context_features = self.model.feature_extractor(intermediate_attack_imgs[k]).cpu()
@@ -439,6 +462,7 @@ class Learner:
                     plt.savefig(os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_{}_iter_{:03d}.png".format(t, attack.attack_mode, attack.target_loss_mode, k)))
                     plt.close()
             print("Min = {}, max = {}".format(min, max))
+            '''
 
         self.print_average_accuracy(accuracies_before, "Before tattack:")
         self.print_average_accuracy(accuracies_after, "After attack:")
