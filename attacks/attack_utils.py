@@ -97,11 +97,17 @@ def extract_class_indices(labels, which_class):
 
 
 def get_random_targeted_labels(true_labels, device):
-    # import pdb; pdb.set_trace()
     classes = torch.unique(true_labels)
     way = len(classes)
     targeted_labels = torch.randint(1, way, (len(true_labels),)).to(device)
     targeted_labels = torch.fmod(targeted_labels + true_labels, way)
+    return targeted_labels
+
+
+def get_shifted_targeted_labels(true_labels, device):
+    classes = torch.unique(true_labels)
+    way = len(classes)
+    targeted_labels = torch.fmod(true_labels + torch.ones_like(true_labels), way)
     return targeted_labels
 
 

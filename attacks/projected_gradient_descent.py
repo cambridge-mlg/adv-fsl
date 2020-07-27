@@ -5,7 +5,8 @@ import torch.distributions.uniform as uniform
 import numpy as np
 from matplotlib import pyplot as plt
 import os.path as path
-from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, Logger, get_random_targeted_labels
+from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, Logger
+from attacks.attack_utils import get_shifted_targeted_labels, get_random_targeted_labels
 
 
 class ProjectedGradientDescent:
@@ -22,7 +23,8 @@ class ProjectedGradientDescent:
                  use_true_target_labels=False,
                  normalize_perturbation=True,
                  target_loss_mode='all',
-                 targeted=False):
+                 targeted=False,
+                 targeted_labels='random'):
         self.norm = norm
         self.epsilon = epsilon
         self.num_iterations = num_iterations
@@ -39,6 +41,9 @@ class ProjectedGradientDescent:
         assert target_loss_mode == 'all' or target_loss_mode == 'round_robin' or target_loss_mode == 'random'
         self.target_loss_mode = target_loss_mode
         self.targeted = targeted
+        if self.targeted:
+            assert targeted_labels == 'exact' or targeted_labels == 'random' or targeted_labels == 'shifted'
+        self.targeted_labels = targeted_labels
 
         self.loss = nn.CrossEntropyLoss()
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
@@ -67,9 +72,15 @@ class ProjectedGradientDescent:
             labels = convert_labels(logits)
 
         if self.targeted and targeted_labels is None:
-            self.logger.print_and_log("Generating random labels for targeted attack")
-            targeted_labels = get_random_targeted_labels(true_target_labels, device)
-
+            if self.targeted_labels == 'exact':
+                # When in 'exact' mode, the actual targeted labels must be specified
+                assert targeted_labels is not None
+            elif self.targeted_labels == 'shifted':
+                self.logger.print_and_log("Generating shifted labels for targeted attack")
+                targeted_labels = get_shifted_targeted_labels(true_target_labels, device)
+            else: #random labels
+                self.logger.print_and_log("Generating random labels for targeted attack")
+                targeted_labels = get_random_targeted_labels(true_target_labels, device)
 
         self.logger.print_and_log("Performing PGD attack on {} set. Settings = (norm={}, epsilon={}, epsilon_step={}, "
                                   "num_iterations={}, use_true_labels={},target_loss_mode={})"
