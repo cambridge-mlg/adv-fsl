@@ -220,8 +220,11 @@ class Learner:
 
     def save_image_pair(self, adv_img, clean_img, task_no, index):
         save_image(adv_img.cpu().detach().numpy(),
-                   os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task_no, index)))
-        save_image(clean_img.cpu().detach().numpy(), os.path.join(self.checkpoint_dir, 'in_task_{}_index_{}.png'.format(task_no, index)))
+                   os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task_no, index)),
+                   scaling='zero_to_one')
+        save_image(clean_img.cpu().detach().numpy(), os.path.join(self.checkpoint_dir,
+                                                                  'in_task_{}_index_{}.png'.format(task_no, index)),
+                   scaling='zero_to_one')
 
     def attack_swap(self, path):
         print_and_log(self.logfile, "")  # add a blank line
