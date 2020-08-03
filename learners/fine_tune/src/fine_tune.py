@@ -114,10 +114,6 @@ class Learner:
             self.print_average_accuracy(adv_acc_0, "Adv Acc (gen setting)")
             self.print_average_accuracy(adv_acc, "Adv Acc")
 
-            #linear_accuracy = np.array(linear_accuracies).mean() * 100.0
-            #linear_accuracy_confidence = (196.0 * np.array(linear_accuracies).std()) / np.sqrt(len(linear_accuracies))
-            #self.logger.print_and_log('Linear: {0:}: {1:3.1f}+/-{2:2.1f}'.format(item, linear_accuracy, linear_accuracy_confidence))
-
     def prepare_task(self, task_dict):
         context_images_np, context_labels_np = task_dict['context_images'], task_dict['context_labels']
         target_images_np, target_labels_np = task_dict['target_images'], task_dict['target_labels']

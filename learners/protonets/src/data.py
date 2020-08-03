@@ -26,12 +26,13 @@ class MiniImageNetData(object):
         self.image_height = 84
         self.image_channels = 3
 
-        # we don't use the normalize transform as we want the input in the 0-1 range for attacking
-        # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-        #                                  std=[0.229, 0.224, 0.225])
+        # normalize to -1 to 1
+        normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5],
+                                         std=[0.5, 0.5, 0.5])
 
         self.basic_transform = transforms.Compose([
-            transforms.ToTensor()
+            transforms.ToTensor(),
+            normalize
         ])
 
     def get_train_task(self, way, shot, target_shot):
