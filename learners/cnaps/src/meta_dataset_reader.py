@@ -5,10 +5,10 @@ import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)  # Quiet the TensorFlow warnings
 import sys
 sys.path.append(os.path.abspath('libs/meta-dataset'))
-from meta_dataset.data import dataset_spec as dataset_spec_lib
-from meta_dataset.data import learning_spec
-from meta_dataset.data import pipeline
-from meta_dataset.data import config
+from libs.meta_dataset.data import dataset_spec as dataset_spec_lib
+from libs.meta_dataset.data import learning_spec
+from libs.meta_dataset.data import pipeline
+from libs.meta_dataset.data import config
 
 
 class MetaDatasetReader:
