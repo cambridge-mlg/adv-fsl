@@ -1,14 +1,16 @@
 from resnet import film_resnet18, resnet18
 from adaptation_networks import NullFeatureAdaptationNetwork, FilmAdaptationNetwork, \
-    LinearClassifierAdaptationNetwork, FilmLayerNetwork, FilmArAdaptationNetwork
+    LinearClassifierAdaptationNetwork, FilmLayerNetwork, FilmArAdaptationNetwork, MLPIPClassifierHyperNetwork, \
+    PrototypicalNetworksAdaptationNetwork
 from set_encoder import SetEncoder
-from utils import linear_classifier
+from utils import linear_classifier, mlpip_classifier
 
 
 class ConfigureNetworks:
     """ Creates the set encoder, feature extractor, feature adaptation, classifier, and classifier adaptation networks.
     """
-    def __init__(self, pretrained_resnet_path, feature_adaptation, batch_normalization):
+    def __init__(self, pretrained_resnet_path, feature_adaptation, batch_normalization, classifier,
+                 do_not_freeze_feature_extractor):
         self.classifier = linear_classifier
 
         self.encoder = SetEncoder(batch_normalization)
@@ -55,10 +57,23 @@ class ConfigureNetworks:
             )
 
         # Freeze the parameters of the feature extractor
-        for param in self.feature_extractor.parameters():
-            param.requires_grad = False
+        if not do_not_freeze_feature_extractor:
+            for param in self.feature_extractor.parameters():
+                param.requires_grad = False
 
-        self.classifier_adaptation_network = LinearClassifierAdaptationNetwork(self.feature_extractor.output_size)
+        # configure the classifier
+        if classifier == 'versa':
+            self.classifier_adaptation_network = LinearClassifierAdaptationNetwork(self.feature_extractor.output_size)
+            self.classifier = linear_classifier
+        elif classifier == 'proto-nets':
+            self.classifier_adaptation_network = PrototypicalNetworksAdaptationNetwork()
+            self.classifier = linear_classifier
+        elif classifier == 'mahalanobis':
+            self.classifier_adaptation_network = None
+            self.classifier = None
+        elif classifier == 'mlpip':
+            self.classifier_adaptation_network = MLPIPClassifierHyperNetwork(self.feature_extractor.output_size)
+            self.classifier = mlpip_classifier
 
     def get_encoder(self):
         return self.encoder

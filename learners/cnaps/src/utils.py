@@ -162,6 +162,55 @@ def linear_classifier(x, param_dict):
     return F.linear(x, param_dict['weight_mean'], param_dict['bias_mean'])
 
 
+def mlpip_loss(test_logits_samples, test_labels, device):
+    """
+    Compute the ML-PIP loss given sample logits, and test labels. Computes as
+        log (1 / L) ∑ exp ( log p(D_t | z_l) )
+            = log ∑ exp ( log p(D_t | z_l) ) - log L
+            = LSE_l (log p(D_t | z_l)) - log L
+
+    Args:
+        test_logits_samples (torch.tensor): samples of logits for forward pass
+        (num_samples x num_target x num_classes)
+        test_labels (torch.tensor): ground truth labels
+        (num_target x num_classes)
+        device (torch.device): device we're running on
+    Returns:
+        (torch.scalar): computation of ML-PIP loss function
+    """
+    # Extract number of samples
+    num_samples = test_logits_samples.shape[0]
+
+    # log p(D_t | z_l) = ∑ log p(y | x, z_l)
+    pyx = torch.distributions.categorical.Categorical(logits=test_logits_samples)
+    log_py = pyx.log_prob(test_labels).sum(dim=1)
+    # tensorize L
+    l = torch.tensor([num_samples], dtype=torch.float, device=device)
+    mlpips = torch.logsumexp(log_py, dim=0) - torch.log(l)
+    return -mlpips.mean()
+
+
+def sample_normal(mean, var, num_samples):
+    """
+    Generate samples from a reparameterized normal distribution
+    :param mean: tf tensor - mean parameter of the distribution
+    :param var: tf tensor - log variance of the distribution
+    :param num_samples: np scalar - number of samples to generate
+    :return: tf tensor - samples from distribution of size numSamples x dim(mean)
+    """
+    # example: sample_shape = [L, 1, 1, 1, 1]
+    sample_shape = [num_samples] + len(mean.size())*[1]
+    normal_distribution = torch.distributions.Normal(mean.repeat(sample_shape), var.repeat(sample_shape))
+    return normal_distribution.rsample()
+
+
+def mlpip_classifier(x, param_dict, num_samples):
+    mean = F.linear(x, param_dict['weight_mean'], param_dict['bias_mean'])
+    var = F.linear(x**2, param_dict['weight_variance'], param_dict['bias_variance'])
+    sample = sample_normal(mean, var, num_samples)
+    return sample
+
+
 def extract_class_indices(labels, which_class):
     """
     Helper method to extract the indices of elements which have the specified label.
