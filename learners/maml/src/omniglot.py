@@ -71,8 +71,13 @@ class OmniglotData(object):
         self.test_images, self.test_char_nums =\
             extract_data(data[train_size + validation_size:], augment_data=augment_data)
 
+        # normalize to -1 to 1
+        normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5],
+                                         std=[0.5, 0.5, 0.5])
+
         self.basic_transform = transforms.Compose([
-            transforms.ToTensor()
+            transforms.ToTensor(),
+            normalize
         ])
 
     def get_train_task(self, way, shot, target_shot):

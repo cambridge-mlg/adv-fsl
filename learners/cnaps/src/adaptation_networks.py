@@ -468,3 +468,84 @@ class FilmArLayerNetwork(nn.Module):
             l2_term += (gamma_regularizer ** 2).sum()
             l2_term += (beta_regularizer ** 2).sum()
         return l2_term
+
+
+class PrototypicalNetworksAdaptationNetwork(nn.Module):
+    def __init__(self):
+        super(PrototypicalNetworksAdaptationNetwork, self).__init__()
+
+    def forward(self, representation_dict):
+        classifier_param_dict = {}
+        class_weight_means = []
+        class_bias_means = []
+
+        label_set = list(representation_dict.keys())
+        label_set.sort()
+        num_classes = len(label_set)
+
+        for class_num in label_set:
+            # equation 8 from the prototypical networks paper
+            nu = representation_dict[class_num]
+            class_weight_means.append(2 * nu)
+            class_bias_means.append((-torch.matmul(nu, nu.t()))[None, None])
+
+        classifier_param_dict['weight_mean'] = torch.cat(class_weight_means, dim=0)
+        classifier_param_dict['bias_mean'] = torch.reshape(torch.cat(class_bias_means, dim=1), [num_classes, ])
+
+        return classifier_param_dict
+
+
+class MLPIPClassifierHyperNetwork(nn.Module):
+    def __init__(self, d_theta):
+        super(MLPIPClassifierHyperNetwork, self).__init__()
+        self.weight_means_processor = self._make_mean_dense_block(d_theta, d_theta)
+        self.weight_var_processor = self._make_var_dense_block(d_theta, d_theta)
+        self.bias_means_processor = self._make_mean_dense_block(d_theta, 1)
+        self.bias_var_processor = self._make_var_dense_block(d_theta, 1)
+        self.variance_activation = nn.Softplus()
+
+    @staticmethod
+    def _make_mean_dense_block(in_size, out_size):
+        return nn.Sequential(
+            nn.Linear(in_size, in_size),
+            nn.ELU(),
+            nn.Linear(in_size, in_size),
+            nn.ELU(),
+            nn.Linear(in_size, out_size)
+        )
+
+    @staticmethod
+    def _make_var_dense_block(in_size, out_size):
+        return nn.Sequential(
+            nn.Linear(in_size, in_size),
+            nn.ELU(),
+            nn.Linear(in_size, in_size),
+            nn.ELU(),
+            nn.Linear(in_size, out_size),
+            nn.Softplus()
+        )
+
+    def forward(self, representation_dict):
+        classifier_param_dict = {}
+        class_weight_means = []
+        class_weight_variances = []
+        class_bias_means = []
+        class_bias_variances = []
+
+        label_set = list(representation_dict.keys())
+        label_set.sort()
+        num_classes = len(label_set)
+
+        for class_num in label_set:
+            nu = representation_dict[class_num]
+            class_weight_means.append(self.weight_means_processor(nu))
+            class_weight_variances.append(self.weight_var_processor(nu))
+            class_bias_means.append(self.bias_means_processor(nu))
+            class_bias_variances.append(self.bias_var_processor(nu))
+
+        classifier_param_dict['weight_mean'] = torch.cat(class_weight_means, dim=0)
+        classifier_param_dict['bias_mean'] = torch.reshape(torch.cat(class_bias_means, dim=1), [num_classes, ])
+        classifier_param_dict['weight_variance'] = torch.cat(class_weight_variances, dim=0)
+        classifier_param_dict['bias_variance'] = torch.reshape(torch.cat(class_bias_variances, dim=1), [num_classes, ])
+
+        return classifier_param_dict

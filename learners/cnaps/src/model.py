@@ -23,7 +23,9 @@ class Cnaps(nn.Module):
         self.use_two_gpus = use_two_gpus
         networks = ConfigureNetworks(pretrained_resnet_path=self.args.pretrained_resnet_path,
                                      feature_adaptation=self.args.feature_adaptation,
-                                     batch_normalization=args.batch_normalization)
+                                     batch_normalization=args.batch_normalization,
+                                     classifier=args.classifier,
+                                     do_not_freeze_feature_extractor=args.do_not_freeze_feature_extractor)
         self.set_encoder = networks.get_encoder()
         self.classifier_adaptation_network = networks.get_classifier_adaptation()
         self.classifier = networks.get_classifier()
@@ -32,6 +34,10 @@ class Cnaps(nn.Module):
         self.task_representation = None
         self.class_representations = OrderedDict()  # Dictionary mapping class label (integer) to encoded representation
         self.total_iterations = args.training_iterations
+
+
+        if self.args.classifier == "mahalanobis":
+            self.class_precision_matrices = OrderedDict() # Dictionary mapping class label (integer) to regularized precision matrices estimated
 
     def forward(self, context_images, context_labels, target_images):
         """
@@ -44,17 +50,58 @@ class Cnaps(nn.Module):
         # extract train and test features
         self.task_representation = self.set_encoder(context_images)
         context_features, target_features = self._get_features(context_images, target_images)
+        num_samples = 1
 
-        # get the parameters for the linear classifier.
-        self._build_class_reps(context_features, context_labels)
-        classifier_params = self._get_classifier_params()
+        if self.args.classifier == "mahalanobis":
+            """
+            SCM: we build both class representations and the regularized covariance estimates.
+            """
+            # get the class means and covariance estimates in tensor form
+            self._build_class_reps_and_covariance_estimates(context_features, context_labels)
+            class_means = torch.stack(list(self.class_representations.values())).squeeze(1)
+            class_precision_matrices = torch.stack(list(self.class_precision_matrices.values()))
 
-        # classify
-        sample_logits = self.classifier(target_features, classifier_params)
-        self.class_representations.clear()
+            self.classifier_params = {
+                'class_means': class_means,
+                'class_precision_matrices': class_precision_matrices
+            }
+
+            # grabbing the number of classes and query examples for easier use later in the function
+            number_of_classes = class_means.size(0)
+            number_of_targets = target_features.size(0)
+
+            """
+            SCM: calculating the Mahalanobis distance between query examples and the class means
+            including the class precision estimates in the calculations, reshaping the distances
+            and multiplying by -1 to produce the sample logits
+            """
+            repeated_target = target_features.repeat(1, number_of_classes).view(-1, class_means.size(1))
+            repeated_class_means = class_means.repeat(number_of_targets, 1)
+            repeated_difference = (repeated_class_means - repeated_target)
+            repeated_difference = repeated_difference.view(number_of_targets, number_of_classes,
+                                                           repeated_difference.size(1)).permute(1, 0, 2)
+            first_half = torch.matmul(repeated_difference, class_precision_matrices)
+            logits = torch.mul(first_half, repeated_difference).sum(dim=2).transpose(1, 0) * -1
+
+            # clear all dictionaries
+            self.class_representations.clear()
+            self.class_precision_matrices.clear()
+        else:
+            # get the parameters for the linear classifier.
+            self._build_class_reps(context_features, context_labels)
+            classifier_params = self._get_classifier_params()
+
+            # classify
+            if self.args.classifier == 'mlpip':
+                logits = self.classifier(target_features, self.classifier_params, self.args.samples)
+                num_samples = self.args.samples
+            else:
+                logits = self.classifier(target_features, classifier_params)
+
+            self.class_representations.clear()
 
         # this adds back extra first dimension for num_samples
-        return split_first_dim_linear(sample_logits, [NUM_SAMPLES, target_images.shape[0]])
+        return split_first_dim_linear(logits, [num_samples, target_images.shape[0]])
 
     def _get_features(self, context_images, target_images):
         """
@@ -154,3 +201,72 @@ class Cnaps(nn.Module):
                 self.feature_extractor.train()  # use train when processing the context set
             else:
                 self.feature_extractor.eval()  # use eval when processing the target set
+
+    def _build_class_reps_and_covariance_estimates(self, context_features, context_labels):
+        """
+        Construct and return class level representations and class covariance estimattes for each class in task.
+        :param context_features: (torch.tensor) Adapted feature representation for each image in the context set.
+        :param context_labels: (torch.tensor) Label for each image in the context set.
+        :return: (void) Updates the internal class representation and class covariance estimates dictionary.
+        """
+
+        """
+        SCM: calculating a task level covariance estimate using the provided function.
+        """
+        task_covariance_estimate = self.estimate_cov(context_features)
+        for c in torch.unique(context_labels):
+            # filter out feature vectors which have class c
+            class_features = torch.index_select(context_features, 0, self._extract_class_indices(context_labels, c))
+            # mean pooling examples to form class means
+            class_rep = mean_pooling(class_features)
+            # updating the class representations dictionary with the mean pooled representation
+            self.class_representations[c.item()] = class_rep
+            """
+            Calculating the mixing ratio lambda_k_tau for regularizing the class level estimate with the task level estimate."
+            Then using this ratio, to mix the two estimate; further regularizing with the identity matrix to assure invertability, and then
+            inverting the resulting matrix, to obtain the regularized precision matrix. This tensor is then saved in the corresponding
+            dictionary for use later in infering of the query data points.
+            """
+            lambda_k_tau = (class_features.size(0) / (class_features.size(0) + 1))
+            self.class_precision_matrices[c.item()] = torch.inverse(
+                (lambda_k_tau * self.estimate_cov(class_features)) + ((1 - lambda_k_tau) * task_covariance_estimate) \
+                + torch.eye(class_features.size(1), class_features.size(1)).cuda(0))
+
+    def estimate_cov(self, examples, rowvar=False, inplace=False):
+        """
+        SCM: unction based on the suggested implementation of Modar Tensai
+        and his answer as noted in: https://discuss.pytorch.org/t/covariance-and-gradient-support/16217/5
+
+        Estimate a covariance matrix given data.
+
+        Covariance indicates the level to which two variables vary together.
+        If we examine N-dimensional samples, `X = [x_1, x_2, ... x_N]^T`,
+        then the covariance matrix element `C_{ij}` is the covariance of
+        `x_i` and `x_j`. The element `C_{ii}` is the variance of `x_i`.
+
+        Args:
+            examples: A 1-D or 2-D array containing multiple variables and observations.
+                Each row of `m` represents a variable, and each column a single
+                observation of all those variables.
+            rowvar: If `rowvar` is True, then each row represents a
+                variable, with observations in the columns. Otherwise, the
+                relationship is transposed: each column represents a variable,
+                while the rows contain observations.
+
+        Returns:
+            The covariance matrix of the variables.
+        """
+        if examples.dim() > 2:
+            raise ValueError('m has more than 2 dimensions')
+        if examples.dim() < 2:
+            examples = examples.view(1, -1)
+        if not rowvar and examples.size(0) != 1:
+            examples = examples.t()
+        factor = 1.0 / (examples.size(1) - 1)
+        if inplace:
+            examples -= torch.mean(examples, dim=1, keepdim=True)
+        else:
+            examples = examples - torch.mean(examples, dim=1, keepdim=True)
+        examples_t = examples.t()
+        return factor * examples.matmul(examples_t).squeeze()
+

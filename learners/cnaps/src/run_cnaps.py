@@ -178,6 +178,8 @@ class Learner:
                             default=["ilsvrc_2012", "omniglot", "aircraft", "cu_birds", "dtd", "quickdraw", "fungi",
                                      "vgg_flower", "traffic_sign", "mscoco", "mnist", "cifar10", "cifar100"])
         parser.add_argument("--data_path", default="../datasets", help="Path to dataset records.")
+        parser.add_argument("--classifier", choices=["versa", "proto-nets", "mahalanobis", "mlpip"],
+                            default="versa", help="Which classifier method to use.")
         parser.add_argument("--pretrained_resnet_path", default="learners/cnaps/models/pretrained_resnet.pt.tar",
                             help="Path to pretrained feature extractor model.")
         parser.add_argument("--attack_config_path", help="Path to attack config file in yaml format.")
@@ -222,7 +224,8 @@ class Learner:
                             help="Save all the tasks and adversarial images to a pickle file. Currently only applicable to non-swap attacks.")
         parser.add_argument("--indep_eval", default=False,
                             help="Whether to use independent target sets for evaluation automagically")
-
+        parser.add_argument("--do_not_freeze_feature_extractor", dest="do_not_freeze_feature_extractor", default=False,
+                            action="store_true", help="If True, don't freeze the feature extractor.")
         args = parser.parse_args()
 
         return args
@@ -286,7 +289,7 @@ class Learner:
             self.logfile.close()
 
     def train_task(self, task_dict):
-        context_images, target_images, context_labels, target_labels = self.prepare_task(task_dict)
+        context_images, target_images, context_labels, target_labels, _, _ = self.prepare_task(task_dict)
 
         target_logits = self.model(context_images, context_labels, target_images)
         task_loss = self.loss(target_logits, target_labels, self.device) / self.args.tasks_per_batch
@@ -310,7 +313,7 @@ class Learner:
                 accuracies = []
                 for _ in range(NUM_VALIDATION_TASKS):
                     task_dict = self.dataset.get_validation_task(item, session)
-                    context_images, target_images, context_labels, target_labels = self.prepare_task(task_dict)
+                    context_images, target_images, context_labels, target_labels, _, _ = self.prepare_task(task_dict)
                     target_logits = self.model(context_images, context_labels, target_images)
                     accuracy = self.accuracy_fn(target_logits, target_labels)
                     accuracies.append(accuracy.item())
@@ -334,7 +337,7 @@ class Learner:
                 accuracies = []
                 for _ in range(NUM_TEST_TASKS):
                     task_dict = self.dataset.get_test_task(item, session)
-                    context_images, target_images, context_labels, target_labels = self.prepare_task(task_dict)
+                    context_images, target_images, context_labels, target_labels, _, _ = self.prepare_task(task_dict)
                     target_logits = self.model(context_images, context_labels, target_images)
                     accuracy = self.accuracy_fn(target_logits, target_labels)
                     accuracies.append(accuracy.item())
