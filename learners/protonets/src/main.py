@@ -443,10 +443,10 @@ class Learner:
                 clean_context_features = self.model.feature_extractor(context_images).cpu()
                 target_features = self.model.feature_extractor(target_images).cpu()
                 num_classes = len(classes)
-                out_name = os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_clean_zoom.png".format(t, attack.attack_mode))
-                self._plot_decision_regions(clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name, sym_bound=1)
-                out_name = os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_clean.png".format(t, attack.attack_mode))
-                self._plot_decision_regions(clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name)
+                #out_name = os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_clean_zoom.png".format(t, attack.attack_mode))
+                #self._plot_decision_regions(clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name, sym_bound=1)
+                #out_name = os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_clean.png".format(t, attack.attack_mode))
+                #self._plot_decision_regions(clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name)
 
                 # self._quick_dump(clean_context_features, os.path.join(self.checkpoint_dir, 'clean_features.pickle'))
                 for k in range(0, len(intermediate_attack_imgs)):
@@ -460,7 +460,7 @@ class Learner:
         self.print_average_accuracy(accuracies_before, "Before attack:")
         self.print_average_accuracy(accuracies_after, "After attack:")
 
-    def _plot_decision_regions(self, clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name, context_features=None, sym_bound=2):
+    def _plot_decision_regions(self, clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name, context_features=None, sym_bound=5):
         resolution = 50
         xx, yy = np.meshgrid(
             np.linspace(-sym_bound, sym_bound, resolution),  # np.geomspace(-10, 10, resolution)
@@ -495,18 +495,23 @@ class Learner:
             shot_indices = extract_class_indices(context_labels, c)
             # Get the mean of the embeddings for this class
             centroid = torch.zeros_like(clean_context_features[0])
+            clean_centroid = torch.zeros_like(clean_context_features[0])
             for j, i in enumerate(shot_indices):
-                centroid = centroid + clean_context_features[i]
-                plt.scatter(clean_context_features[i, 0], clean_context_features[i, 1], marker='.', c=colors[c],
-                            edgecolors=edge_colors[c], s=150)
-                plt.scatter(target_features[i, 0], target_features[i, 1], marker='o', c=colors[c],
+                centroid = centroid + context_features[i]
+                clean_centroid = clean_centroid + clean_context_features[i]
+                #plt.scatter(clean_context_features[i, 0], clean_context_features[i, 1], marker='.', c=colors[c],
+                #            edgecolors=edge_colors[c], s=150)
+                plt.scatter(target_features[i, 0], target_features[i, 1], marker='1', c=colors[c],
                             alpha=0.8, edgecolors=edge_colors[c], s=150)
                 if context_features is not None:
                     plt.scatter(context_features[i, 0], context_features[i, 1], marker=markers[j], c=colors[c],
                             edgecolors=edge_colors[c], s=150, alpha=0.8)
             centroid = centroid/float(len(shot_indices))
+            clean_centroid = clean_centroid/float(len(shot_indices))
             if len(shot_indices) > 1:
-                plt.scatter(centroid[0], centroid[1], marker='s', c=colors[c], edgecolors=edge_colors[c], s=150, alpha=0.8)
+                plt.scatter(centroid[0], centroid[1], marker='s', c=colors[c], edgecolors=edge_colors[c], s=250, alpha=0.8)
+                plt.scatter(clean_centroid[0], clean_centroid[1], marker='o', c=colors[c], edgecolors=edge_colors[c], s=250, alpha=0.8)
+
 
         # ax.scatter(grid_points[:, 0], grid_points[:, 1], c=grid_pred, s=grid_conf*100) #, s=grid_conf*10
         plt.savefig(out_name)
