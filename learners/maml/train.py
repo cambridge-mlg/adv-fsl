@@ -257,7 +257,7 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         tmp_adv_c_indices.sort()
         assert tmp_adv_c_indices == adv_target_indices
 
-        if task < 10:
+        if args.save_samples and task < 10:
             for i in range(len(xt)):
                 save_image_pair(checkpoint_dir, adv_context_images[i], xc[i], task, i)
                 save_image_pair(checkpoint_dir, adv_target_images[i], xt[i], task, i)
@@ -308,7 +308,7 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         if attack.get_attack_mode() == 'context':
             adv_context_images, adv_context_indices = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
 
-            if task < 10:
+            if args.save_samples and task < 10:
                 for i in range(len(xc)):
                     save_image_pair(checkpoint_dir, adv_context_images[i], xc[i], task, i)
 
@@ -316,7 +316,7 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
         else:  # target
             adv_target_images, _ = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
-            if task < 10:
+            if args.save_samples and task < 10:
                 for i in range(len(xt)):
                     save_image_pair(checkpoint_dir, adv_target_images[i], xt[i], task, i)
 
@@ -421,6 +421,8 @@ parser.add_argument("--test_by_class", dest="test_by_class",
                     help="Test one class at a time.")
 parser.add_argument("--swap_attack", default=False,
                     help="When attacking, should the attack be a swap attack or not.")
+parser.add_argument("--save_samples", default=False,
+                    help="Output samples of the clean and adversarial images")
 args = parser.parse_args()
 
 # Create checkpoint directory (if required)

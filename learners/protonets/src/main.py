@@ -88,6 +88,8 @@ class Learner:
                             help="When attacking, should the attack be a swap attack or not.")
         parser.add_argument("--bottleneck", dest="bottleneck", default=False, action="store_true",
                             help="Use the 2D bottleneck feature extractor for analysis.")
+        parser.add_argument("--save_samples", default=False,
+                            help="Output samples of the clean and adversarial images")
         args = parser.parse_args()
 
         return args
@@ -276,7 +278,7 @@ class Learner:
 
             assert [x.item() for x in adv_context_indices] == adv_target_indices
 
-            if t < 10:
+            if self.args.save_samples and t < 10:
                 for index in adv_context_indices:
                     self.save_image_pair(adv_context_images[index], context_images[index], t, index)
                     self.save_image_pair(adv_target_images[index], target_images[index], t, index)
@@ -344,7 +346,7 @@ class Learner:
                 adv_context_images, adv_context_indices = attack.generate(context_images, context_labels, target_images,
                                                                 target_labels, self.model, self.model, self.device)
 
-                if t < 10:
+                if self.args.save_samples and t < 10:
                     for index in adv_context_indices:
                         self.save_image_pair(adv_context_images[index], context_images[index], t, index)
 
@@ -354,7 +356,7 @@ class Learner:
             else:  # target
                 adv_target_images, _ = attack.generate(context_images, context_labels, target_images, target_labels,
                                                     self.model, self.model, self.device)
-                if t < 10:
+                if self.args.save_samples and t < 10:
                     for i in range(len(target_images)):
                         self.save_image_pair(adv_target_images[index], target_images[index], t, i)
 
@@ -389,7 +391,7 @@ class Learner:
                 adv_context_images, adv_context_indices, extra_info = attack.generate(context_images, context_labels, target_images,
                                                                 target_labels, self.model, self.model, self.device)
 
-                if t < 10:
+                if self.args.save_samples and t < 10:
                     for index in adv_context_indices:
                         self.save_image_pair(adv_context_images[index], context_images[index], t, index)
 
@@ -399,7 +401,7 @@ class Learner:
             else:  # target
                 adv_target_images, _, extra_info = attack.generate(context_images, context_labels, target_images, target_labels,
                                                     self.model, self.model, self.device)
-                if t < 10:
+                if self.args.save_samples and t < 10:
                     for i in range(len(target_images)):
                         self.save_image_pair(adv_target_images[i], target_images[i], t, i)
 

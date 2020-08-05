@@ -222,6 +222,8 @@ class Learner:
         # Currently only implemented for non-swap attacks
         parser.add_argument("--save_attack", default=False,
                             help="Save all the tasks and adversarial images to a pickle file. Currently only applicable to non-swap attacks.")
+        parser.add_argument("--save_samples", default=False,
+                            help="Output samples of the clean and adversarial images")
         parser.add_argument("--indep_eval", default=False,
                             help="Whether to use independent target sets for evaluation automagically")
         parser.add_argument("--do_not_freeze_feature_extractor", dest="do_not_freeze_feature_extractor", default=False,
@@ -449,7 +451,7 @@ class Learner:
                         adv_context_as_target_accuracies.append(
                             self.calc_accuracy(split_target_images[s], split_target_labels[s], adv_context_images, context_labels))
 
-                if t < 10:
+                if self.args.save_samples and t < 10:
                     for index in adv_target_indices:
                         self.save_image_pair(adv_context_images[index], context_images_np[index], t, index)
                         self.save_image_pair(adv_target_images[index], target_images_np[index], t, index)
@@ -512,7 +514,7 @@ class Learner:
                 adv_images, adv_indices = attack.generate(context_images, context_labels, target_images, target_labels,
                                                           self.model, self.model, self.model.device)
 
-                if t < 10:
+                if self.args.save_samples and t < 10:
                     for index in adv_indices:
                         self.save_image_pair(adv_images[index], clean_version[index], t, index)
 
