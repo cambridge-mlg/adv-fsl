@@ -520,20 +520,20 @@ class Learner:
 
                 if self.args.save_attack:
                     adv_task_dict = {
-                        'context_images': context_images,
-                        'context_labels': context_labels,
-                        'target_images': target_images,
-                        'target_labels': target_labels,
-                        'adv_images': adv_images,
-                        'adv_indices': adv_indices,
+                        'context_images': context_images.cpu(),
+                        'context_labels': context_labels.cpu(),
+                        'target_images': target_images.cpu(),
+                        'target_labels': target_labels.cpu(),
+                        'adv_images': adv_images.cpu(),
+                        'adv_indices': adv_indices.cpu(),
                         'mode': attack.get_attack_mode(),
                         'way': self.args.way,
                         'shot':self.args.shot,
                         'query': self.args.query_test,
                     }
                     if self.args.indep_eval:
-                        adv_task_dict['eval_images'] = split_target_images[eval_start_index:]
-                        adv_task_dict['eval_labels'] = split_target_labels[eval_start_index:]
+                        adv_task_dict['eval_images'] = split_target_images[eval_start_index:].cpu()
+                        adv_task_dict['eval_labels'] = split_target_labels[eval_start_index:].cpu()
                     saved_tasks.append(adv_task_dict)
 
 

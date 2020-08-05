@@ -16,7 +16,7 @@ from matplotlib.colors import ListedColormap
 NUM_VALIDATION_TASKS = 400
 NUM_TEST_TASKS = 1000
 PRINT_FREQUENCY = 100
-
+NUM_INDEP_EVAL_TASKS = 50
 
 def main():
     learner = Learner()
@@ -38,6 +38,7 @@ class Learner:
         self.device = torch.device(gpu_device if torch.cuda.is_available() else 'cpu')
         self.model = self.init_model()
         self.loss = loss
+
         if self.args.dataset == "mini_imagenet":
             self.dataset = MiniImageNetData(self.args.data_path, 111)
         elif self.args.dataset == "omniglot":
@@ -90,6 +91,12 @@ class Learner:
                             help="Use the 2D bottleneck feature extractor for analysis.")
         parser.add_argument("--save_samples", default=False,
                             help="Output samples of the clean and adversarial images")
+        parser.add_argument("--save_attack", default=False,
+                            help="Save all the tasks and adversarial images to a pickle file. Currently only applicable to non-swap attacks.")
+        parser.add_argument("--target_set_size_multiplier", type=int, default=1,
+                            help="For swap attacks, the relative size of the target set used when generating the adv context set (eg. x times larger). Currently only implemented for swap attacks")
+        parser.add_argument("--indep_eval", default=False,
+                            help="Whether to use independent target sets for evaluation automagically")
         args = parser.parse_args()
 
         return args
@@ -235,6 +242,11 @@ class Learner:
         self.model.load_state_dict(torch.load(path))
         self.model.eval()
 
+        assert self.args.target_set_size_multiplier >= 1
+        num_target_sets = self.args.target_set_size_multiplier
+        if self.args.indep_eval:
+            num_target_sets += NUM_INDEP_EVAL_TASKS
+
         context_attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
         context_attack.set_attack_mode('context')
         assert context_attack.get_shot_fraction() == 1.0
@@ -258,18 +270,24 @@ class Learner:
         adv_context_as_target_accuracies = []
 
         for t in range(self.args.attack_tasks):
-            task_dict = self.dataset.get_test_task(self.args.test_way, self.args.test_shot, self.args.query)
+            task_dict = self.dataset.get_test_task(self.args.test_way, self.args.test_shot, self.args.query * num_target_sets)
             context_images, all_target_images, context_labels, all_target_labels = self.prepare_task(task_dict, shuffle=False)
 
             # Select as many target images as context images to be used on the attack
             # The rest will be used for evaluation
             assert context_images.shape[0] <= all_target_images.shape[0]
             split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, self.args.test_shot)
+            eval_start_index = self.args.target_set_size_multiplier
+            # Larger target set, used for generating adv context set; flatten somehow
+            target_images_mult = torch.stack(split_target_images[0:eval_start_index]).view(-1, context_images.shape[1],
+                                                                                           context_images.shape[2],
+                                                                                           context_images.shape[3])
+            target_labels_mult = torch.stack(split_target_labels[0:eval_start_index]).view(-1)
             target_images = split_target_images[0]
             target_labels = split_target_labels[0]
 
             adv_context_images, adv_context_indices = context_attack.generate(
-                context_images, context_labels, target_images, target_labels,
+                context_images, context_labels, target_images_mult, target_labels_mult,
                 self.model, self.model, self.device)
 
             adv_target_images, adv_target_indices = target_attack.generate(
@@ -286,14 +304,14 @@ class Learner:
             with torch.no_grad():
                 # Evaluate in normal/generation setting
                 gen_clean_accuracies.append(
-                    self.calc_accuracy(context_images, context_labels, target_images, target_labels))
+                    self.calc_accuracy(context_images, context_labels, target_images_mult, target_labels_mult))
                 gen_adv_context_accuracies.append(
-                    self.calc_accuracy(adv_context_images, context_labels, target_images, target_labels))
+                    self.calc_accuracy(adv_context_images, context_labels, target_images_mult, target_labels_mult))
                 gen_adv_target_accuracies.append(
                     self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels))
 
                 # Evaluate on independent target sets
-                for s in range(1, len(split_target_images)):
+                for s in range(eval_start_index, len(split_target_images)):
                     clean_accuracies.append(self.calc_accuracy(context_images, context_labels, split_target_images[s],
                                                                split_target_labels[s]))
                     clean_target_as_context_accuracies.append(
@@ -334,42 +352,96 @@ class Learner:
         self.model.load_state_dict(torch.load(path))
         self.model.eval()
 
+        assert self.args.target_set_size_multiplier >= 1
+        num_target_sets = self.args.target_set_size_multiplier
+        if self.args.indep_eval:
+            num_target_sets += NUM_INDEP_EVAL_TASKS
+
         attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
 
         accuracies_before = []
         accuracies_after = []
-        for t in range(self.args.attack_tasks):
-            task_dict = self.dataset.get_test_task(self.args.test_way, self.args.test_shot, self.args.query)
-            context_images, target_images, context_labels, target_labels = self.prepare_task(task_dict, shuffle=False)
+        if self.args.indep_eval:
+            indep_eval_accuracies = []
+        if self.args.save_attack:
+            saved_tasks = []
 
+        for t in range(self.args.attack_tasks):
+            import pdb; pdb.set_trace()
+            # Create and split up dataset
+            task_dict = self.dataset.get_test_task(self.args.test_way, self.args.test_shot, self.args.query * num_target_sets)
+            context_images, all_target_images, context_labels, all_target_labels = self.prepare_task(task_dict, shuffle=False)
+
+            if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:
+                target_images, target_labels = all_target_images, all_target_labels
+            else:
+                # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
+                assert self.args.target_set_size_multiplier * self.args.test_shot * self.args.test_way <= all_target_images.shape[0]
+                split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, self.args.shot)
+
+                # The first "target_set_size_multiplier"-many will be used when generating the attack
+                # The rest will be used for independent eval
+                # Note that we have to split them first, because this ensures each block has equal class representation
+                eval_start_index = self.args.target_set_size_multiplier
+                target_images = torch.stack(split_target_images[0:eval_start_index]).view(-1, context_images.shape[1], context_images.shape[2], context_images.shape[3])
+                target_labels = torch.stack(split_target_labels[0:eval_start_index]).view(-1)
+
+            # Calculate accuracy before
+            with torch.no_grad():
+                accuracies_before.append(self.calc_accuracy(context_images, context_labels, target_images, target_labels))
+
+            # Perpetrate attack
             if attack.get_attack_mode() == 'context':
-                adv_context_images, adv_context_indices = attack.generate(context_images, context_labels, target_images,
+                clean_version = context_images
+            else:
+                clean_version = target_images
+
+            adv_images, adv_indices = attack.generate(context_images, context_labels, target_images,
                                                                 target_labels, self.model, self.model, self.device)
 
-                if self.args.save_samples and t < 10:
-                    for index in adv_context_indices:
-                        self.save_image_pair(adv_context_images[index], context_images[index], t, index)
+            if self.args.save_samples and t < 10:
+                for index in adv_indices:
+                    self.save_image_pair(adv_images[index], clean_version[index], t, index)
 
-                with torch.no_grad():
-                    acc_after = self.calc_accuracy(adv_context_images, context_labels, target_images, target_labels)
+            # Evaluate attack
+            with torch.no_grad():
+                if attack.get_attack_mode() == 'context':
+                    acc_after = self.calc_accuracy(adv_images, context_labels, target_images, target_labels)
+                else:
+                    acc_after = self.calc_accuracy(context_images, context_labels, adv_images, target_labels)
+                accuracies_after.append(acc_after)
 
-            else:  # target
-                adv_target_images, _ = attack.generate(context_images, context_labels, target_images, target_labels,
-                                                    self.model, self.model, self.device)
-                if self.args.save_samples and t < 10:
-                    for i in range(len(target_images)):
-                        self.save_image_pair(adv_target_images[index], target_images[index], t, i)
+            # Eval with indep sets as well, if required:
+            if self.args.indep_eval:
+                for k in range(eval_start_index, len(split_target_labels)):
+                    if attack.get_attack_mode() == 'context':
+                        indep_eval_accuracies.append(
+                            self.calc_accuracy(adv_images, context_labels, split_target_images[k], split_target_labels[k]))
+                    else:
+                        indep_eval_accuracies.append(
+                            self.calc_accuracy(split_target_images[k], split_target_labels[k], adv_images, target_labels))
 
-                with torch.no_grad():
-                    acc_after = self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels)
-
-            acc_before = self.calc_accuracy(context_images, context_labels, target_images, target_labels)
-
-            accuracies_before.append(acc_before)
-            accuracies_after.append(acc_after)
+            if self.args.save_attack:
+                adv_task_dict = {
+                    'context_images': context_images.cpu(),
+                    'context_labels': context_labels.cpu(),
+                    'target_images': target_images.cpu(),
+                    'target_labels': target_labels.cpu(),
+                    'adv_images': adv_images.cpu(),
+                    'adv_indices': adv_indices.cpu(),
+                    'mode': attack.get_attack_mode(),
+                    'way': self.args.test_way,
+                    'shot': self.args.test_shot,
+                    'query': self.args.query,
+                }
+                if self.args.indep_eval:
+                    adv_task_dict['eval_images'] = split_target_images[eval_start_index:].cpu()
+                    adv_task_dict['eval_labels'] = split_target_labels[eval_start_index:].cpu()
+                saved_tasks.append(adv_task_dict)
 
         self.print_average_accuracy(accuracies_before, "Before attack:")
         self.print_average_accuracy(accuracies_after, "After attack:")
+        self.print_average_accuracy(indep_eval_accuracies, "Indep eval attack:")
 
     def plot_attacks(self, path):
         print_and_log(self.logfile, "")  # add a blank line
@@ -416,113 +488,21 @@ class Learner:
             intermediate_attack_imgs = extra_info['adv_images']
             intermediate_logits = extra_info['target_logits']
             classes = torch.unique(context_labels)
-            clean_colors = ['navy', 'darkred', 'darkgreen', 'gold', 'darkviolet', 'c', 'm']
-            colors = ['b', 'r', 'g', 'orange', 'purple', 'cyan', 'm']
-            color_maps = []
-            edge_colors = ['k', 'k', 'k', 'k', 'k', 'k', 'k']
-            markers = ['v', '^', '<', '>', 'd']
-            target_markers = ['1', '2', '3', '4', '+']
-            assert len(classes) <= len(colors)
 
-
-            #Make custom colormaps with the transparency we need
-            #No, I don't know how I got here
-            def_color_maps = [pl.cm.Blues, pl.cm.Reds, pl.cm.Greens, pl.cm.Oranges, pl.cm.Purples]
-            # Get the colormap colors
-            for cmap in def_color_maps:
-                my_cmap = cmap(np.arange(cmap.N))
-                # Set alpha
-                my_cmap[:,-1] = np.linspace(0, 1, cmap.N)
-                # Create new colormap
-                my_cmap = ListedColormap(my_cmap)
-                color_maps.append(my_cmap)
-
-
-
+            plot_config = self._PlotSettings()
 
             with torch.no_grad():
-                min, max = np.Inf, -np.Inf
                 clean_context_features = self.model.feature_extractor(context_images).cpu()
                 target_features = self.model.feature_extractor(target_images).cpu()
                 num_classes = len(classes)
-                #out_name = os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_clean_zoom.png".format(t, attack.attack_mode))
-                #self._plot_decision_regions(clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name, sym_bound=1)
-                #out_name = os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_clean.png".format(t, attack.attack_mode))
-                #self._plot_decision_regions(clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name)
 
-                # self._quick_dump(clean_context_features, os.path.join(self.checkpoint_dir, 'clean_features.pickle'))
                 for k in range(0, len(intermediate_attack_imgs)):
                     context_features = self.model.feature_extractor(intermediate_attack_imgs[k]).cpu()
-                    # self._quick_dump(context_features, os.path.join(self.checkpoint_dir, 'adv_features_{:02d}.pickle'.format(k)))
                     out_name = os.path.join(self.checkpoint_dir, "task_{}_pgd_attack_{}_{}_{}_iter_{:03d}.png".format(t, attack.attack_mode, attack.target_loss_mode, attack.targeted, k))
-                    self._plot_decision_regions(clean_context_features, target_features, num_classes, color_maps,
-                                                markers, colors, edge_colors, context_labels, out_name, context_features)
-            # print("Min = {}, max = {}".format(min, max))
+                    self._plot_decision_regions(context_features, context_labels, clean_context_features, target_features, num_classes, out_name, plot_config)
 
         self.print_average_accuracy(accuracies_before, "Before attack:")
         self.print_average_accuracy(accuracies_after, "After attack:")
-
-    def _plot_decision_regions(self, clean_context_features, target_features, num_classes, color_maps, markers, colors, edge_colors, context_labels, out_name, context_features=None, sym_bound=5):
-        resolution = 50
-        xx, yy = np.meshgrid(
-            np.linspace(-sym_bound, sym_bound, resolution),  # np.geomspace(-10, 10, resolution)
-            np.linspace(-sym_bound, sym_bound, resolution)
-        )
-        grid_points = np.c_[xx.ravel(), yy.ravel()]
-        grid_tensor = torch.from_numpy(grid_points).type(torch.DoubleTensor).to(self.device)
-
-        # If we have context_features, we should use them
-        if context_features is not None:
-            grid_logits = self.model.forward_embeddings(context_features.type(torch.DoubleTensor).to(self.device),
-                                                    grid_tensor).cpu()
-        else:
-            grid_logits = self.model.forward_embeddings(clean_context_features.type(torch.DoubleTensor).to(self.device),
-                                                    grid_tensor).cpu()
-
-        # normalize within each row
-        grid_pred = torch.argmax(grid_logits, dim=-1)
-        grid_conf = torch.max(F.softmax(grid_logits, dim=1), dim=1)[0]
-
-        fig, ax = plt.subplots(1, 1)
-        fig.set_size_inches(16, 16)
-        plt.ylim(-sym_bound, sym_bound)
-        plt.xlim(-sym_bound, sym_bound)
-
-        for c in range(num_classes):
-            grid_c = (grid_pred == c).type(torch.DoubleTensor)
-            height = (grid_c * grid_conf).reshape(resolution, resolution)
-            ax.contourf(xx, yy, height, cmap=color_maps[c])
-
-        for c in range(num_classes):
-            shot_indices = extract_class_indices(context_labels, c)
-            # Get the mean of the embeddings for this class
-            centroid = torch.zeros_like(clean_context_features[0])
-            clean_centroid = torch.zeros_like(clean_context_features[0])
-            for j, i in enumerate(shot_indices):
-                centroid = centroid + context_features[i]
-                clean_centroid = clean_centroid + clean_context_features[i]
-                #plt.scatter(clean_context_features[i, 0], clean_context_features[i, 1], marker='.', c=colors[c],
-                #            edgecolors=edge_colors[c], s=150)
-                plt.scatter(target_features[i, 0], target_features[i, 1], marker='1', c=colors[c],
-                            alpha=0.8, edgecolors=edge_colors[c], s=150)
-                if context_features is not None:
-                    plt.scatter(context_features[i, 0], context_features[i, 1], marker=markers[j], c=colors[c],
-                            edgecolors=edge_colors[c], s=150, alpha=0.8)
-            centroid = centroid/float(len(shot_indices))
-            clean_centroid = clean_centroid/float(len(shot_indices))
-            if len(shot_indices) > 1:
-                plt.scatter(centroid[0], centroid[1], marker='s', c=colors[c], edgecolors=edge_colors[c], s=250, alpha=0.8)
-                plt.scatter(clean_centroid[0], clean_centroid[1], marker='o', c=colors[c], edgecolors=edge_colors[c], s=250, alpha=0.8)
-
-
-        # ax.scatter(grid_points[:, 0], grid_points[:, 1], c=grid_pred, s=grid_conf*100) #, s=grid_conf*10
-        plt.savefig(out_name)
-        plt.close()
-
-    def _quick_dump(self, val, name):
-        fout = open(name, "wb")
-        pickle.dump(val, fout)
-        fout.close()
 
     def prepare_task(self, task_dict, shuffle):
         context_images, context_labels = task_dict['context_images'], task_dict['context_labels']
@@ -570,6 +550,92 @@ class Learner:
             param_group['lr'] = lr
 
         return lr
+
+    class _PlotSettings:
+        def __init__(self, sym_bounds=5):
+            self.sym_bounds = sym_bounds
+            self.resolution = 50
+            self.clean_colors = ['navy', 'darkred', 'darkgreen', 'gold', 'darkviolet', 'c', 'm']
+            self.colors = ['b', 'r', 'g', 'orange', 'purple', 'cyan', 'm']
+            self.color_maps = []
+            self.edge_colors = ['k', 'k', 'k', 'k', 'k', 'k', 'k']
+            self.markers = ['v', '^', '<', '>', 'd']
+            self.target_markers = ['1', '2', '3', '4', '+']
+
+            def_color_maps = [pl.cm.Blues, pl.cm.Reds, pl.cm.Greens, pl.cm.Oranges, pl.cm.Purples]
+            # Get the colormap colors
+            for cmap in def_color_maps:
+                my_cmap = cmap(np.arange(cmap.N))
+                # Set alpha
+                my_cmap[:, -1] = np.linspace(0, 1, cmap.N)
+                # Create new colormap
+                my_cmap = ListedColormap(my_cmap)
+                self.color_maps.append(my_cmap)
+
+    def _plot_decision_regions(self, context_features, context_labels, clean_context_features, target_features, num_classes, out_name, plot_conf):
+
+        assert num_classes <= len(plot_conf.colors)
+
+        # Make custom colormaps with the transparency we need
+        # No, I don't know how I got here
+
+
+        xx, yy = np.meshgrid(
+            np.linspace(-plot_conf.sym_bound, plot_conf.sym_bound, plot_conf.resolution),  # np.geomspace(-10, 10, resolution)
+            np.linspace(-plot_conf.sym_bound, plot_conf.sym_bound, plot_conf.resolution)
+        )
+        grid_points = np.c_[xx.ravel(), yy.ravel()]
+        grid_tensor = torch.from_numpy(grid_points).type(torch.DoubleTensor).to(self.device)
+
+        # If we have context_features, we should use them
+        if context_features is not None:
+            grid_logits = self.model.forward_embeddings(context_features.type(torch.DoubleTensor).to(self.device),
+                                                    grid_tensor).cpu()
+        else:
+            grid_logits = self.model.forward_embeddings(clean_context_features.type(torch.DoubleTensor).to(self.device),
+                                                    grid_tensor).cpu()
+
+        # normalize within each row
+        grid_pred = torch.argmax(grid_logits, dim=-1)
+        grid_conf = torch.max(F.softmax(grid_logits, dim=1), dim=1)[0]
+
+        fig, ax = plt.subplots(1, 1)
+        fig.set_size_inches(16, 16)
+        plt.ylim(-plot_conf.sym_bound, plot_conf.sym_bound)
+        plt.xlim(-plot_conf.sym_bound, plot_conf.sym_bound)
+
+        for c in range(num_classes):
+            grid_c = (grid_pred == c).type(torch.DoubleTensor)
+            height = (grid_c * grid_conf).reshape(plot_conf.resolution, plot_conf.resolution)
+            ax.contourf(xx, yy, height, cmap=plot_conf.color_maps[c])
+
+        for c in range(num_classes):
+            shot_indices = extract_class_indices(context_labels, c)
+            # Get the mean of the embeddings for this class
+            centroid = torch.zeros_like(clean_context_features[0])
+            clean_centroid = torch.zeros_like(clean_context_features[0])
+            for j, i in enumerate(shot_indices):
+                centroid = centroid + context_features[i]
+                clean_centroid = clean_centroid + clean_context_features[i]
+                #plt.scatter(clean_context_features[i, 0], clean_context_features[i, 1], marker='.', c=plot_conf.colors[c],
+                #            edgecolors=plot_conf.edge_colors[c], s=150)
+                plt.scatter(target_features[i, 0], target_features[i, 1], marker='1', c=plot_conf.colors[c],
+                            alpha=0.8, edgecolors=plot_conf.edge_colors[c], s=150)
+                plt.scatter(context_features[i, 0], context_features[i, 1], marker=plot_conf.markers[j], c=plot_conf.colors[c],
+                        edgecolors=plot_conf.edge_colors[c], s=150, alpha=0.8)
+            centroid = centroid/float(len(shot_indices))
+            clean_centroid = clean_centroid/float(len(shot_indices))
+            if len(shot_indices) > 1:
+                plt.scatter(centroid[0], centroid[1], marker='s', c=plot_conf.colors[c], edgecolors=plot_conf.edge_colors[c], s=250, alpha=0.8)
+                plt.scatter(clean_centroid[0], clean_centroid[1], marker='o', c=plot_conf.colors[c], edgecolors=plot_conf.edge_colors[c], s=250, alpha=0.8)
+
+        plt.savefig(out_name)
+        plt.close()
+
+    def _quick_dump(self, val, name):
+        fout = open(name, "wb")
+        pickle.dump(val, fout)
+        fout.close()
 
 
 if __name__ == "__main__":
