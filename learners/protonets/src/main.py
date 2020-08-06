@@ -367,7 +367,6 @@ class Learner:
             saved_tasks = []
 
         for t in range(self.args.attack_tasks):
-            import pdb; pdb.set_trace()
             # Create and split up dataset
             task_dict = self.dataset.get_test_task(self.args.test_way, self.args.test_shot, self.args.query * num_target_sets)
             context_images, all_target_images, context_labels, all_target_labels = self.prepare_task(task_dict, shuffle=False)
