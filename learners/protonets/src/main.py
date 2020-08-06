@@ -377,7 +377,7 @@ class Learner:
             else:
                 # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
                 assert self.args.target_set_size_multiplier * self.args.test_shot * self.args.test_way <= all_target_images.shape[0]
-                split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, self.args.shot)
+                split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, self.args.test_shot)
 
                 # The first "target_set_size_multiplier"-many will be used when generating the attack
                 # The rest will be used for independent eval
