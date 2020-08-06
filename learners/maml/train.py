@@ -324,12 +324,11 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         # when testing, target_shot is just shot
         task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.shot * num_target_sets)
         xc, xtall, yc, ytall = prepare_task(task_dict)
-
         if args.target_set_size_multiplier == 1 and not args.indep_eval:
             xt, yt = xtall, ytall
         else:
             # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
-            assert args.target_set_size_multiplier * args.shot * args.test_way <= xtall.shape[0]
+            assert args.target_set_size_multiplier * args.shot * args.num_classes <= xtall.shape[0]
             split_xt, split_yt = split_target_set(xtall, ytall, args.shot)
 
             # The first "target_set_size_multiplier"-many will be used when generating the attack
@@ -361,11 +360,10 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         if args.indep_eval:
             for k in range(eval_start_index, len(yt)):
                 if attack.get_attack_mode() == 'context':
-                    _, acc_after = model.compute_objective(adv_images, yc, split_xt[k], split_yt[k], accuracy=True)
-                    indep_eval_accuracies.append(acc_after)
+                    _, acc_indep = model.compute_objective(adv_images, yc, split_xt[k], split_yt[k], accuracy=True)
                 else:
-                    _, acc_after = model.compute_objective(split_xt[k], split_yt[k], adv_images, yt, accuracy=True)
-                indep_eval_accuracies.append(acc_after)
+                    _, acc_indep = model.compute_objective(split_xt[k], split_yt[k], adv_images, yt, accuracy=True)
+                indep_eval_accuracies.append(acc_indep.item())
 
         if args.save_attack:
             adv_task_dict = {
@@ -390,6 +388,7 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
     print_average_accuracy(accuracies_before, "Before attack")
     print_average_accuracy(accuracies_after, "After attack")
+    print_average_accuracy(indep_eval_accuracies, "Indep eval")
 
 
 # Parse arguments given to the script.
