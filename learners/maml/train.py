@@ -14,7 +14,7 @@ from attacks.attack_helpers import create_attack
 from attacks.attack_utils import extract_class_indices, Logger, split_target_set
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+NUM_INDEP_EVAL_TASKS = 50
 
 def train(model, dataset, batch_size):
     """Compute loss and accuracy for a batch of tasks """
@@ -215,6 +215,11 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
     model.set_gradient_steps(test_gradient_steps)
 
+    assert args.target_set_size_multiplier >= 1
+    num_target_sets = args.target_set_size_multiplier
+    if args.indep_eval:
+        num_target_sets += NUM_INDEP_EVAL_TASKS
+
     context_attack = create_attack(config_path, checkpoint_dir)
     context_attack.set_attack_mode('context')
     assert context_attack.get_shot_fraction() == 1.0
@@ -239,34 +244,39 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
     for task in range(tasks):
         # when testing, target_shot is just shot
-        task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.target_shot)
+        task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.target_shot * args.target_set_size_multiplier)
         xc, xt_all, yc, yt_all = prepare_task(task_dict)
 
         # Select as many target images as context images to be used on the attack
         # The rest will be used for evaluation
         assert xc.shape[0] <= xt_all.shape[0]
         split_xt, split_yt = split_target_set(xt_all, yt_all, args.shot)
+        eval_start_index = args.target_set_size_multiplier
+        # Larger target set, used for generating adv context set; flatten somehow
+        xt_mult = torch.stack(split_xt[0:eval_start_index]).view(-1, xc.shape[1], xc.shape[2], xc.shape[3])
+        yt_mult = torch.stack(split_yt[0:eval_start_index]).view(-1)
         xt = split_xt[0]
         yt = split_yt[0]
 
-        adv_context_images, adv_context_indices = context_attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
+        adv_context_images, adv_context_indices = context_attack.generate(xc, yc, xt_mult, yt_mult, model, model.compute_logits, device)
 
         adv_target_images, adv_target_indices = target_attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
 
         tmp_adv_c_indices = [xi.item() for xi in adv_context_indices]
         tmp_adv_c_indices.sort()
+        #TODO: Why are these shuffled?
         assert tmp_adv_c_indices == adv_target_indices
 
-        if task < 10:
+        if args.save_samples and task < 10:
             for i in range(len(xt)):
                 save_image_pair(checkpoint_dir, adv_context_images[i], xc[i], task, i)
                 save_image_pair(checkpoint_dir, adv_target_images[i], xt[i], task, i)
 
-        gen_clean_accuracies.append(model.compute_objective(xc, yc, xt, yt, accuracy=True)[1].item())
-        gen_adv_context_accuracies.append(model.compute_objective(adv_context_images, yc, xt, yt, accuracy=True)[1].item())
+        gen_clean_accuracies.append(model.compute_objective(xc, yc, xt_mult, yt_mult, accuracy=True)[1].item())
+        gen_adv_context_accuracies.append(model.compute_objective(adv_context_images, yc, xt_mult, yt_mult, accuracy=True)[1].item())
         gen_adv_target_accuracies.append(model.compute_objective(xc, yc, adv_target_images, yt, accuracy=True)[1].item())
         # Evaluate on independent target sets
-        for s in range(1, len(split_xt)):
+        for s in range(eval_start_index, len(split_xt)):
             clean_accuracies.append(model.compute_objective(xc, yc, split_xt[s], split_yt[s], accuracy=True)[1].item())
             clean_target_as_context_accuracies.append(model.compute_objective(xt, yt, split_xt[s], split_yt[s], accuracy=True)[1].item())
             adv_context_accuracies.append(model.compute_objective(adv_context_images, yc, split_xt[s], split_yt[s], accuracy=True)[1].item())
@@ -296,39 +306,89 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
     model.set_gradient_steps(test_gradient_steps)
 
+    assert args.target_set_size_multiplier >= 1
+    num_target_sets = args.target_set_size_multiplier
+    if args.indep_eval:
+        num_target_sets += NUM_INDEP_EVAL_TASKS
+
     attack = create_attack(config_path, checkpoint_dir)
 
     accuracies_before = []
     accuracies_after = []
+    if args.indep_eval:
+        indep_eval_accuracies = []
+    if args.save_attack:
+        saved_tasks = []
+
     for task in range(tasks):
         # when testing, target_shot is just shot
-        task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.shot)
-        xc, xt, yc, yt = prepare_task(task_dict)
+        task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.shot * num_target_sets)
+        xc, xtall, yc, ytall = prepare_task(task_dict)
+        if args.target_set_size_multiplier == 1 and not args.indep_eval:
+            xt, yt = xtall, ytall
+        else:
+            # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
+            assert args.target_set_size_multiplier * args.shot * args.num_classes <= xtall.shape[0]
+            split_xt, split_yt = split_target_set(xtall, ytall, args.shot)
+
+            # The first "target_set_size_multiplier"-many will be used when generating the attack
+            # The rest will be used for independent eval
+            # Note that we have to split them first, because this ensures each block has equal class representation
+            eval_start_index = args.target_set_size_multiplier
+            xt = torch.stack(split_xt[0:eval_start_index]).view(-1, xc.shape[1], xc.shape[2], xc.shape[3])
+            yt = torch.stack(split_yt[0:eval_start_index]).view(-1)
 
         if attack.get_attack_mode() == 'context':
-            adv_context_images, adv_context_indices = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
+            clean_images = xc
+        else:
+            clean_images = xt
 
-            if task < 10:
-                for i in range(len(xc)):
-                    save_image_pair(checkpoint_dir, adv_context_images[i], xc[i], task, i)
+        adv_images, adv_indices = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
 
-            _, acc_after = model.compute_objective(adv_context_images, yc, xt, yt, accuracy=True)
+        if args.save_samples and task < 10:
+            for i in adv_indices:
+                save_image_pair(checkpoint_dir, adv_images[i], clean_images[i], task, i)
 
-        else:  # target
-            adv_target_images, _ = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
-            if task < 10:
-                for i in range(len(xt)):
-                    save_image_pair(checkpoint_dir, adv_target_images[i], xt[i], task, i)
-
-            _, acc_after = model.compute_objective(xc, yc, adv_target_images, yt, accuracy=True)
+        if attack.get_attack_mode() == 'context':
+            _, acc_after = model.compute_objective(adv_images, yc, xt, yt, accuracy=True)
+        else:
+            _, acc_after = model.compute_objective(xc, yc, adv_images, yt, accuracy=True)
 
         _, acc_before = model.compute_objective(xc, yc, xt, yt, accuracy=True)
+
+        # Eval with indep sets as well, if required:
+        if args.indep_eval:
+            for k in range(eval_start_index, len(yt)):
+                if attack.get_attack_mode() == 'context':
+                    _, acc_indep = model.compute_objective(adv_images, yc, split_xt[k], split_yt[k], accuracy=True)
+                else:
+                    _, acc_indep = model.compute_objective(split_xt[k], split_yt[k], adv_images, yt, accuracy=True)
+                indep_eval_accuracies.append(acc_indep.item())
+
+        if args.save_attack:
+            adv_task_dict = {
+                'context_images': xc.cpu(),
+                'context_labels': yc.cpu(),
+                'target_images': xt.cpu(),
+                'target_labels': yt.cpu(),
+                'adv_images': adv_images.cpu(),
+                'adv_indices': adv_indices.cpu(),
+                'mode': attack.get_attack_mode(),
+                'way': args.way,
+                'shot': args.shot,
+                'query': args.shot,
+            }
+            if args.indep_eval:
+                adv_task_dict['eval_images'] = split_xt[eval_start_index:].cpu()
+                adv_task_dict['eval_labels'] = split_yt[eval_start_index:].cpu()
+            saved_tasks.append(adv_task_dict)
 
         accuracies_before.append(acc_before.item())
         accuracies_after.append(acc_after.item())
 
     print_average_accuracy(accuracies_before, "Before attack")
     print_average_accuracy(accuracies_after, "After attack")
+    print_average_accuracy(indep_eval_accuracies, "Indep eval")
 
 
 # Parse arguments given to the script.
@@ -421,6 +481,14 @@ parser.add_argument("--test_by_class", dest="test_by_class",
                     help="Test one class at a time.")
 parser.add_argument("--swap_attack", default=False,
                     help="When attacking, should the attack be a swap attack or not.")
+parser.add_argument("--save_samples", default=False,
+                    help="Output samples of the clean and adversarial images")
+parser.add_argument("--save_attack", default=False,
+                    help="Save all the tasks and adversarial images to a pickle file. Currently only applicable to non-swap attacks.")
+parser.add_argument("--target_set_size_multiplier", type=int, default=1,
+                    help="For swap attacks, the relative size of the target set used when generating the adv context set (eg. x times larger). Currently only implemented for swap attacks")
+parser.add_argument("--indep_eval", default=False,
+                    help="Whether to use independent target sets for evaluation automagically")
 args = parser.parse_args()
 
 # Create checkpoint directory (if required)

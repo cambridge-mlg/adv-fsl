@@ -9,5 +9,5 @@ class_fraction: 1.0
 shot_fraction: 1.0
 use_true_target_labels: True
 target_loss_mode: random
-targeted: False
-targeted_labels: None
+targeted: True
+targeted_labels: shifted
