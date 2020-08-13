@@ -83,6 +83,7 @@ class Learner:
 
     def finetune(self, session):
         self.logger.print_and_log("")  # add a blank line
+        self.logger.print_and_log("Finetuning on data found in {}".format(self.args.data_path))
 
         with torch.no_grad():
             clean_acc_0 = []
