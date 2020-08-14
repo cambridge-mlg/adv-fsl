@@ -218,8 +218,7 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
     assert args.target_set_size_multiplier >= 1
     num_target_sets = args.target_set_size_multiplier
-    if args.indep_eval:
-        num_target_sets += NUM_INDEP_EVAL_TASKS
+    num_target_sets += NUM_INDEP_EVAL_TASKS
 
     context_attack = create_attack(config_path, checkpoint_dir)
     context_attack.set_attack_mode('context')
