@@ -6,7 +6,7 @@ from learners.protonets.src.utils import print_and_log, get_log_files, categoric
 from learners.protonets.src.model import ProtoNets
 from learners.protonets.src.data import MiniImageNetData, OmniglotData
 from attacks.attack_helpers import create_attack
-from attacks.attack_utils import save_image, split_target_set, extract_class_indices
+from attacks.attack_utils import save_image, split_target_set, extract_class_indices, make_adversarial_task_dict
 from matplotlib import pyplot as plt
 import pickle
 import torch.nn.functional as F
@@ -273,18 +273,11 @@ class Learner:
             task_dict = self.dataset.get_test_task(self.args.test_way, self.args.test_shot, self.args.query * num_target_sets)
             context_images, all_target_images, context_labels, all_target_labels = self.prepare_task(task_dict, shuffle=False)
 
-            # Select as many target images as context images to be used on the attack
-            # The rest will be used for evaluation
-            assert context_images.shape[0] <= all_target_images.shape[0]
-            split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, self.args.test_shot)
-            eval_start_index = self.args.target_set_size_multiplier
-            # Larger target set, used for generating adv context set; flatten somehow
-            target_images_mult = torch.stack(split_target_images[0:eval_start_index]).view(-1, context_images.shape[1],
-                                                                                           context_images.shape[2],
-                                                                                           context_images.shape[3])
-            target_labels_mult = torch.stack(split_target_labels[0:eval_start_index]).view(-1)
-            target_images = split_target_images[0]
-            target_labels = split_target_labels[0]
+            # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
+            assert self.args.target_set_size_multiplier * self.args.shot * self.args.way <= all_target_images.shape[0]
+            target_images_mult, target_labels_mult, eval_images, eval_labels, target_images, target_labels = split_target_set(
+                all_target_images, all_target_labels, self.args.target_set_size_multiplier, self.args.test_shot,
+                return_first_target_set=True)
 
             adv_context_images, adv_context_indices = context_attack.generate(
                 context_images, context_labels, target_images_mult, target_labels_mult,
@@ -311,26 +304,20 @@ class Learner:
                     self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels))
 
                 # Evaluate on independent target sets
-                for s in range(eval_start_index, len(split_target_images)):
-                    clean_accuracies.append(self.calc_accuracy(context_images, context_labels, split_target_images[s],
-                                                               split_target_labels[s]))
+                for s in enumerate(eval_images):
+                    clean_accuracies.append(self.calc_accuracy(context_images, context_labels, eval_images[s], eval_labels[s]))
                     clean_target_as_context_accuracies.append(
-                        self.calc_accuracy(target_images, target_labels, split_target_images[s],
-                                           split_target_labels[s]))
+                        self.calc_accuracy(target_images, target_labels, eval_images[s], eval_labels[s]))
 
                     adv_context_accuracies.append(
-                        self.calc_accuracy(adv_context_images, context_labels, split_target_images[s],
-                                           split_target_labels[s]))
+                        self.calc_accuracy(adv_context_images, context_labels, eval_images[s], eval_labels[s]))
                     adv_target_accuracies.append(
-                        self.calc_accuracy(split_target_images[s], split_target_labels[s], adv_target_images,
-                                           target_labels))
+                        self.calc_accuracy(eval_images[s], eval_labels[s], adv_target_images, target_labels))
 
                     adv_target_as_context_accuracies.append(
-                        self.calc_accuracy(adv_target_images, target_labels, split_target_images[s],
-                                           split_target_labels[s]))
+                        self.calc_accuracy(adv_target_images, target_labels, eval_images[s], eval_labels[s]))
                     adv_context_as_target_accuracies.append(
-                        self.calc_accuracy(split_target_images[s], split_target_labels[s], adv_context_images,
-                                           context_labels))
+                        self.calc_accuracy(eval_images[s], eval_labels[s], adv_context_images, context_labels))
 
                 del adv_context_images, adv_target_images
 
@@ -361,8 +348,7 @@ class Learner:
 
         accuracies_before = []
         accuracies_after = []
-        if self.args.indep_eval:
-            indep_eval_accuracies = []
+        indep_eval_accuracies = []
         if self.args.save_attack:
             saved_tasks = []
 
@@ -373,17 +359,12 @@ class Learner:
 
             if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:
                 target_images, target_labels = all_target_images, all_target_labels
+                eval_images, eval_labels = None, None
             else:
                 # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
                 assert self.args.target_set_size_multiplier * self.args.test_shot * self.args.test_way <= all_target_images.shape[0]
-                split_target_images, split_target_labels = split_target_set(all_target_images, all_target_labels, self.args.test_shot)
-
-                # The first "target_set_size_multiplier"-many will be used when generating the attack
-                # The rest will be used for independent eval
-                # Note that we have to split them first, because this ensures each block has equal class representation
-                eval_start_index = self.args.target_set_size_multiplier
-                target_images = torch.stack(split_target_images[0:eval_start_index]).view(-1, context_images.shape[1], context_images.shape[2], context_images.shape[3])
-                target_labels = torch.stack(split_target_labels[0:eval_start_index]).view(-1)
+                target_images, target_labels, eval_images, eval_labels = split_target_set(
+                    all_target_images, all_target_labels, self.args.target_set_size_multiplier, self.args.test_shot)
 
             # Calculate accuracy before
             with torch.no_grad():
@@ -412,30 +393,22 @@ class Learner:
 
             # Eval with indep sets as well, if required:
             if self.args.indep_eval:
-                for k in range(eval_start_index, len(split_target_labels)):
+                for k in enumerate(eval_images):
                     if attack.get_attack_mode() == 'context':
                         indep_eval_accuracies.append(
-                            self.calc_accuracy(adv_images, context_labels, split_target_images[k], split_target_labels[k]))
+                            self.calc_accuracy(adv_images, context_labels, eval_images[k], eval_labels[k]))
                     else:
                         indep_eval_accuracies.append(
-                            self.calc_accuracy(split_target_images[k], split_target_labels[k], adv_images, target_labels))
+                            self.calc_accuracy(eval_images[k], eval_labels[k], adv_images, target_labels))
 
             if self.args.save_attack:
-                adv_task_dict = {
-                    'context_images': context_images.cpu(),
-                    'context_labels': context_labels.cpu(),
-                    'target_images': target_images.cpu(),
-                    'target_labels': target_labels.cpu(),
-                    'adv_images': adv_images.cpu(),
-                    'adv_indices': adv_indices.cpu(),
-                    'mode': attack.get_attack_mode(),
-                    'way': self.args.test_way,
-                    'shot': self.args.test_shot,
-                    'query': self.args.query,
-                }
-                if self.args.indep_eval:
-                    adv_task_dict['eval_images'] = split_target_images[eval_start_index:].cpu()
-                    adv_task_dict['eval_labels'] = split_target_labels[eval_start_index:].cpu()
+
+                adv_task_dict = make_adversarial_task_dict(context_images, context_labels, target_images, target_labels,
+                                                           adv_images, adv_indices, attack.get_attack_mode(),
+                                                           self.args.test_way,
+                                                           self.args.test_shot, self.args.query,
+                                                           eval_images,
+                                                           eval_labels)
                 saved_tasks.append(adv_task_dict)
 
         self.print_average_accuracy(accuracies_before, "Before attack:")

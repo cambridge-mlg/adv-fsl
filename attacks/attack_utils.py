@@ -111,7 +111,7 @@ def get_shifted_targeted_labels(true_labels, device):
     return targeted_labels
 
 
-def split_target_set(target_images, target_labels, shot, target_images_np=None):
+def split_into_tasks(target_images, target_labels, shot, target_images_np=None):
     classes = torch.unique(target_labels)
     way = len(classes)
 
@@ -144,6 +144,39 @@ def split_target_set(target_images, target_labels, shot, target_images_np=None):
         return split_target_images, split_target_labels
 
 
+def split_target_set(all_target_images, all_target_labels, target_set_size_multiplier, shot, all_target_images_np=None, return_first_target_set=False):
+    split_target_images, split_target_labels, split_target_images_np = split_into_tasks(
+        all_target_images,
+        all_target_labels, shot, target_images_np=all_target_images_np)
+
+    # The first "target_set_size_multiplier"-many will be used when generating the attack
+    # The rest will be used for independent eval
+    # Note that we have to split them first, because this ensures each block has equal class representation
+    eval_start_index = target_set_size_multiplier
+    target_images = torch.stack(split_target_images[0:eval_start_index]).view(-1, all_target_images[0].shape[1],
+                                                                              all_target_images[0].shape[2],
+                                                                              all_target_images[0].shape[3])
+    target_labels = torch.stack(split_target_labels[0:eval_start_index]).view(-1)
+
+    if all_target_images_np is None:
+        # No additional info required except the target set and the eval sets
+        if not return_first_target_set:
+            return target_images, target_labels, split_target_images[eval_start_index:], split_target_labels[eval_start_index:]
+        # Caller requires a "standard" size target set as well
+        else:
+            return target_images, target_labels, split_target_images[eval_start_index:], split_target_labels[eval_start_index:], \
+                   split_target_images[0], split_target_labels[0]
+    else:
+        #Caller requires that we split the numpy version of the target set as well
+        target_images_np = np.concatenate(split_target_images_np[0:eval_start_index], axis=0)
+        if not return_first_target_set:
+            return target_images, target_labels, split_target_images[eval_start_index:], split_target_labels[eval_start_index:], target_images_np,
+        # Target requires split numpy version as well as "standard" size target set
+        else:
+            return target_images, target_labels, split_target_images[eval_start_index:], split_target_labels[eval_start_index:], target_images_np, split_target_images[0], split_target_labels[0]
+
+
+
 def one_hot_embedding(labels, num_classes):
     """Embedding labels to one-hot form.
 
@@ -169,6 +202,27 @@ def save_image(image_array, save_path, scaling='neg_one_to_one'):
     else:
         im = Image.fromarray(np.clip(image_array * 255.0, 0, 255).astype(np.uint8), mode=mode)
     im.save(save_path)
+
+def make_adversarial_task_dict(context_images, context_labels, target_images, target_labels, adv_images, adv_indices, attack_mode, way, shot, query, split_target_images, split_target_labels):
+    adv_task_dict = {
+        'context_images': context_images.cpu(),
+        'context_labels': context_labels.cpu(),
+        'target_images': target_images.cpu(),
+        'target_labels': target_labels.cpu(),
+        'adv_images': adv_images.cpu(),
+        'adv_indices': adv_indices.cpu(),
+        'mode': attack_mode,
+        'way': way,
+        'shot': shot,
+        'query': query,
+    }
+    if split_target_images is not None and split_target_labels is not None:
+        adv_task_dict['eval_images'] = []
+        adv_task_dict['eval_labels'] = []
+        for k in enumerate(split_target_images):
+            adv_task_dict['eval_images'].append(split_target_images[k].cpu())
+            adv_task_dict['eval_labels'].append(split_target_labels[k].cpu())
+
 
 
 class Logger():
