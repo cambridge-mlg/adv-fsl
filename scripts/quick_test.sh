@@ -49,7 +49,7 @@ python3 ./learners/protonets/src/main.py --data_path /scratches/stroustrup/jfb54
 	--test_way 5 \
 	--query 1 \
 	--test_model_path ./learners/protonets/models/protonets_mini_imagenet_5-way_1-shot.pt  \
-        --target_set_size_multiplier 13 \
+        --target_set_size_multiplier 5 \
 	--swap_attack True
 
 python3 ./learners/protonets/src/main.py --data_path /scratches/stroustrup/jfb54/adv-fsl \
@@ -79,8 +79,8 @@ python3 ./learners/maml/train.py --data_path /scratches/stroustrup/jfb54/adv-fsl
         --inner_lr 0.01  \
         --attack_model_path ./learners/maml/models/maml_mini_imagenet_5-way_1-shot.pt \
         --indep_eval True \
-        --target_set_size_multiplier 5
-	--save_attack
+        --target_set_size_multiplier 5 \
+	--save_attack True
 
 python3 ./learners/maml/train.py --data_path /scratches/stroustrup/jfb54/adv-fsl \
         --checkpoint_dir /scratch3/etv21/meta_learning/debug \

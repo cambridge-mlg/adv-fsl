@@ -356,7 +356,7 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         if args.save_attack:
             adv_task_dict = make_adversarial_task_dict(xc, yc, xt, yt,
                                                        adv_images, adv_indices, attack.get_attack_mode(),
-                                                       args.way, args.shot, args.shot,
+                                                       args.num_classes, args.shot, args.shot,
                                                        x_eval, y_eval)
             saved_tasks.append(adv_task_dict)
 
