@@ -117,7 +117,7 @@ class Learner:
         # Must have at least one
         assert self.args.target_set_size_multiplier >= 1
         num_target_sets = self.args.target_set_size_multiplier
-        if self.args.indep_eval:
+        if self.args.indep_eval or self.args.swap_attack:
             num_target_sets += NUM_INDEP_EVAL_TASKS
 
         if self.args.dataset == "meta-dataset":
