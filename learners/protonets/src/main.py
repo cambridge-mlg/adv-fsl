@@ -273,7 +273,7 @@ class Learner:
             context_images, all_target_images, context_labels, all_target_labels = self.prepare_task(task_dict, shuffle=False)
 
             # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
-            assert self.args.target_set_size_multiplier * self.args.shot * self.args.way <= all_target_images.shape[0]
+            assert self.args.target_set_size_multiplier * self.args.test_shot * self.args.test_way <= all_target_images.shape[0]
             target_images_mult, target_labels_mult, eval_images, eval_labels, target_images, target_labels = split_target_set(
                 all_target_images, all_target_labels, self.args.target_set_size_multiplier, self.args.test_shot,
                 return_first_target_set=True)
