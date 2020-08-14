@@ -244,7 +244,7 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
     for task in range(tasks):
         # when testing, target_shot is just shot
-        task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.target_shot * args.target_set_size_multiplier)
+        task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.shot * num_target_sets)
         xc, xt_all, yc, yt_all = prepare_task(task_dict)
 
         # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
