@@ -141,13 +141,11 @@ def split_into_tasks(target_images, target_labels, shot, target_images_np=None):
             split_target_images_np.append(target_images_np[split_indices[s]])
         return split_target_images, split_target_labels, split_target_images_np
     else:
-        return split_target_images, split_target_labels
+        return split_target_images, split_target_labels, None
 
 
 def split_target_set(all_target_images, all_target_labels, target_set_size_multiplier, shot, all_target_images_np=None, return_first_target_set=False):
-    split_target_images, split_target_labels, split_target_images_np = split_into_tasks(
-        all_target_images,
-        all_target_labels, shot, target_images_np=all_target_images_np)
+    split_target_images, split_target_labels, split_target_images_np = split_into_tasks(all_target_images, all_target_labels, shot, target_images_np=all_target_images_np)
 
     # The first "target_set_size_multiplier"-many will be used when generating the attack
     # The rest will be used for independent eval
