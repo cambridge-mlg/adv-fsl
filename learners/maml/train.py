@@ -271,7 +271,7 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         gen_adv_context_accuracies.append(model.compute_objective(adv_context_images, yc, xt_mult, yt_mult, accuracy=True)[1].item())
         gen_adv_target_accuracies.append(model.compute_objective(xc, yc, adv_target_images, yt, accuracy=True)[1].item())
         # Evaluate on independent target sets
-        for s in enumerate(x_eval):
+        for s in range(len(x_eval)):
             clean_accuracies.append(model.compute_objective(xc, yc, x_eval[s], y_eval[s], accuracy=True)[1].item())
             clean_target_as_context_accuracies.append(model.compute_objective(xt, yt, x_eval[s], y_eval[s], accuracy=True)[1].item())
             adv_context_accuracies.append(model.compute_objective(adv_context_images, yc, x_eval[s], y_eval[s], accuracy=True)[1].item())
@@ -347,7 +347,7 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
 
         # Eval with indep sets as well, if required:
         if args.indep_eval:
-            for k in enumerate(x_eval):
+            for k in range(len(x_eval)):
                 if attack.get_attack_mode() == 'context':
                     _, acc_indep = model.compute_objective(adv_images, yc, x_eval[k], y_eval[k], accuracy=True)
                 else:

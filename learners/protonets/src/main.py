@@ -304,7 +304,7 @@ class Learner:
                     self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels))
 
                 # Evaluate on independent target sets
-                for s in enumerate(eval_images):
+                for s in range(len(eval_images)):
                     clean_accuracies.append(self.calc_accuracy(context_images, context_labels, eval_images[s], eval_labels[s]))
                     clean_target_as_context_accuracies.append(
                         self.calc_accuracy(target_images, target_labels, eval_images[s], eval_labels[s]))
@@ -393,7 +393,7 @@ class Learner:
 
             # Eval with indep sets as well, if required:
             if self.args.indep_eval:
-                for k in enumerate(eval_images):
+                for k in range(len(eval_images)):
                     if attack.get_attack_mode() == 'context':
                         indep_eval_accuracies.append(
                             self.calc_accuracy(adv_images, context_labels, eval_images[k], eval_labels[k]))
