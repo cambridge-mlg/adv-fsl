@@ -219,7 +219,7 @@ def make_adversarial_task_dict(context_images, context_labels, target_images, ta
     if split_target_images is not None and split_target_labels is not None:
         adv_task_dict['eval_images'] = []
         adv_task_dict['eval_labels'] = []
-        for k in enumerate(split_target_images):
+        for k in range(len(split_target_images)):
             adv_task_dict['eval_images'].append(split_target_images[k].cpu())
             adv_task_dict['eval_labels'].append(split_target_labels[k].cpu())
 
