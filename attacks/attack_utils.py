@@ -153,9 +153,9 @@ def split_target_set(all_target_images, all_target_labels, target_set_size_multi
     # The rest will be used for independent eval
     # Note that we have to split them first, because this ensures each block has equal class representation
     eval_start_index = target_set_size_multiplier
-    target_images = torch.stack(split_target_images[0:eval_start_index]).view(-1, all_target_images[0].shape[1],
-                                                                              all_target_images[0].shape[2],
-                                                                              all_target_images[0].shape[3])
+    target_images = torch.stack(split_target_images[0:eval_start_index]).view(-1, all_target_images.shape[1],
+                                                                              all_target_images.shape[2],
+                                                                              all_target_images.shape[3])
     target_labels = torch.stack(split_target_labels[0:eval_start_index]).view(-1)
 
     if all_target_images_np is None:
@@ -210,7 +210,7 @@ def make_adversarial_task_dict(context_images, context_labels, target_images, ta
         'target_images': target_images.cpu(),
         'target_labels': target_labels.cpu(),
         'adv_images': adv_images.cpu(),
-        'adv_indices': adv_indices.cpu(),
+        'adv_indices': adv_indices,
         'mode': attack_mode,
         'way': way,
         'shot': shot,
