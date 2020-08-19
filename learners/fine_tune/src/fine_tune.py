@@ -70,7 +70,7 @@ class Learner:
 
     def eval(self, task_index):
         eval_acc = []
-        target_image_sets, target_label_sets = self.dataset.get_eval_task(task_index)
+        target_image_sets, target_label_sets = self.dataset.get_eval_task(task_index, self.device)
         for s in range(len(target_image_sets)):
             accuracy = self.model.test_linear(target_image_sets[s], target_label_sets[s])
             eval_acc.append(accuracy)
@@ -93,7 +93,7 @@ class Learner:
 
             for task in range(self.max_test_tasks):
                 # Clean task
-                context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task)
+                context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
                 # fine tune the model to the current task
                 self.model.fine_tune(context_images, context_labels)
                 accuracy = self.model.test_linear(target_images, target_labels)
@@ -102,7 +102,7 @@ class Learner:
                 clean_acc.append(self.eval(task))
 
                 # Adversarial task
-                adv_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task)
+                adv_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task, self.device)
                 # fine tune the model to the current task
                 self.model.fine_tune(adv_images, context_labels)
                 accuracy = self.model.test_linear(target_images, target_labels)

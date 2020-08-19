@@ -17,21 +17,20 @@ class AdversarialDataset:
         self.way = task_dict_list[0]['way']
         self.query = task_dict_list[0]['query']
         self.mode = task_dict_list[0]['mode']
-        self.device = task_dict_list[0]['context_images'][0].device
 
-    def get_clean_task(self, task_index):
-        context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor).to(self.device)
-        return self.tasks[task_index]['context_images'].to(self.device), context_labels, self.tasks[task_index]['target_images'].to(self.device), self.tasks[task_index]['target_labels'].to(self.device)
+    def get_clean_task(self, task_index, device):
+        context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor).to(device)
+        return self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index]['target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
 
-    def get_adversarial_task(self, task_index):
-        context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor).to(self.device)
-        return self.tasks[task_index]['adv_images'].to(self.device), context_labels, self.tasks[task_index]['target_images'].to(self.device), self.tasks[task_index]['target_labels'].to(self.device)
+    def get_adversarial_task(self, task_index, device):
+        context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor).to(device)
+        return self.tasks[task_index]['adv_images'].to(device), context_labels, self.tasks[task_index]['target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
 
-    def get_eval_task(self, task_index):
+    def get_eval_task(self, task_index, device):
         eval_labels = self.tasks[task_index]['eval_labels']
         for i in range(len(eval_labels)):
-            eval_labels[i] = eval_labels[i].type(torch.LongTensor).to(self.device)
-        return self.tasks[task_index]['eval_images'].to(self.device), eval_labels
+            eval_labels[i] = eval_labels[i].type(torch.LongTensor).to(device)
+        return self.tasks[task_index]['eval_images'].to(device), eval_labels
 
     def get_num_tasks(self):
         return len(self.tasks)
