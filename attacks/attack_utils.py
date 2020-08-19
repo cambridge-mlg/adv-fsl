@@ -28,9 +28,11 @@ class AdversarialDataset:
 
     def get_eval_task(self, task_index, device):
         eval_labels = self.tasks[task_index]['eval_labels']
+        eval_images = self.tasks[task_index]['eval_images']
         for i in range(len(eval_labels)):
             eval_labels[i] = eval_labels[i].type(torch.LongTensor).to(device)
-        return self.tasks[task_index]['eval_images'].to(device), eval_labels
+            eval_images[i] = eval_images[i].to(device)
+        return eval_images, eval_labels
 
     def get_num_tasks(self):
         return len(self.tasks)

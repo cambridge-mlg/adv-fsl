@@ -74,6 +74,7 @@ class Learner:
         for s in range(len(target_image_sets)):
             accuracy = self.model.test_linear(target_image_sets[s], target_label_sets[s])
             eval_acc.append(accuracy)
+        del target_image_sets
         return np.array(eval_acc).mean()
 
     def print_average_accuracy(self, accuracies, descriptor):
@@ -84,6 +85,8 @@ class Learner:
     def finetune(self, session):
         self.logger.print_and_log("")  # add a blank line
         self.logger.print_and_log("Finetuning on data found in {}".format(self.args.data_path))
+        self.logger.print_and_log("using feature extractor from {}".format(self.args.pretrained_feature_extractor_path))
+
 
         with torch.no_grad():
             clean_acc_0 = []
