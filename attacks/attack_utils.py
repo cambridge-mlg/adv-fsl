@@ -220,6 +220,7 @@ def make_adversarial_task_dict(context_images, context_labels, target_images, ta
         for k in range(len(split_target_images)):
             adv_task_dict['eval_images'].append(split_target_images[k].cpu())
             adv_task_dict['eval_labels'].append(split_target_labels[k].cpu())
+    return adv_task_dict
 
 
 
