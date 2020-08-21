@@ -23,6 +23,7 @@ class ShiftAttack:
         self.logger.print_and_log("class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
         self.logger.print_and_log("context set size = {}, target set size = {}".format(context_images.shape[0], target_images.shape[0]))
 
+
         if self.attack_mode == 'target':
             labels = true_target_labels
             imgs = target_images
@@ -30,18 +31,20 @@ class ShiftAttack:
             labels = context_labels
             imgs = context_images
 
-        num_classes = torch.unique(labels)
-        shot = extract_class_indices(labels, 0)
+        num_classes = len(torch.unique(labels))
+        shot = len(extract_class_indices(labels, 0))
         # Make sure that all classes have equal shot, which we require for this attack to work.
         # (We can do it otherwise, but that would require some adjusting in the calling functions)
         for c in range(1, num_classes):
             c_shot_indices = extract_class_indices(labels, c)
             assert len(c_shot_indices) == shot
-        num_adv_shots = max(1, math.ceil(self.shot_fraction * shot))
 
+        num_adv_shots = max(1, math.ceil(self.shot_fraction * shot))
         num_adv_classes = max(1, math.ceil(self.class_fraction * num_classes))
+
+        self.logger.print_and_log("Num adv classes = {}, num adv shots = {}".format(num_adv_classes, num_adv_shots))
         # We need to attack at least two classes to be able to do a shift attack
-        assert num_adv_classes > 0
+        assert num_adv_classes > 1
 
         adv_imgs_list = []
         adv_indices = []
@@ -58,25 +61,28 @@ class ShiftAttack:
 
                 for index in attack_indices:
                     adv_imgs_list.append(imgs[index].clone())
-                    label_shift.append(labels[index])
+                    label_shift.append(labels[index].item())
                     adv_indices.append(adv_index)
                     adv_index += 1
 
                 for index in clean_indices:
                     adv_imgs_list.append(imgs[index].clone())
-                    label_shift.append(labels[index])
+                    label_shift.append(labels[index].item())
 
             # Not adversarial, don't shift, just append
             else:
                 shot_indices = extract_class_indices(labels, c)
                 for index in shot_indices:
                     adv_imgs_list.append(imgs[index].clone())
-                    label_shift.append(labels[index])
+                    label_shift.append(labels[index].item())
 
         self.logger.print_and_log("True labels {}".format(label_shift))
 
         adv_imgs = torch.stack(adv_imgs_list, dim=0)
         return adv_imgs, adv_indices
+
+    def get_attack_mode(self):
+        return self.attack_mode
 
     def set_attack_mode(self, new_mode):
         assert new_mode == 'context' or new_mode == 'target'
