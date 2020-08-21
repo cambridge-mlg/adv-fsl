@@ -2,6 +2,7 @@ import yaml
 from attacks.projected_gradient_descent import ProjectedGradientDescent
 from attacks.carlini_wagner_l2 import CarliniWagnerL2
 from attacks.elastic_net import ElasticNet
+from attacks.shift_attack import ShiftAttack
 
 
 def create_attack(attack_config_path, checkpoint_dir):
@@ -72,6 +73,13 @@ def create_attack(attack_config_path, checkpoint_dir):
                 class_fraction=attack_params['class_fraction'],
                 shot_fraction=attack_params['shot_fraction'],
                 use_true_target_labels=attack_params['use_true_target_labels']
+            )
+        elif attack_params['attack'] == 'shift':
+            attack = ShiftAttack(
+                checkpoint_dir=checkpoint_dir,
+                attack_mode=attack_params['attack_mode'],
+                class_fraction=attack_params['class_fraction'],
+                shot_fraction=attack_params['shot_fraction']
             )
 
         return attack
