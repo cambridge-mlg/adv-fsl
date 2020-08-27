@@ -63,7 +63,7 @@ from PIL import Image
 import sys
 # sys.path.append(os.path.abspath('attacks'))
 from attacks.attack_helpers import create_attack
-from attacks.attack_utils import split_target_set, make_adversarial_task_dict
+from attacks.attack_utils import split_target_set, make_adversarial_task_dict, infer_way_and_shots
 
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
@@ -123,7 +123,7 @@ class Learner:
         if self.args.dataset == "meta-dataset":
             self.dataset = MetaDatasetReader(self.args.data_path, self.args.mode, self.train_set, self.validation_set,
                                              self.test_set, self.args.max_way_train, self.args.max_way_test,
-                                             self.args.max_support_train, self.args.max_support_test)
+                                             self.args.max_support_train, self.args.max_support_test, self.args.query_test * 5)
         else:
             self.dataset = SingleDatasetReader(self.args.data_path, self.args.mode, self.args.dataset, self.args.way,
                                                self.args.shot, self.args.query_train, self.args.query_test * num_target_sets)
@@ -482,10 +482,16 @@ class Learner:
                     target_images, target_labels = all_target_images, all_target_labels
                     eval_images, eval_labels = None, None
                 else:
+                    import pdb; pdb.set_trace()
                     # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
-                    assert self.args.target_set_size_multiplier * self.args.shot * self.args.way <= all_target_images.shape[0]
+                    if self.args.dataset == "meta-dataset":
+                        # Infer the shot and way for this task
+                        _, shots = infer_way_and_shots(context_labels)
+                    else:
+                        assert self.args.target_set_size_multiplier * self.args.shot * self.args.way <= all_target_images.shape[0]
+                        shots = self.args.shot
                     target_images, target_labels, eval_images, eval_labels, target_images_np = split_target_set(
-                        all_target_images, all_target_labels, self.args.target_set_size_multiplier, self.args.shot,
+                        all_target_images, all_target_labels, self.args.target_set_size_multiplier, shots,
                         all_target_images_np=all_target_images_np)
 
                 acc_before = self.calc_accuracy(context_images, context_labels, target_images, target_labels)
