@@ -119,11 +119,13 @@ class Learner:
         num_target_sets = self.args.target_set_size_multiplier
         if self.args.indep_eval or self.args.swap_attack:
             num_target_sets += NUM_INDEP_EVAL_TASKS
-
         if self.args.dataset == "meta-dataset":
+            if self.args.query_test * self.args.target_set_size_multiplier > 50:
+                print_and_log("WARNING: Very high number of query points requested. Query points = query_test * target_set_size_multiplier = {} * {} = {}".format(self.args.query_test, self.args.target_set_size_multiplier, self.args.query_test * self.args.target_set_size_multiplier))
+
             self.dataset = MetaDatasetReader(self.args.data_path, self.args.mode, self.train_set, self.validation_set,
                                              self.test_set, self.args.max_way_train, self.args.max_way_test,
-                                             self.args.max_support_train, self.args.max_support_test, self.args.query_test * 5)
+                                             self.args.max_support_train, self.args.max_support_test, self.args.query_test * self.args.target_set_size_multiplier)
         else:
             self.dataset = SingleDatasetReader(self.args.data_path, self.args.mode, self.args.dataset, self.args.way,
                                                self.args.shot, self.args.query_train, self.args.query_test * num_target_sets)
@@ -476,6 +478,8 @@ class Learner:
                 saved_tasks = []
             for t in range(self.args.attack_tasks):
                 task_dict = self.dataset.get_test_task(item, session)
+                import pdb; pdb.set_trace()
+
                 context_images, all_target_images, context_labels, all_target_labels, context_images_np, all_target_images_np = \
                     self.prepare_task(task_dict, shuffle=False)
                 if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:
