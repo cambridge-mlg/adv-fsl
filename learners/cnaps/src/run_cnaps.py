@@ -489,13 +489,13 @@ class Learner:
                     import pdb; pdb.set_trace()
                     # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
                     if self.args.dataset == "meta-dataset":
-                        # Infer the shot and way for this task
-                        _, shots = infer_way_and_shots(context_labels)
+                        target_set_shot = self.args.query_test
                     else:
-                        assert self.args.target_set_size_multiplier * self.args.shot * self.args.way <= all_target_images.shape[0]
-                        shots = self.args.shot
+                        target_set_shot = self.args.shot
+                    assert self.args.target_set_size_multiplier * target_set_shot * self.args.way <= all_target_images.shape[0]
+
                     target_images, target_labels, eval_images, eval_labels, target_images_np = split_target_set(
-                        all_target_images, all_target_labels, self.args.target_set_size_multiplier, shots,
+                        all_target_images, all_target_labels, self.args.target_set_size_multiplier, target_set_shot,
                         all_target_images_np=all_target_images_np)
 
                 acc_before = self.calc_accuracy(context_images, context_labels, target_images, target_labels)
