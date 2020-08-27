@@ -122,7 +122,6 @@ def infer_way_and_shots(labels):
     return way, shots
 
 def split_into_tasks(target_images, target_labels, shot, target_images_np=None):
-    import pdb; pdb.set_trace()
     classes = torch.unique(target_labels)
     way = len(classes)
 

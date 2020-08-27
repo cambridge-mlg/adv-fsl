@@ -478,15 +478,12 @@ class Learner:
                 saved_tasks = []
             for t in range(self.args.attack_tasks):
                 task_dict = self.dataset.get_test_task(item, session)
-                import pdb; pdb.set_trace()
-
                 context_images, all_target_images, context_labels, all_target_labels, context_images_np, all_target_images_np = \
                     self.prepare_task(task_dict, shuffle=False)
                 if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:
                     target_images, target_labels = all_target_images, all_target_labels
                     eval_images, eval_labels = None, None
                 else:
-                    import pdb; pdb.set_trace()
                     # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
                     if self.args.dataset == "meta-dataset":
                         target_set_shot = self.args.query_test
