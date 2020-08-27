@@ -42,7 +42,7 @@ class ShiftAttack:
         num_adv_shots = max(1, math.ceil(self.shot_fraction * shot))
         num_adv_classes = max(1, math.ceil(self.class_fraction * num_classes))
 
-        self.logger.print_and_log("Num adv classes = {}, num adv shots = {}".format(num_adv_classes, num_adv_shots))
+        # self.logger.print_and_log("Num adv classes = {}, num adv shots = {}".format(num_adv_classes, num_adv_shots))
         # We need to attack at least two classes to be able to do a shift attack
         assert num_adv_classes > 1
 
@@ -76,7 +76,7 @@ class ShiftAttack:
                     adv_imgs_list.append(imgs[index].clone())
                     label_shift.append(labels[index].item())
 
-        self.logger.print_and_log("True labels {}".format(label_shift))
+        # self.logger.print_and_log("True labels {}".format(label_shift))
 
         adv_imgs = torch.stack(adv_imgs_list, dim=0)
         return adv_imgs, adv_indices
