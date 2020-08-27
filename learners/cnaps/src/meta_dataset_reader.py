@@ -15,7 +15,7 @@ class MetaDatasetReader:
     """
     Class that wraps the Meta-Dataset episode reader.
     """
-    def __init__(self, data_path, mode, train_set, validation_set, test_set, max_way_train, max_way_test, max_support_train, max_support_test):
+    def __init__(self, data_path, mode, train_set, validation_set, test_set, max_way_train, max_way_test, max_support_train, max_support_test, query_test):
 
         self.data_path = data_path
         self.train_dataset_next_task = None
@@ -35,7 +35,7 @@ class MetaDatasetReader:
                 self.validation_set_dict[item] = next_task
 
         if mode == 'test' or mode == 'train_test' or mode == 'attack':
-            test_episode_description = self._get_test_episode_description(max_way_test, max_support_test)
+            test_episode_description = self._get_test_episode_description(max_way_test, max_support_test, query_test)
             for item in test_set:
                 next_task = self._init_single_source_dataset(item, learning_spec.Split.TEST, test_episode_description)
                 self.test_set_dict[item] = next_task
@@ -125,14 +125,14 @@ class MetaDatasetReader:
             ignore_bilevel_ontology=False
         )
 
-    def _get_test_episode_description(self, max_way_test, max_support_test):
+    def _get_test_episode_description(self, max_way_test, max_support_test, query_test):
         return config.EpisodeDescriptionConfig(
             num_ways=None,
             num_support=None,
             num_query=None,
             min_ways=5,
             max_ways_upper_bound=max_way_test,
-            max_num_query=10,
+            max_num_query=query_test,
             max_support_set_size=max_support_test,
             max_support_size_contrib_per_class=100,
             min_log_weight=-0.69314718055994529, # np.cnaps_layer_log.txt(0.5)

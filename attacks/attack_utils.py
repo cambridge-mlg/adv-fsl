@@ -111,12 +111,28 @@ def get_shifted_targeted_labels(true_labels, device):
     targeted_labels = torch.fmod(true_labels + torch.ones_like(true_labels), way)
     return targeted_labels
 
+def infer_way_and_shots(labels):
+    classes = torch.unique(labels)
+    way = len(classes)
 
-def split_into_tasks(target_images, target_labels, shot, target_images_np=None):
+    shots = []
+    for c in range(way):
+        c_indices = extract_class_indices(labels, c)
+        shots.append(c_indices.shape[0])
+    return way, shots
+
+# Shots can either be a single value (if the shot is the same for all classes) or a list, specifying the shot for each class
+def split_into_tasks(target_images, target_labels, shots, target_images_np=None):
+    import pdb; pdb.set_trace()
     classes = torch.unique(target_labels)
     way = len(classes)
 
-    new_target_size = shot * way
+    if type(shots) is not list:
+        shots = [shots] * way
+
+    new_target_size = 0
+    for shot in shots:
+        new_target_size += shot
     num_sets = int(len(target_images)/new_target_size)
     split_indices = []
     for s in range(num_sets):
@@ -127,7 +143,7 @@ def split_into_tasks(target_images, target_labels, shot, target_images_np=None):
         c_indices = [val.item() for val in c_indices_tensor]
 
         for s in range(num_sets):
-            split_indices[s].extend(c_indices[ s*shot : (s+1)*shot ])
+            split_indices[s].extend(c_indices[ s*shots[c] : (s+1)*shots[c] ])
 
     # So now we have num_sets-many lists of indices. Each list corresponds to the indices for a different target set.
     split_target_images = []
@@ -145,8 +161,8 @@ def split_into_tasks(target_images, target_labels, shot, target_images_np=None):
         return split_target_images, split_target_labels, None
 
 
-def split_target_set(all_target_images, all_target_labels, target_set_size_multiplier, shot, all_target_images_np=None, return_first_target_set=False):
-    split_target_images, split_target_labels, split_target_images_np = split_into_tasks(all_target_images, all_target_labels, shot, target_images_np=all_target_images_np)
+def split_target_set(all_target_images, all_target_labels, target_set_size_multiplier, shots, all_target_images_np=None, return_first_target_set=False):
+    split_target_images, split_target_labels, split_target_images_np = split_into_tasks(all_target_images, all_target_labels, shots, target_images_np=all_target_images_np)
 
     # The first "target_set_size_multiplier"-many will be used when generating the attack
     # The rest will be used for independent eval
