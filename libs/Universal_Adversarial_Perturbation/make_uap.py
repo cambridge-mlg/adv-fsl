@@ -23,7 +23,7 @@ def parse_command_line():
     parser.add_argument("--pretrained_feature_extractor_path",
                         default="E:/repos/adv-fsl/learners/cnaps/models/pretrained_resnet.pt.tar",
                         help="Path to pretrained feature extractor model.")
-    parser.add_argument("--epsilon", type=int, default=10, help="Largest +/- gray level shift on a 0-255 scale.")
+    parser.add_argument("--epsilon", type=float, default=10.0, help="Largest +/- gray level shift on a 0-255 scale.")
 
     args = parser.parse_args()
 
