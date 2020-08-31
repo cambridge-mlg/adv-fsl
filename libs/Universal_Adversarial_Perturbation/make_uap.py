@@ -23,6 +23,7 @@ def parse_command_line():
     parser.add_argument("--pretrained_feature_extractor_path",
                         default="E:/repos/adv-fsl/learners/cnaps/models/pretrained_resnet.pt.tar",
                         help="Path to pretrained feature extractor model.")
+    parser.add_argument("--epsilon", type=int, default=10, help="Largest +/- gray level shift on a 0-255 scale.")
 
     args = parser.parse_args()
 
@@ -48,7 +49,7 @@ def main():
 
     # compute perturbation
     v = generate(args.data_path, 'train.txt', 'test.txt', device, net, max_iter_uni=1000, delta=0.2, p=np.inf,
-                 num_classes=10, overshoot=0.2, max_iter_df=10)
+                 num_classes=10, overshoot=0.2, max_iter_df=10, xi=args.epsilon)
     # Saving the universal perturbation
     np.save(os.path.join(args.data_path, 'universal.npy'), v)
 
