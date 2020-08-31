@@ -3,6 +3,7 @@ from attacks.projected_gradient_descent import ProjectedGradientDescent
 from attacks.carlini_wagner_l2 import CarliniWagnerL2
 from attacks.elastic_net import ElasticNet
 from attacks.shift_attack import ShiftAttack
+from attacks.uap import UapAttack
 
 
 def create_attack(attack_config_path, checkpoint_dir):
@@ -80,6 +81,14 @@ def create_attack(attack_config_path, checkpoint_dir):
                 attack_mode=attack_params['attack_mode'],
                 class_fraction=attack_params['class_fraction'],
                 shot_fraction=attack_params['shot_fraction']
+            )
+        elif attack_params['attack'] == "uap":
+            attack = UapAttack(
+                checkpoint_dir=checkpoint_dir,
+                attack_mode=attack_params['attack_mode'],
+                class_fraction=attack_params['class_fraction'],
+                shot_fraction=attack_params['shot_fraction'],
+                perturbation_image_path=attack_params['perturbation_image_path']
             )
 
         return attack

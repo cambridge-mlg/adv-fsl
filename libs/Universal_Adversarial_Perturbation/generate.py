@@ -1,11 +1,12 @@
 from libs.Universal_Adversarial_Perturbation.deepfool import deepfool
-import os
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from PIL import Image
 import sys
 import os
+import pickle
+import time
 from libs.Universal_Adversarial_Perturbation.transforms import transform, convert
 from libs.Universal_Adversarial_Perturbation.dataset import MyDataset
 
@@ -42,7 +43,7 @@ def generate(path, dataset, testset, device, net, delta=0.2, max_iter_uni=np.inf
             line = line.strip('\n')
             line = line.rstrip()
             words = line.split()
-            img_trn.append((words[0], int(words[1])))
+            img_trn.append((int(words[0]), int(words[1])))
     img_tst = []
     with open(testset, 'r') as f:
         for line in f:
@@ -50,10 +51,14 @@ def generate(path, dataset, testset, device, net, delta=0.2, max_iter_uni=np.inf
             line = line.strip('\n')
             line = line.rstrip()
             words = line.split()
-            img_tst.append((words[0], int(words[1])))
+            img_tst.append((int(words[0]), int(words[1])))
     num_img_trn = len(img_trn)
     num_img_tst = len(img_tst)
     order = np.arange(num_img_trn)
+
+    # load the image arrays
+    train_images = pickle.load(open(os.path.join(path, 'train.pkl'), 'rb'))
+    test_images = pickle.load(open(os.path.join(path, 'test.pkl'), 'rb'))
 
     v=np.zeros([84,84,3])
     fooling_rate = 0.0
@@ -61,10 +66,12 @@ def generate(path, dataset, testset, device, net, delta=0.2, max_iter_uni=np.inf
 
     # start an epoch
     while fooling_rate < 1-delta and iter < max_iter_uni:
+        start = time.time()
         np.random.shuffle(order)
         print("Starting pass number ", iter)
         for k in order:
-            cur_img = Image.open(os.path.join(path, 'train', img_trn[k][0])).convert('RGB')
+            # cur_img = Image.open(os.path.join(path, 'train', img_trn[k][0])).convert('RGB')
+            cur_img = train_images[img_trn[k][0]]
             cur_img1 = transform(cur_img)[np.newaxis, :].to(device)
             r2 = int(net(cur_img1).max(1)[1])
             torch.cuda.empty_cache()
@@ -95,9 +102,9 @@ def generate(path, dataset, testset, device, net, delta=0.2, max_iter_uni=np.inf
 
             batch = 32
 
-            test_data_orig = MyDataset(path=os.path.join(path, 'test'), txt=testset, transform=transform)
+            test_data_orig = MyDataset(path=os.path.join(path, 'test.pkl'), txt=testset, image_array=test_images, transform=transform)
             test_loader_orig = DataLoader(dataset=test_data_orig, batch_size=batch, pin_memory=True)
-            test_data_pert = MyDataset(path=os.path.join(path, 'test'), txt=testset, pert=v, transform=transform)
+            test_data_pert = MyDataset(path=os.path.join(path, 'test.pkl'), txt=testset, image_array=test_images, pert=v, transform=transform)
             test_loader_pert = DataLoader(dataset=test_data_pert, batch_size=batch, pin_memory=True)
 
             for batch_idx, (inputs, _) in enumerate(test_loader_orig):
@@ -117,5 +124,7 @@ def generate(path, dataset, testset, device, net, delta=0.2, max_iter_uni=np.inf
             fooling_rate = float(torch.sum(est_labels_orig != est_labels_pert))/float(num_img_tst)
             print("FOOLING RATE: ", fooling_rate)
             np.save('v'+str(iter)+'_'+str(round(fooling_rate, 4)), v)
+        end = time.time()
+        print("iteration time = {}".format(end - start))
 
     return v

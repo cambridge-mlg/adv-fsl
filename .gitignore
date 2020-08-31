@@ -131,5 +131,6 @@ dmypy.json
 learners/maml/data
 learners/protonets_miniimagenet/materials/images_84/
 checkpoints/
+libs/Universal_Adversarial_Perturbation/*.npy
 
 .idea
