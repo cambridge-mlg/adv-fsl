@@ -36,25 +36,19 @@ class UapAttack:
                                           device, targeted_labels=targeted_labels)
 
     def _generate_target(self, context_images, context_labels, target_images, target_labels, model, get_logits_fn, device, targeted_labels=None):
-        clip_min = -1.0
-        clip_max = 1.0
-
         adv_target_images = target_images.clone()
 
         # shift and scale the images to the 0 - 255 range
         adv_target_images = (adv_target_images + 1.0) * 127.5
         # add the uap image
-        for i in range(adv_target_images.size[0]):
-            adv_target_images[i] = torch.clamp(adv_target_images[i] + self.uap_image, clip_min, clip_max)
+        for i in range(adv_target_images.size(0)):
+            adv_target_images[i] = torch.clamp(adv_target_images[i] + self.uap_image, 0.0, 255.0)
         # scale back to -1 to 1
         adv_target_images = (adv_target_images / 127.5) - 1.0
 
         return adv_target_images, list(range(adv_target_images.shape[0]))
 
     def _generate_context(self, context_images, context_labels, target_images, target_labels, model, get_logits_fn, device, targeted_labels=None):
-        clip_min = -1.0
-        clip_max = 1.0
-
         adv_context_indices = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
         adv_context_images = context_images.clone()
 
@@ -62,7 +56,7 @@ class UapAttack:
             # shift and scale the images to the 0 - 255 range
             adv_context_images[index] = (adv_context_images[index] + 1.0) * 127.5
             # add the uap image
-            adv_context_images[index] = torch.clamp(adv_context_images[index] + self.uap_image, clip_min, clip_max)
+            adv_context_images[index] = torch.clamp(adv_context_images[index] + self.uap_image, 0.0, 255.0)
             # scale back to -1 to 1
             adv_context_images[index] = (adv_context_images[index] / 127.5) - 1.0
 
