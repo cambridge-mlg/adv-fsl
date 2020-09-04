@@ -482,6 +482,7 @@ class Learner:
                     self.prepare_task(task_dict, shuffle=False)
                 if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:
                     target_images, target_labels = all_target_images, all_target_labels
+                    target_images_np = all_target_images_np
                     eval_images, eval_labels = None, None
                 else:
                     # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
