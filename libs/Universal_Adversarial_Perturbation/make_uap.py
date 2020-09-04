@@ -1,12 +1,9 @@
 import argparse
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import os
-from PIL import Image
 from libs.Universal_Adversarial_Perturbation.feature_extractor import create_feature_extractor
 from libs.Universal_Adversarial_Perturbation.classifier import Classifier
-from libs.Universal_Adversarial_Perturbation.transforms import transform
 from libs.Universal_Adversarial_Perturbation.generate import generate
 
 """
