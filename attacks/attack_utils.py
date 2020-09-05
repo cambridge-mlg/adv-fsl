@@ -249,7 +249,7 @@ def make_swap_attack_task_dict(context_images, context_labels, target_images, ta
                                 way, shot, query, split_target_images, split_target_labels):
     adv_task_dict = make_adversarial_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, 'context', way, shot, query, split_target_images, split_target_labels)
     adv_task_dict['adv_target_images'] = adv_target_images.cpu()
-    adv_task_dict['adv_target_indices'] = adv_target_indices.cpu()
+    adv_task_dict['adv_target_indices'] = adv_target_indices
     adv_task_dict['adv_context_images'] = adv_task_dict['adv_images'] #This should just reference the same tensor, hopefully not make a whole copy
     adv_task_dict['adv_context_indices'] = adv_task_dict['adv_indices']
     adv_task_dict['mode'] = 'swap'
