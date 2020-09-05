@@ -3,4 +3,4 @@ attack_mode: context
 class_fraction: 1.0
 shot_fraction: 1.0
 checkpoint_dir: e:/repos/adv-fsl/learners/cnaps/checkpoints
-perturbation_image_path: e:/repos/adv-fsl/attacks/uap_image.npy
+perturbation_image_path: e:/repos/adv-fsl/attacks/uap_image_epsilon_0.1_fool_80.13.npy
