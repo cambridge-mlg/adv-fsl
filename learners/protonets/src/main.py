@@ -6,7 +6,7 @@ from learners.protonets.src.utils import print_and_log, get_log_files, categoric
 from learners.protonets.src.model import ProtoNets
 from learners.protonets.src.data import MiniImageNetData, OmniglotData
 from attacks.attack_helpers import create_attack
-from attacks.attack_utils import save_image, split_target_set, extract_class_indices, make_adversarial_task_dict
+from attacks.attack_utils import save_image, split_target_set, extract_class_indices, make_adversarial_task_dict, make_swap_attack_task_dict
 from matplotlib import pyplot as plt
 import pickle
 import torch.nn.functional as F
@@ -267,6 +267,8 @@ class Learner:
         adv_target_accuracies = []
         adv_target_as_context_accuracies = []
         adv_context_as_target_accuracies = []
+        if self.args.save_attack:
+            saved_tasks = []
 
         for t in range(self.args.attack_tasks):
             task_dict = self.dataset.get_test_task(self.args.test_way, self.args.test_shot, self.args.query * num_target_sets)
@@ -318,6 +320,13 @@ class Learner:
                     adv_context_as_target_accuracies.append(
                         self.calc_accuracy(eval_images[s], eval_labels[s], adv_context_images, context_labels))
 
+                if self.args.save_attack:
+                    adv_task_dict = make_swap_attack_task_dict(context_images, context_labels, target_images, target_labels,
+                                                               adv_context_images, adv_context_indices, adv_target_images, adv_target_indices,
+                                                               self.args.test_way, self.args.test_shot, self.args.query,
+                                                               eval_images, eval_labels)
+                    saved_tasks.append(adv_task_dict)
+
                 del adv_context_images, adv_target_images
 
         self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy")
@@ -330,6 +339,11 @@ class Learner:
         self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy")
         self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy")
         self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target")
+
+        if self.args.save_attack:
+            fout = open(os.path.join(self.args.checkpoint_dir, "adv_task.pickle"), "wb")
+            pickle.dump(saved_tasks, fout)
+            fout.close()
 
     def attack(self, path):
         print_and_log(self.logfile, "")  # add a blank line
@@ -413,6 +427,11 @@ class Learner:
         self.print_average_accuracy(accuracies_before, "Before attack:")
         self.print_average_accuracy(accuracies_after, "After attack:")
         self.print_average_accuracy(indep_eval_accuracies, "Indep eval attack:")
+
+        if self.args.save_attack:
+            fout = open(os.path.join(self.args.checkpoint_dir, "adv_task.pickle"), "wb")
+            pickle.dump(saved_tasks, fout)
+            fout.close()
 
     def plot_attacks(self, path):
         print_and_log(self.logfile, "")  # add a blank line

@@ -16,15 +16,28 @@ class AdversarialDataset:
         self.shot = task_dict_list[0]['shot']
         self.way = task_dict_list[0]['way']
         self.query = task_dict_list[0]['query']
-        self.mode = task_dict_list[0]['mode']
+        mode = task_dict_list[0]['mode']
+        assert mode == 'context' or mode == 'target' or mode == 'swap'
+        self.mode = mode
 
     def get_clean_task(self, task_index, device):
         context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor).to(device)
         return self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index]['target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
 
-    def get_adversarial_task(self, task_index, device):
+    def get_adversarial_task(self, task_index, device, swap_mode=None):
         context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor).to(device)
-        return self.tasks[task_index]['adv_images'].to(device), context_labels, self.tasks[task_index]['target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
+        if self.mode == 'context':
+            return self.tasks[task_index]['adv_images'].to(device), context_labels, self.tasks[task_index]['target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
+        elif self.mode == 'target':
+            return self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index]['adv_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
+        elif self.mode == 'swap':
+            assert swap_mode is not None
+            if swap_mode == 'context':
+                return self.tasks[task_index]['adv_context_images'].to(device), context_labels, self.tasks[task_index][
+                    'target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
+            else:
+                self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index][
+                    'adv_target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
 
     def get_eval_task(self, task_index, device):
         eval_labels = self.tasks[task_index]['eval_labels']
@@ -230,6 +243,16 @@ def make_adversarial_task_dict(context_images, context_labels, target_images, ta
         for k in range(len(split_target_images)):
             adv_task_dict['eval_images'].append(split_target_images[k].cpu())
             adv_task_dict['eval_labels'].append(split_target_labels[k].cpu())
+    return adv_task_dict
+
+def make_swap_attack_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, adv_target_images, adv_target_indices,
+                                way, shot, query, split_target_images, split_target_labels):
+    adv_task_dict = make_adversarial_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, 'context', way, shot, query, split_target_images, split_target_labels)
+    adv_task_dict['adv_target_images'] = adv_target_images.cpu()
+    adv_task_dict['adv_target_indices'] = adv_target_indices.cpu()
+    adv_task_dict['adv_context_images'] = adv_task_dict['adv_images'] #This should just reference the same tensor, hopefully not make a whole copy
+    adv_task_dict['adv_context_indices'] = adv_task_dict['adv_indices']
+    adv_task_dict['mode'] = 'swap'
     return adv_task_dict
 
 

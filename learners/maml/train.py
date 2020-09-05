@@ -2,6 +2,7 @@ import argparse
 import torch
 import os
 import numpy as np
+import pickle
 
 from learners.maml.src.mini_imagenet import MiniImageNetData, prepare_task
 from learners.maml.src.omniglot import OmniglotData
@@ -11,7 +12,7 @@ from learners.maml.src.shrinkage_maml import SigmaMAML as sMAML
 from learners.maml.src.shrinkage_maml import PredCPMAML as pMAML
 from learners.maml.src.utils import save_image
 from attacks.attack_helpers import create_attack
-from attacks.attack_utils import extract_class_indices, Logger, split_target_set, make_adversarial_task_dict
+from attacks.attack_utils import extract_class_indices, Logger, split_target_set, make_adversarial_task_dict, make_swap_attack_task_dict
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_INDEP_EVAL_TASKS = 50
@@ -242,6 +243,9 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     adv_target_as_context_accuracies = []
     adv_context_as_target_accuracies = []
 
+    if args.save_attack:
+        saved_tasks = []
+
     for task in range(tasks):
         # when testing, target_shot is just shot
         task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.shot * num_target_sets)
@@ -266,6 +270,13 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
                 save_image_pair(checkpoint_dir, adv_context_images[i], xc[i], task, i)
                 save_image_pair(checkpoint_dir, adv_target_images[i], xt[i], task, i)
 
+        if args.save_attack:
+            adv_task_dict = make_swap_attack_task_dict(xc, yc, xt, yt,
+                                                       adv_context_images, adv_context_indices, adv_target_images,
+                                                       adv_target_indices, args.num_classes, args.shot, args.shot,
+                                                       x_eval, y_eval)
+            saved_tasks.append(adv_task_dict)
+
         gen_clean_accuracies.append(model.compute_objective(xc, yc, xt_mult, yt_mult, accuracy=True)[1].item())
         gen_adv_context_accuracies.append(model.compute_objective(adv_context_images, yc, xt_mult, yt_mult, accuracy=True)[1].item())
         gen_adv_target_accuracies.append(model.compute_objective(xc, yc, adv_target_images, yt, accuracy=True)[1].item())
@@ -288,6 +299,11 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy")
     print_average_accuracy(adv_target_accuracies, "Target attack accuracy")
     print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target")
+
+    if args.save_attack:
+        fout = open(os.path.join(args.checkpoint_dir, "adv_task.pickle"), "wb")
+        pickle.dump(saved_tasks, fout)
+        fout.close()
 
 
 def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
@@ -366,6 +382,11 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     print_average_accuracy(accuracies_before, "Before attack")
     print_average_accuracy(accuracies_after, "After attack")
     print_average_accuracy(indep_eval_accuracies, "Indep eval")
+
+    if args.save_attack:
+        fout = open(os.path.join(args.checkpoint_dir, "adv_task.pickle"), "wb")
+        pickle.dump(saved_tasks, fout)
+        fout.close()
 
 
 # Parse arguments given to the script.

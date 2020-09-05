@@ -63,7 +63,7 @@ from PIL import Image
 import sys
 # sys.path.append(os.path.abspath('attacks'))
 from attacks.attack_helpers import create_attack
-from attacks.attack_utils import split_target_set, make_adversarial_task_dict, infer_way_and_shots
+from attacks.attack_utils import split_target_set, make_adversarial_task_dict, infer_way_and_shots, make_swap_attack_task_dict
 
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
@@ -399,6 +399,9 @@ class Learner:
             adv_target_as_context_accuracies = []
             adv_context_as_target_accuracies = []
 
+            if self.args.save_attack:
+                saved_tasks = []
+
             for t in range(self.args.attack_tasks):
                 task_dict = self.dataset.get_test_task(item, session)
                 context_images, all_target_images, context_labels, all_target_labels, context_images_np, target_images_np = \
@@ -450,6 +453,12 @@ class Learner:
                         self.save_image_pair(adv_context_images[index], context_images_np[index], t, index)
                         self.save_image_pair(adv_target_images[index], target_images_np[index], t, index)
 
+                if self.args.save_attack:
+                    adv_task_dict = make_swap_attack_task_dict(context_images, context_labels, target_images, target_labels,
+                                                               adv_context_images, adv_context_indices, adv_target_images, adv_target_indices,
+                                                               self.args.way, self.args.shot, self.args.query_test, eval_images, eval_labels)
+                    saved_tasks.append(adv_task_dict)
+
                 del adv_context_images, adv_target_images
 
             self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", item)
@@ -462,6 +471,11 @@ class Learner:
             self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", item)
             self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", item)
             self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", item)
+
+            if self.args.save_attack:
+                fout = open(os.path.join(self.args.checkpoint_dir, "adv_task.pickle"), "wb")
+                pickle.dump(saved_tasks, fout)
+                fout.close()
 
     def attack_homebrew(self, path, session):
         print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
