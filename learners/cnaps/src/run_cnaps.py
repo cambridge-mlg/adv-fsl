@@ -177,7 +177,7 @@ class Learner:
                                                   "mnist", "cifar10", "cifar100"], default="meta-dataset",
                             help="Dataset to use.")
         parser.add_argument('--test_datasets', nargs='+', help='Datasets to use for testing',
-                            default=["ilsvrc_2012", "omniglot", "aircraft", "cu_birds", "dtd", "quickdraw", "fungi",
+                            default=["quickdraw", "ilsvrc_2012", "omniglot", "aircraft", "cu_birds", "dtd",     "fungi",
                                      "vgg_flower", "traffic_sign", "mscoco", "mnist", "cifar10", "cifar100"])
         parser.add_argument("--data_path", default="../datasets", help="Path to dataset records.")
         parser.add_argument("--classifier", choices=["versa", "proto-nets", "mahalanobis", "mlpip"],
@@ -206,7 +206,7 @@ class Learner:
         parser.add_argument("--max_way_test", type=int, default=50, help="Maximum way of meta-dataset meta-test task.")
         parser.add_argument("--max_support_train", type=int, default=400,
                             help="Maximum support set size of meta-dataset meta-train task.")
-        parser.add_argument("--max_support_test", type=int, default=500,
+        parser.add_argument("--max_support_test", type=int, default=450,
                             help="Maximum support set size of meta-dataset meta-test task.")
         parser.add_argument("--resume_from_checkpoint", "-r", dest="resume_from_checkpoint", default=False,
                             action="store_true", help="Restart from latest checkpoint.")
