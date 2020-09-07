@@ -125,7 +125,7 @@ class Learner:
 
             self.dataset = MetaDatasetReader(self.args.data_path, self.args.mode, self.train_set, self.validation_set,
                                              self.test_set, self.args.max_way_train, self.args.max_way_test,
-                                             self.args.max_support_train, self.args.max_support_test, self.args.query_test * self.args.target_set_size_multiplier)
+                                             self.args.max_support_train, self.args.max_support_test, self.args.query_test * num_target_sets)
         else:
             self.dataset = SingleDatasetReader(self.args.data_path, self.args.mode, self.args.dataset, self.args.way,
                                                self.args.shot, self.args.query_train, self.args.query_test * num_target_sets)
