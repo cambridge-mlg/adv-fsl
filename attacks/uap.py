@@ -1,12 +1,11 @@
 import torch
 import numpy as np
-from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, Logger
+from attacks.attack_utils import generate_context_attack_indices, Logger
 
 
 class UapAttack:
     def __init__(self,
                  checkpoint_dir,
-                 norm='inf',
                  attack_mode='context',
                  class_fraction=1.0,
                  shot_fraction=1.0,

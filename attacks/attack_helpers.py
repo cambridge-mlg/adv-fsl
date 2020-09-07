@@ -4,7 +4,7 @@ from attacks.carlini_wagner_l2 import CarliniWagnerL2
 from attacks.elastic_net import ElasticNet
 from attacks.shift_attack import ShiftAttack
 from attacks.uap import UapAttack
-
+from attacks.random import RandomAttack
 
 def create_attack(attack_config_path, checkpoint_dir):
     with open(attack_config_path) as f:
@@ -89,6 +89,14 @@ def create_attack(attack_config_path, checkpoint_dir):
                 class_fraction=attack_params['class_fraction'],
                 shot_fraction=attack_params['shot_fraction'],
                 perturbation_image_path=attack_params['perturbation_image_path']
+            )
+        elif attack_params['attack'] == "random":
+            attack = RandomAttack(
+                checkpoint_dir=checkpoint_dir,
+                attack_mode=attack_params['attack_mode'],
+                class_fraction=attack_params['class_fraction'],
+                shot_fraction=attack_params['shot_fraction'],
+                epsilon=attack_params['epsilon']
             )
 
         return attack
