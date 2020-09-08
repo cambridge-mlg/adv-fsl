@@ -206,7 +206,7 @@ class Learner:
         parser.add_argument("--max_way_test", type=int, default=50, help="Maximum way of meta-dataset meta-test task.")
         parser.add_argument("--max_support_train", type=int, default=400,
                             help="Maximum support set size of meta-dataset meta-train task.")
-        parser.add_argument("--max_support_test", type=int, default=450,
+        parser.add_argument("--max_support_test", type=int, default=400,
                             help="Maximum support set size of meta-dataset meta-test task.")
         parser.add_argument("--resume_from_checkpoint", "-r", dest="resume_from_checkpoint", default=False,
                             action="store_true", help="Restart from latest checkpoint.")
@@ -422,7 +422,6 @@ class Learner:
                                                                                target_images,
                                                                                target_labels, self.model, self.model,
                                                                                self.model.device)
-
                 assert [x.item() for x in adv_context_indices] == adv_target_indices
 
                 with torch.no_grad():
@@ -494,6 +493,7 @@ class Learner:
                 task_dict = self.dataset.get_test_task(item, session)
                 context_images, all_target_images, context_labels, all_target_labels, context_images_np, all_target_images_np = \
                     self.prepare_task(task_dict, shuffle=False)
+
                 if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:
                     target_images, target_labels = all_target_images, all_target_labels
                     target_images_np = all_target_images_np
@@ -502,13 +502,17 @@ class Learner:
                     # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
                     if self.args.dataset == "meta-dataset":
                         target_set_shot = self.args.query_test
+                        task_way = len(torch.unique(context_labels))
                     else:
                         target_set_shot = self.args.shot
-                    assert self.args.target_set_size_multiplier * target_set_shot * self.args.way <= all_target_images.shape[0]
+                        task_way = self.args.way
+                    assert self.args.target_set_size_multiplier * target_set_shot * task_way <= all_target_images.shape[0]
 
                     target_images, target_labels, eval_images, eval_labels, target_images_np = split_target_set(
                         all_target_images, all_target_labels, self.args.target_set_size_multiplier, target_set_shot,
                         all_target_images_np=all_target_images_np)
+                    if self.args.dataset == "meta-dataset":
+                        assert len(target_labels) <= self.args.max_support_test
 
                 acc_before = self.calc_accuracy(context_images, context_labels, target_images, target_labels)
                 accuracies_before.append(acc_before)
