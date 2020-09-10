@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import argparse
 import os
+from tqdm import tqdm
 from utils import Logger, accuracy
 from model import FineTuner
 from meta_dataset_reader import MetaDatasetReader, SingleDatasetReader
@@ -76,7 +77,6 @@ class Learner:
         for s in range(len(target_image_sets)):
             accuracy = self.model.test_linear(target_image_sets[s], target_label_sets[s])
             eval_acc.append(accuracy)
-        del target_image_sets
         return np.array(eval_acc).mean()
 
     def print_average_accuracy(self, accuracies, descriptor):
@@ -90,7 +90,6 @@ class Learner:
         self.logger.print_and_log("using feature extractor from {}".format(self.args.pretrained_feature_extractor_path))
 
         with torch.no_grad():
-            import pdb; pdb.set_trace()
             clean_acc_0 = []
             clean_acc = []
             adv_acc_0 = []
@@ -100,16 +99,13 @@ class Learner:
             if self.args.attack_mode == 'swap':
                 target_adv_acc_0 = []
 
-            for task in range(self.max_test_tasks):
+            for task in tqdm(range(self.max_test_tasks),dynamic_ncols=True):
                 # Clean task
                 context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
                 # fine tune the model to the current task
                 self.model.fine_tune(context_images, context_labels)
-                print("Finetune completed. Now evaluating on target set")
                 accuracy = self.model.test_linear(target_images, target_labels)
                 clean_acc_0.append(accuracy)
-
-                print("Now evaluating on independent sets")
                 clean_acc.append(self.eval(task))
 
                 if self.args.attack_mode == "target":
@@ -118,7 +114,6 @@ class Learner:
                     context_images, context_labels, adv_target_images, target_labels = self.dataset.get_adversarial_task(task, self.device)
                     accuracy = self.model.test_linear(adv_target_images, target_labels)
                     adv_acc_0.append(accuracy)
-                    del adv_target_images
 
                 else:
                     if self.args.attack_mode == "context":
@@ -128,7 +123,6 @@ class Learner:
                         _, _, adv_target_images, target_labels = self.dataset.get_adversarial_task(task, self.device, swap_mode="target")
                         accuracy = self.model.test_linear(adv_target_images, target_labels)
                         target_adv_acc_0.append(accuracy)
-                        del adv_target_images
 
                         # Then request the adversarial context set as usual. This will require retraining.
                         context_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task, self.device, swap_mode="context")
@@ -140,7 +134,6 @@ class Learner:
 
                     adv_acc.append(self.eval(task))
 
-                del context_images, context_labels, target_images, target_labels
 
             self.print_average_accuracy(clean_acc_0, "Clean Acc (gen setting)")
             self.print_average_accuracy(clean_acc, "Clean Acc")
