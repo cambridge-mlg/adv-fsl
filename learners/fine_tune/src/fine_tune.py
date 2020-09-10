@@ -90,13 +90,14 @@ class Learner:
         self.logger.print_and_log("using feature extractor from {}".format(self.args.pretrained_feature_extractor_path))
 
         with torch.no_grad():
+            import pdb; pdb.set_trace()
             clean_acc_0 = []
             clean_acc = []
             adv_acc_0 = []
             adv_acc = []
 
             # If we have saved out a swap attack, we also see how well the target attack transfers
-            if self.args.swap_attack:
+            if self.args.attack_mode == 'swap':
                 target_adv_acc_0 = []
 
             for task in range(self.max_test_tasks):
@@ -104,11 +105,11 @@ class Learner:
                 context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
                 # fine tune the model to the current task
                 self.model.fine_tune(context_images, context_labels)
-                self.logger.print("Finetune completed. Now evaluating on target set")
+                print("Finetune completed. Now evaluating on target set")
                 accuracy = self.model.test_linear(target_images, target_labels)
                 clean_acc_0.append(accuracy)
 
-                self.print("Now evaluating on independent sets")
+                print("Now evaluating on independent sets")
                 clean_acc.append(self.eval(task))
 
                 if self.args.attack_mode == "target":
