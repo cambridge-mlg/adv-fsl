@@ -507,7 +507,7 @@ class Learner:
                             target_set_shot = infer_num_shots(all_target_labels)
                             assert target_set_shot != -1
                             num_target_sets = all_target_images.shape[0] / (task_way * target_set_shot)
-                            print_and_log("Task {} had insufficient data for requested number of eval sets. Using what's available: {}".format(item, num_target_sets))
+                            print_and_log(self.logfile, "Task {} had insufficient data for requested number of eval sets. Using what's available: {}".format(item, num_target_sets))
                     else:
                         target_set_shot = self.args.shot
                         task_way = self.args.way
@@ -516,8 +516,6 @@ class Learner:
                     target_images, target_labels, eval_images, eval_labels, target_images_np = split_target_set(
                         all_target_images, all_target_labels, self.args.target_set_size_multiplier, target_set_shot,
                         all_target_images_np=all_target_images_np)
-                    if self.args.dataset == "meta-dataset":
-                        assert len(target_labels) <= self.args.max_support_test
 
                 context_images = context_images.to(self.device)
                 target_images = target_images.to(self.device)
