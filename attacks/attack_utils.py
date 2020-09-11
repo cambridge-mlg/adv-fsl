@@ -87,6 +87,19 @@ def generate_context_attack_indices(class_labels, class_fraction, shot_fraction)
             indices.append(index)
     return indices
 
+def infer_num_shots(class_labels):
+    classes = torch.unique(class_labels)
+    num_classes = len(classes)
+    num_shots = -1
+    for c in range(num_classes):
+        num_shots_curr = len(extract_class_indices(class_labels, c))
+        if num_shots_curr != num_shots and num_shots != -1:
+            print("Expected all classes to have equal number of shots")
+            return -1
+        elif num_shots == -1:
+            num_shots = num_shots_curr
+    return num_shots
+
 
 def distance_linf(x1, x2):
     return torch.max(torch.abs(x1 - x2), dim=1)
