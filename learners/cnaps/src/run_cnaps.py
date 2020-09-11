@@ -63,7 +63,7 @@ from PIL import Image
 import sys
 # sys.path.append(os.path.abspath('attacks'))
 from attacks.attack_helpers import create_attack
-from attacks.attack_utils import split_target_set, make_adversarial_task_dict, infer_way_and_shots, make_swap_attack_task_dict
+from attacks.attack_utils import split_target_set, make_adversarial_task_dict, infer_way_and_shots, make_swap_attack_task_dict, infer_num_shots
 
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
@@ -503,10 +503,15 @@ class Learner:
                     if self.args.dataset == "meta-dataset":
                         target_set_shot = self.args.query_test
                         task_way = len(torch.unique(context_labels))
+                        if self.args.target_set_size_multiplier * target_set_shot * task_way > all_target_images.shape[0]:
+                            target_set_shot = infer_num_shots(all_target_labels)
+                            assert target_set_shot != -1
+                            num_target_sets = all_target_images.shape[0] / (task_way * target_set_shot)
+                            print_and_log("Task {} had insufficient data for requested number of eval sets. Using what's available: {}".format(item, num_target_sets))
                     else:
                         target_set_shot = self.args.shot
                         task_way = self.args.way
-                    assert self.args.target_set_size_multiplier * target_set_shot * task_way <= all_target_images.shape[0]
+                        assert self.args.target_set_size_multiplier * target_set_shot * task_way <= all_target_images.shape[0]
 
                     target_images, target_labels, eval_images, eval_labels, target_images_np = split_target_set(
                         all_target_images, all_target_labels, self.args.target_set_size_multiplier, target_set_shot,
@@ -563,7 +568,7 @@ class Learner:
 
             self.print_average_accuracy(accuracies_before, "Before attack", item)
             self.print_average_accuracy(accuracies_after, "After attack", item)
-            if self.args.indep_eval:
+            if self.args.indep_eval and len(indep_eval_accuracies) > 0:
                 self.print_average_accuracy(indep_eval_accuracies, "Indep eval after attack:", item)
 
             if self.args.save_attack:

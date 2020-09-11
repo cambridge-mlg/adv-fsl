@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import argparse
 import os
+from tqdm import tqdm
 from utils import Logger, accuracy
 from model import FineTuner
 from meta_dataset_reader import MetaDatasetReader, SingleDatasetReader
@@ -58,6 +59,8 @@ class Learner:
         parser.add_argument("--test_tasks", "-t", type=int, default=1000, help="Number of tasks to test for each dataset.")
         parser.add_argument("--batch_size", "-b", type=int, default=1000, help="Batch size.")
         parser.add_argument("--log_file", default="log.tx", help="Name of log file")
+        parser.add_argument("--attack_mode", choices=["context", "target", "swap"], default="context",
+                            help="Type of attack being transferred")
         args = parser.parse_args()
 
         return args
@@ -74,7 +77,6 @@ class Learner:
         for s in range(len(target_image_sets)):
             accuracy = self.model.test_linear(target_image_sets[s], target_label_sets[s])
             eval_acc.append(accuracy)
-        del target_image_sets
         return np.array(eval_acc).mean()
 
     def print_average_accuracy(self, accuracies, descriptor):
@@ -89,33 +91,61 @@ class Learner:
 
         with torch.no_grad():
             clean_acc_0 = []
-            adv_acc_0 = []
             clean_acc = []
+            adv_acc_0 = []
             adv_acc = []
 
-            for task in range(self.max_test_tasks):
+            # If we have saved out a swap attack, we also see how well the target attack transfers
+            if self.args.attack_mode == 'swap':
+                target_adv_acc_0 = []
+
+            for task in tqdm(range(self.max_test_tasks),dynamic_ncols=True):
                 # Clean task
                 context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
                 # fine tune the model to the current task
                 self.model.fine_tune(context_images, context_labels)
                 accuracy = self.model.test_linear(target_images, target_labels)
                 clean_acc_0.append(accuracy)
-
                 clean_acc.append(self.eval(task))
 
-                # Adversarial task
-                adv_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task, self.device)
-                # fine tune the model to the current task
-                self.model.fine_tune(adv_images, context_labels)
-                accuracy = self.model.test_linear(target_images, target_labels)
-                adv_acc_0.append(accuracy)
+                if self.args.attack_mode == "target":
+                    # Run test for efficacy of adversarial target points
+                    # Since we don't need to retrain for a target attack, we can re-use the model we just learned
+                    context_images, context_labels, adv_target_images, target_labels = self.dataset.get_adversarial_task(task, self.device)
+                    accuracy = self.model.test_linear(adv_target_images, target_labels)
+                    adv_acc_0.append(accuracy)
 
-                adv_acc.append(self.eval(task))
+                else:
+                    if self.args.attack_mode == "context":
+                        context_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task, self.device)
+                    else:
+                        # First run target test
+                        _, _, adv_target_images, target_labels = self.dataset.get_adversarial_task(task, self.device, swap_mode="target")
+                        accuracy = self.model.test_linear(adv_target_images, target_labels)
+                        target_adv_acc_0.append(accuracy)
+
+                        # Then request the adversarial context set as usual. This will require retraining.
+                        context_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task, self.device, swap_mode="context")
+
+                    # fine tune the model to the current task
+                    self.model.fine_tune(context_images, context_labels)
+                    accuracy = self.model.test_linear(target_images, target_labels)
+                    adv_acc_0.append(accuracy)
+
+                    adv_acc.append(self.eval(task))
+
 
             self.print_average_accuracy(clean_acc_0, "Clean Acc (gen setting)")
             self.print_average_accuracy(clean_acc, "Clean Acc")
-            self.print_average_accuracy(adv_acc_0, "Adv Acc (gen setting)")
-            self.print_average_accuracy(adv_acc, "Adv Acc")
+            if self.args.attack_mode == "target":
+                self.print_average_accuracy(adv_acc_0, "Target Attack Acc (gen setting)")
+            elif self.args.attack_mode == "context":
+                self.print_average_accuracy(adv_acc_0, "Context Attack Acc (gen setting)")
+                self.print_average_accuracy(adv_acc, "Context Attack Acc")
+            else:
+                self.print_average_accuracy(adv_acc_0, "Context Attack Acc (gen setting)")
+                self.print_average_accuracy(adv_acc, "Context Attack Acc")
+                self.print_average_accuracy(target_adv_acc_0, "Target Attack Acc (gen setting)")
 
     def prepare_task(self, task_dict):
         context_images_np, context_labels_np = task_dict['context_images'], task_dict['context_labels']

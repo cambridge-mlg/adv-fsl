@@ -40,12 +40,12 @@ def create_feature_extractor(feature_extractor_family, feature_adaptation, pretr
         elif feature_extractor_family == "maml_convnet":
             feature_extractor = ConvnetFeatureExtractor(3, 32)
             saved_model_dict = torch.load(pretrained_path)
-            feature_extractor.load_state_dict(saved_model_dict['state_dict'])
+            feature_extractor.load_state_dict(saved_model_dict)
 
         elif feature_extractor_family == "protonets_convnet":
             feature_extractor = ConvnetFeatureExtractor(3, 64)
             saved_model_dict = torch.load(pretrained_path)
-            feature_extractor.load_state_dict(saved_model_dict['state_dict'])
+            feature_extractor.load_state_dict(saved_model_dict)
 
         else:
             feature_extractor = None

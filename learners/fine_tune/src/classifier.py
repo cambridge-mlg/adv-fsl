@@ -7,11 +7,15 @@ class FilmClassifier(nn.Module):
         super(FilmClassifier, self).__init__()
         self.feature_extractor = feature_extractor
         self.film_adapter = self.create_film_adapter(feature_adaptation, feature_extractor_family)
+        self.feature_extractor_family = feature_extractor_family
         self.fc = nn.Linear(in_features=self.feature_extractor.output_size, out_features=num_classes, bias=True)
 
     def forward(self, x):
-        film_params = self.film_adapter(None)
-        x = self.feature_extractor(x, film_params)
+        if self.feature_extractor_family == "protonets_convnet" or self.feature_extractor_family == "maml_convnet":
+            x = self.feature_extractor(x)
+        else:
+            film_params = self.film_adapter(None)
+            x = self.feature_extractor(x, film_params)
         return self.fc(x)
 
     def create_film_adapter(self, feature_adaptation, feature_extractor_family):

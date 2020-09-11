@@ -11,7 +11,7 @@ class FineTuner:
         self.device = device
         self.classifier = None
         self.feature_extractor = create_feature_extractor(
-            feature_extractor=self.args.feature_extractor,
+            feature_extractor_family=self.args.feature_extractor,
             feature_adaptation=self.args.feature_adaptation,
             pretrained_path=self.args.pretrained_feature_extractor_path
         ).to(device)

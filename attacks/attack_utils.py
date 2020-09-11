@@ -42,10 +42,12 @@ class AdversarialDataset:
     def get_eval_task(self, task_index, device):
         eval_labels = self.tasks[task_index]['eval_labels']
         eval_images = self.tasks[task_index]['eval_images']
+        eval_images_gpu = []
+        eval_labels_gpu = []
         for i in range(len(eval_labels)):
-            eval_labels[i] = eval_labels[i].type(torch.LongTensor).to(device)
-            eval_images[i] = eval_images[i].to(device)
-        return eval_images, eval_labels
+            eval_labels_gpu.append(eval_labels[i].type(torch.LongTensor).to(device))
+            eval_images_gpu.append(eval_images[i].to(device))
+        return eval_images_gpu, eval_labels_gpu
 
     def get_num_tasks(self):
         return len(self.tasks)
@@ -84,6 +86,19 @@ def generate_context_attack_indices(class_labels, class_fraction, shot_fraction)
         for index in attack_indices:
             indices.append(index)
     return indices
+
+def infer_num_shots(class_labels):
+    classes = torch.unique(class_labels)
+    num_classes = len(classes)
+    num_shots = -1
+    for c in range(num_classes):
+        num_shots_curr = len(extract_class_indices(class_labels, c))
+        if num_shots_curr != num_shots and num_shots != -1:
+            print("Expected all classes to have equal number of shots")
+            return -1
+        elif num_shots == -1:
+            num_shots = num_shots_curr
+    return num_shots
 
 
 def distance_linf(x1, x2):
