@@ -514,6 +514,12 @@ class Learner:
                     if self.args.dataset == "meta-dataset":
                         assert len(target_labels) <= self.args.max_support_test
 
+                context_images = context_images.to(self.device)
+                target_images = target_images.to(self.device)
+                context_labels = context_labels.to(self.device)
+                target_labels = target_labels.to(self.device)
+
+
                 acc_before = self.calc_accuracy(context_images, context_labels, target_images, target_labels)
                 accuracies_before.append(acc_before)
 
@@ -546,10 +552,12 @@ class Learner:
                     # Eval with indep sets as well, if required:
                     if self.args.indep_eval:
                         for k in range(len(eval_images)):
+                            eval_imgs_k = eval_images[k].to(self.device)
+                            eval_labels_k = eval_labels[k].to(self.device)
                             if attack.get_attack_mode() == 'context':
-                                indep_eval_accuracies.append(self.calc_accuracy(adv_images, context_labels, eval_images[k], eval_labels[k]))
+                                indep_eval_accuracies.append(self.calc_accuracy(adv_images, context_labels, eval_imgs_k, eval_labels_k))
                             else:
-                                indep_eval_accuracies.append(self.calc_accuracy(eval_images[k], eval_labels[k], adv_images, target_labels))
+                                indep_eval_accuracies.append(self.calc_accuracy(eval_imgs_k, eval_labels_k, adv_images, target_labels))
 
                 del adv_images
 
@@ -579,11 +587,7 @@ class Learner:
             target_images_np, target_labels_np = self.shuffle(target_images_np, target_labels_np)
         target_images = torch.from_numpy(target_images_np)
         target_labels = torch.from_numpy(target_labels_np)
-
-        context_images = context_images.to(self.device)
-        target_images = target_images.to(self.device)
-        context_labels = context_labels.to(self.device)
-        target_labels = target_labels.type(torch.LongTensor).to(self.device)
+        target_labels = target_labels.type(torch.LongTensor)
 
         return context_images, target_images, context_labels, target_labels, context_images_np, target_images_np
 
