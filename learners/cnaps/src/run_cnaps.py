@@ -46,12 +46,11 @@ import torch.nn as nn
 import numpy as np
 import argparse
 import os
-import pickle
 from normalization_layers import TaskNormI
 from utils import print_and_log, get_log_files, ValidationAccuracies, loss, aggregate_accuracy, verify_checkpoint_dir
 from model import Cnaps
-from art_wrapper import Art_Wrapper
 from meta_dataset_reader import MetaDatasetReader, SingleDatasetReader
+from attacks.attack_utils import save_pickle
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Quiet TensorFlow warnings
 import tensorflow as tf
@@ -472,9 +471,7 @@ class Learner:
             self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", item)
 
             if self.args.save_attack:
-                fout = open(os.path.join(self.args.checkpoint_dir, "adv_task.pickle"), "wb")
-                pickle.dump(saved_tasks, fout)
-                fout.close()
+                save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task.pbz2"), saved_tasks)
 
     def attack_homebrew(self, path, session):
         print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
@@ -570,9 +567,7 @@ class Learner:
                 self.print_average_accuracy(indep_eval_accuracies, "Indep eval after attack:", item)
 
             if self.args.save_attack:
-                fout = open(os.path.join(self.args.checkpoint_dir, "adv_task.pickle"), "wb")
-                pickle.dump(saved_tasks, fout)
-                fout.close()
+                save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task.pbz2"), saved_tasks)
 
     def prepare_task(self, task_dict, shuffle=True):
         context_images_np, context_labels_np = task_dict['context_images'], task_dict['context_labels']

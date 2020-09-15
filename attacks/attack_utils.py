@@ -4,12 +4,30 @@ from PIL import Image
 import numpy as np
 import os
 import pickle
+import bz2
+import _pickle as cPickle
+
+
+def save_pickle(file_path, data):
+    with bz2.BZ2File(filename=file_path, mode='w') as f:
+        cPickle.dump(data, f)
+
+
+def load_pickle(file_path):
+    extension = os.path.splitext(file_path)[1]
+    if extension == '.pbz2':
+        data = bz2.BZ2File(file_path, 'rb')
+        data = cPickle.load(data)
+    else:
+        f = open(file_path, 'rb')
+        data = pickle.load(f)
+        f.close()
+    return data
+
 
 class AdversarialDataset:
     def __init__(self, pickle_file_path):
-        fin = open(pickle_file_path, 'rb')
-        task_dict_list = pickle.load(fin)
-        fin.close()
+        task_dict_list = load_pickle(pickle_file_path)
         assert len(task_dict_list) > 0
         self.tasks = task_dict_list
 
@@ -269,7 +287,6 @@ def make_swap_attack_task_dict(context_images, context_labels, target_images, ta
     adv_task_dict['adv_context_indices'] = adv_task_dict['adv_indices']
     adv_task_dict['mode'] = 'swap'
     return adv_task_dict
-
 
 
 class Logger():

@@ -2,7 +2,7 @@ import argparse
 import torch
 import os
 import numpy as np
-import pickle
+from attacks.attack_utils import save_pickle
 
 from learners.maml.src.mini_imagenet import MiniImageNetData, prepare_task
 from learners.maml.src.omniglot import OmniglotData
@@ -301,9 +301,7 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target")
 
     if args.save_attack:
-        fout = open(os.path.join(args.checkpoint_dir, "adv_task.pickle"), "wb")
-        pickle.dump(saved_tasks, fout)
-        fout.close()
+        save_pickle(os.path.join(args.checkpoint_dir, "adv_task.pbz2"), saved_tasks)
 
 
 def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
@@ -384,10 +382,7 @@ def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     print_average_accuracy(indep_eval_accuracies, "Indep eval")
 
     if args.save_attack:
-        fout = open(os.path.join(args.checkpoint_dir, "adv_task.pickle"), "wb")
-        pickle.dump(saved_tasks, fout)
-        fout.close()
-
+        save_pickle(os.path.join(args.checkpoint_dir, "adv_task.pbz2"), saved_tasks)
 
 # Parse arguments given to the script.
 parser = argparse.ArgumentParser()

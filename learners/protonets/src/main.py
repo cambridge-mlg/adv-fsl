@@ -2,13 +2,14 @@ import torch
 import numpy as np
 import argparse
 import os
+import pickle
 from learners.protonets.src.utils import print_and_log, get_log_files, categorical_accuracy, loss, get_labels
 from learners.protonets.src.model import ProtoNets
 from learners.protonets.src.data import MiniImageNetData, OmniglotData
 from attacks.attack_helpers import create_attack
 from attacks.attack_utils import save_image, split_target_set, extract_class_indices, make_adversarial_task_dict, make_swap_attack_task_dict
 from matplotlib import pyplot as plt
-import pickle
+from attacks.attack_utils import save_pickle
 import torch.nn.functional as F
 import matplotlib.pylab as pl
 from matplotlib.colors import ListedColormap
@@ -341,9 +342,7 @@ class Learner:
         self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target")
 
         if self.args.save_attack:
-            fout = open(os.path.join(self.args.checkpoint_dir, "adv_task.pickle"), "wb")
-            pickle.dump(saved_tasks, fout)
-            fout.close()
+            save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task.pbz2"), saved_tasks)
 
     def attack(self, path):
         print_and_log(self.logfile, "")  # add a blank line
@@ -429,9 +428,7 @@ class Learner:
         self.print_average_accuracy(indep_eval_accuracies, "Indep eval attack:")
 
         if self.args.save_attack:
-            fout = open(os.path.join(self.args.checkpoint_dir, "adv_task.pickle"), "wb")
-            pickle.dump(saved_tasks, fout)
-            fout.close()
+            save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task.pbz2"), saved_tasks)
 
     def plot_attacks(self, path):
         print_and_log(self.logfile, "")  # add a blank line
