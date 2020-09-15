@@ -373,7 +373,7 @@ class Learner:
         # Swap attacks only make sense if doing evaluation with independent target sets
         # assert self.args.indep_eval
         self.model = self.init_model()
-        self.model.load_state_dict(torch.load(path))
+        self.model.load_state_dict(torch.load(path), strict=False)
 
         context_attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
         context_attack.set_attack_mode('context')
@@ -476,7 +476,7 @@ class Learner:
     def attack_homebrew(self, path, session):
         print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
         self.model = self.init_model()
-        self.model.load_state_dict(torch.load(path))
+        self.model.load_state_dict(torch.load(path), strict=False)
 
         attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
         for item in self.test_set:
