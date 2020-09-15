@@ -54,7 +54,7 @@ class AdversarialDataset:
                 return self.tasks[task_index]['adv_context_images'].to(device), context_labels, self.tasks[task_index][
                     'target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
             else:
-                self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index][
+                return self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index][
                     'adv_target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
 
     def get_eval_task(self, task_index, device):
