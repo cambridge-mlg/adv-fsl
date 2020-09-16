@@ -14,14 +14,14 @@ def autolabel(ax, rects):
                     xy=(rect.get_x() + rect.get_width() / 2, height),
                     xytext=(0, 3),  # 3 points vertical offset
                     textcoords="offset points",
-                    ha='center', va='bottom', fontsize='large')
+                    ha='center', va='bottom')
 
 
 def plot(ax, file, title):
     data = np.genfromtxt(file, delimiter=',', skip_header=1, usecols=(1, 2))
 
     x = np.arange(len(x_labels))  # the label locations
-    width = 0.22  # the width of the bars
+    width = 0.23  # the width of the bars
 
     rects1 = ax.bar(x - width * 3 / 2, data[3], width, label=legend_labels[3])
     rects2 = ax.bar(x - width / 2, data[2], width, label=legend_labels[2])
@@ -58,8 +58,8 @@ def main():
         'Support Attack (epsilon = 0.1)'
     ]
 
-    fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, sharey=True, figsize=(20,5))
-    fig.set_dpi(100)
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, sharey=True, figsize=(16,5))
+    fig.set_dpi(300)
 
     for file, title, ax in zip(files, titles, [ax1, ax2, ax3, ax4]):
         plot(ax, file, title)
@@ -69,7 +69,7 @@ def main():
     fig.text(-0.005, 0.5, 'Decrease in Accuracy (%)', va='center', rotation='vertical', fontsize='x-large')
     fig.tight_layout()
 
-    plt.subplots_adjust(wspace=0.1)
+    plt.subplots_adjust(wspace=0.02)
     plt.savefig('./plots/basic.pdf', bbox_inches='tight')
 
 
