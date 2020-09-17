@@ -3,7 +3,6 @@ import numpy as np
 
 x_labels = ['ProtoNets', 'MAML']
 legend_labels = ['PGD Specific', 'PGD General', 'UAP', 'Noise']
-#colors = ['#4D85BD', '#7CAA2D', '#F5E356', '#CB6318']
 colors = ['#5BB381', '#FFD700', '#DE3163', '#64C3EB']
 
 
