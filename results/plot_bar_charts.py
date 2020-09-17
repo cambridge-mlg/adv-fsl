@@ -3,7 +3,8 @@ import numpy as np
 
 x_labels = ['ProtoNets', 'MAML']
 legend_labels = ['PGD Specific', 'PGD General', 'UAP', 'Noise']
-colors = ['red', 'blue', 'green', 'black']
+#colors = ['#4D85BD', '#7CAA2D', '#F5E356', '#CB6318']
+colors = ['#5BB381', '#FFD700', '#DE3163', '#64C3EB']
 
 
 def autolabel(ax, rects):
@@ -23,10 +24,10 @@ def plot(ax, file, title):
     x = np.arange(len(x_labels))  # the label locations
     width = 0.23  # the width of the bars
 
-    rects1 = ax.bar(x - width * 3 / 2, data[3], width, label=legend_labels[3])
-    rects2 = ax.bar(x - width / 2, data[2], width, label=legend_labels[2])
-    rects3 = ax.bar(x + width / 2, data[0], width, label=legend_labels[0])
-    rects4 = ax.bar(x + width * 3 / 2, data[1], width, label=legend_labels[1])
+    rects1 = ax.bar(x - width * 3 / 2, data[3], width, label=legend_labels[3], color=colors[0])
+    rects2 = ax.bar(x - width / 2, data[2], width, label=legend_labels[2], color=colors[1])
+    rects3 = ax.bar(x + width / 2, data[0], width, label=legend_labels[0], color=colors[2])
+    rects4 = ax.bar(x + width * 3 / 2, data[1], width, label=legend_labels[1], color=colors[3])
 
     right_side = ax.spines["right"]
     right_side.set_visible(False)
