@@ -35,7 +35,7 @@ def plot(ax, file, title):
     top = ax.spines["top"]
     top.set_visible(False)
 
-    ax.set_title(title, y=-0.20, fontsize='x-large')
+    ax.set_title(title, y=-0.32, fontsize='x-large', color='blue')
     ax.set_xticks(x)
     ax.set_xticklabels(x_labels, fontsize='x-large')
 
@@ -62,18 +62,18 @@ def main():
         'shot: 5, epsilon: 0.1',
     ]
 
-    fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, sharey=True, figsize=(25,5))
+    fig, axs = plt.subplots(2, 2, sharey=True, figsize=(12.5,6))
     fig.set_dpi(300)
 
-    for file, title, ax in zip(files, titles, [ax1, ax2, ax3, ax4]):
+    for file, title, ax in zip(files, titles, [axs[0,0], axs[0,1], axs[1,0], axs[1,1]]):
         plot(ax, file, title)
 
-    ax1.legend(ncol=len(legend_labels), bbox_to_anchor=(0, 1), loc='lower left', fontsize='x-large')
+    axs[0,0].legend(ncol=len(legend_labels), bbox_to_anchor=(0, 1), loc='lower left', fontsize='x-large')
 
-    fig.text(-0.001, 0.5, 'Decrease in Accuracy (%)', va='center', rotation='vertical', fontsize='x-large')
+    fig.text(-0.002, 0.5, 'Decrease in Accuracy (%)', va='center', rotation='vertical', fontsize='x-large')
     fig.tight_layout()
 
-    plt.subplots_adjust(wspace=0.02)
+    plt.subplots_adjust(wspace=0.05)
     plt.savefig('./plots/basic.pdf', bbox_inches='tight')
 
 
