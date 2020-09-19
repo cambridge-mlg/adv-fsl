@@ -1,0 +1,7 @@
+Model, ProtoNets, MAML
+Specific, 100, 99.8
+General, 80.2, 0.0
+UAP, 0.0, 0.0
+Noise, 0.0, 0.2
+Swap, 61.7, 0.0
+Label, 71.6, 56.0
