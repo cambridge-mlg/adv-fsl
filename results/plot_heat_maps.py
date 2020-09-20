@@ -35,8 +35,8 @@ def heatmap(data, row_labels, col_labels, ax=None,
     im = ax.imshow(data, **kwargs)
 
     # Create colorbar
-    cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
-    cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom")
+    # cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
+    # cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom")
 
     # We want to show all ticks...
     ax.set_xticks(np.arange(data.shape[1]))
@@ -50,7 +50,7 @@ def heatmap(data, row_labels, col_labels, ax=None,
                    labeltop=True, labelbottom=False)
 
     # Rotate the tick labels and set their alignment.
-    plt.setp(ax.get_xticklabels(), rotation=-30, ha="right",
+    plt.setp(ax.get_xticklabels(), rotation=0, ha="center",
              rotation_mode="anchor")
 
     # Turn spines off and create white grid.
@@ -62,7 +62,7 @@ def heatmap(data, row_labels, col_labels, ax=None,
     ax.grid(which="minor", color="w", linestyle='-', linewidth=3)
     ax.tick_params(which="minor", bottom=False, left=False)
 
-    return im, cbar
+    return im #, cbar
 
 
 def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
@@ -124,50 +124,38 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
     return texts
 
 
-def plot_heatmap(file, output_file):
-    fig = plt.figure()
-    data = np.genfromtxt(file, delimiter=',', names=['Alpha', 'Shot', 'Accuracy'])
-
-    alpha = data['Alpha']
-    shot = data['Shot']
-    accuracy = data['Accuracy']
-
-    xi = np.linspace(shot.min(), shot.max(), 1000)
-    yi = np.linspace(alpha.min(), alpha.max(), 1000)
-
-    zi = griddata((shot, alpha), accuracy, (xi[None, :], yi[:, None]), method='cubic')
-
-    CS = plt.contourf(xi, yi, zi, 15, cmap=plt.cm.rainbow, vmax=accuracy.max(), vmin=accuracy.min())
-    plt.grid()
-    color_bar = plt.colorbar()
-    color_bar.set_label('Accuracy (%)', rotation=90, fontsize='x-large')
-
-    plt.xlabel('Shot', fontsize='x-large')
-    plt.ylabel('Alpha', fontsize='x-large')
-    plt.savefig(output_file, bbox_inches='tight')
-    plt.close()
-
-
 def main():
-    # fig, ((ax, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 6))
-    fig, ax = plt.subplots()
+    fig, axs = plt.subplots(2, 2, sharey=True, sharex=True, figsize=(6,6))
 
-    vegetables = ["cucumber", "tomato", "lettuce", "asparagus",
-                  "potato", "wheat", "barley"]
-    farmers = ["Farmer Joe", "Upland Bros.", "Smith Gardening",
-               "Agrifun", "Organiculture", "BioGoods Ltd.", "Cornylee Corp."]
+    class_labels = ["1", "3", "5"]
+    shot_labels = ["1", "3", "5"]
 
-    harvest = np.array([[0.8, 2.4, 2.5, 3.9, 0.0, 4.0, 0.0],
-                        [2.4, 0.0, 4.0, 1.0, 2.7, 0.0, 0.0],
-                        [1.1, 2.4, 0.8, 4.3, 1.9, 4.4, 0.0],
-                        [0.6, 0.0, 0.3, 0.0, 3.1, 0.0, 0.0],
-                        [0.7, 1.7, 0.6, 2.6, 2.2, 6.2, 0.0],
-                        [1.3, 1.2, 0.0, 0.0, 0.0, 3.2, 5.1],
-                        [0.1, 2.0, 0.0, 1.4, 0.0, 1.9, 6.3]])
+    files = [
+        './data/scale_protonets_5-way_5-shot_epsilon-05.txt',
+        './data/scale_cnaps_5-way_5-shot_epsilon-05.txt',
+        './data/scale_protonets_5-way_5-shot_epsilon-10.txt',
+        './data/scale_cnaps_5-way_5-shot_epsilon-10.txt'
+    ]
 
-    im, cbar = heatmap(harvest, vegetables, farmers, ax=ax,
-                       cmap="YlGn", cbarlabel="harvest [t/year]")
-    texts = annotate_heatmap(im, valfmt="{x:.1f} t")
+    titles = [
+        'ProtoNets,  epsilon: 0.05',
+        'CNAPs, epsilon: 0.05',
+        'ProtoNets, epsilon: 0.1',
+        'CNAPs, epsilon: 0.1'
+    ]
+
+    images = []
+    for file, title, ax in zip(files, titles, [axs[0,0], axs[0,1], axs[1,0], axs[1,1]]):
+        data = np.genfromtxt(file, delimiter=',')
+
+        im = heatmap(data, class_labels, shot_labels, ax=ax, cmap="Reds", cbarlabel="% Drop in Accuracy")
+        images.append(im)
+        texts = annotate_heatmap(im, valfmt="{x:.1f}")
+        ax.set_title(title, y=-0.32, fontsize='x-large', color='blue')
+
+    #cbar = fig.colorbar(images[0], ax=axs[0,0])
+    #cbar.set_ticks(np.arange(0, 100, 10))
+    #cbar.ax.set_ylabel("% Drop in Accuracy", rotation=-90, va="bottom")
 
     plt.subplots_adjust(wspace=0.1)
     fig.tight_layout()
