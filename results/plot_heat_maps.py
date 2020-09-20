@@ -42,8 +42,8 @@ def heatmap(data, row_labels, col_labels, ax=None,
     ax.set_xticks(np.arange(data.shape[1]))
     ax.set_yticks(np.arange(data.shape[0]))
     # ... and label them with the respective list entries.
-    ax.set_xticklabels(col_labels)
-    ax.set_yticklabels(row_labels)
+    ax.set_xticklabels(col_labels, fontsize='x-large')
+    ax.set_yticklabels(row_labels, fontsize='x-large')
 
     # Let the horizontal axes labeling appear on top.
     ax.tick_params(top=True, bottom=False,
@@ -125,7 +125,7 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
 
 
 def main():
-    fig, axs = plt.subplots(2, 2, sharey=True, sharex=True, figsize=(6,6))
+    fig, axs = plt.subplots(1, 4, sharey=True, sharex=True, figsize=(12,6))
 
     class_labels = ["1", "3", "5"]
     shot_labels = ["1", "3", "5"]
@@ -145,18 +145,17 @@ def main():
     ]
 
     images = []
-    for file, title, ax in zip(files, titles, [axs[0,0], axs[0,1], axs[1,0], axs[1,1]]):
+    for file, title, ax in zip(files, titles, [axs[0], axs[1], axs[2], axs[3]]):
         data = np.genfromtxt(file, delimiter=',')
 
         im = heatmap(data, class_labels, shot_labels, ax=ax, cmap="Reds", cbarlabel="% Drop in Accuracy")
         images.append(im)
-        texts = annotate_heatmap(im, valfmt="{x:.1f}")
-        ax.set_title(title, y=-0.32, fontsize='x-large', color='blue')
+        texts = annotate_heatmap(im, valfmt="{x:.1f}", fontsize='x-large')
+        ax.set_title(title, y=-0.15, fontsize='x-large', color='blue')
+        ax.set_xlabel('Classes', fontsize='large')
+        ax.xaxis.set_label_position('top')
 
-    #cbar = fig.colorbar(images[0], ax=axs[0,0])
-    #cbar.set_ticks(np.arange(0, 100, 10))
-    #cbar.ax.set_ylabel("% Drop in Accuracy", rotation=-90, va="bottom")
-
+    axs[0].set_ylabel('Shots', fontsize='large')
     plt.subplots_adjust(wspace=0.1)
     fig.tight_layout()
     plt.savefig('./plots/heat_maps.pdf', bbox_inches='tight')
