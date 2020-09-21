@@ -56,10 +56,10 @@ def main():
     ]
 
     titles = [
-        'shot: 1, epsilon: 0.05',
-        'shot: 1, epsilon: 0.1',
-        'shot: 5, epsilon: 0.05',
-        'shot: 5, epsilon: 0.1',
+        '(a) shot: 1, epsilon: 0.05',
+        '(b) shot: 1, epsilon: 0.1',
+        '(c) shot: 5, epsilon: 0.05',
+        '(d) shot: 5, epsilon: 0.1',
     ]
 
     fig, axs = plt.subplots(2, 2, sharey=True, figsize=(12.5,6))

@@ -138,10 +138,10 @@ def main():
     ]
 
     titles = [
-        'ProtoNets,  epsilon: 0.05',
-        'CNAPs, epsilon: 0.05',
-        'ProtoNets, epsilon: 0.1',
-        'CNAPs, epsilon: 0.1'
+        '(a) ProtoNets,  epsilon: 0.05',
+        '(b) CNAPs, epsilon: 0.05',
+        '(c) ProtoNets, epsilon: 0.1',
+        '(d) CNAPs, epsilon: 0.1'
     ]
 
     images = []
