@@ -58,7 +58,7 @@ class RandomAttack:
         adv_target_images = target_images.clone()
 
         # initialize uniform noise
-        noise = Uniform(torch.tensor([-epsilon / 2.0]), torch.tensor([epsilon / 2.0]))
+        noise = Uniform(torch.tensor([-epsilon]), torch.tensor([epsilon]))
         noise_shape = adv_target_images.size()
 
         adv_target_images = torch.clamp(adv_target_images + noise.rsample(noise_shape).squeeze().to(device), clip_min, clip_max)
