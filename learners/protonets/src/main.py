@@ -289,7 +289,7 @@ class Learner:
                 context_images, context_labels, target_images, target_labels,
                 self.model, self.model, self.device)
 
-            assert [x.item() for x in adv_context_indices] == adv_target_indices
+            # assert [x.item() for x in adv_context_indices] == adv_target_indices
 
             if self.args.save_samples and t < 10:
                 for index in adv_context_indices:

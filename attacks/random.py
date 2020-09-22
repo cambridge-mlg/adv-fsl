@@ -1,6 +1,6 @@
 import torch
 from  torch.distributions.uniform import Uniform
-from attacks.attack_utils import generate_context_attack_indices, Logger
+from attacks.attack_utils import generate_attack_indices, Logger
 
 
 class RandomAttack:
@@ -73,7 +73,7 @@ class RandomAttack:
         else:
             epsilon = self.epsilon
 
-        adv_context_indices = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
+        adv_context_indices = generate_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
         adv_context_images = context_images.clone()
 
         # initialize uniform noise

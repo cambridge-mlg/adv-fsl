@@ -85,7 +85,7 @@ def fix_logits(logits):
     return logits
 
 
-def generate_context_attack_indices(class_labels, class_fraction, shot_fraction):
+def generate_attack_indices(class_labels, class_fraction, shot_fraction):
     '''
         Given the class labels, generate the indices of the patterns we want to attack.
         We choose patterns based on the specified fraction of classes and shots to attack.
@@ -102,7 +102,7 @@ def generate_context_attack_indices(class_labels, class_fraction, shot_fraction)
         num_shots_to_attack = max(1, math.ceil(shot_fraction * num_shots_in_class))
         attack_indices = shot_indices[0:num_shots_to_attack]
         for index in attack_indices:
-            indices.append(index)
+            indices.append(index.item())
     return indices
 
 def infer_num_shots(class_labels):

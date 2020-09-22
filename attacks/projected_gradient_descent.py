@@ -5,7 +5,7 @@ import torch.distributions.uniform as uniform
 import numpy as np
 from matplotlib import pyplot as plt
 import os.path as path
-from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, Logger
+from attacks.attack_utils import convert_labels, generate_attack_indices, fix_logits, Logger
 from attacks.attack_utils import get_shifted_targeted_labels, get_random_targeted_labels
 
 
@@ -111,16 +111,18 @@ class ProjectedGradientDescent:
         else:
             labels = target_labels # As in, the true/predicted labels for the target set
 
+        adv_target_indices = generate_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
         adv_target_images = target_images.clone()
 
         # Initial projection step
         target_size = adv_target_images.size()
         m = target_size[1] * target_size[2] * target_size[3]
         num_target_images = target_size[0]
-        initial_perturb = self.random_sphere(num_target_images, m, epsilon, self.norm).reshape(
-            (num_target_images, target_size[1], target_size[2], target_size[3])).to(device)
+        initial_perturb = self.random_sphere(len(adv_target_indices), m, epsilon, self.norm).reshape(
+            (len(adv_target_indices), target_size[1], target_size[2], target_size[3])).to(device)
 
-        adv_target_images = torch.clamp(adv_target_images + initial_perturb, clip_min, clip_max)
+        for i, index in enumerate(adv_target_indices):
+            adv_target_images[index] = torch.clamp(adv_target_images[index] + initial_perturb[i], clip_min, clip_max)
 
         if self.verbose:
             verbose_result = ProjectedGradientDescent.make_verbose_PGD_result()
@@ -148,20 +150,23 @@ class ProjectedGradientDescent:
             if self.norm == 'inf':
                 perturbation = torch.sign(grad)
 
-            adv_target_images = torch.clamp(adv_target_images + epsilon_step * perturbation, clip_min, clip_max)
+            for index in adv_target_indices:
+                adv_target_images[index] = torch.clamp(adv_target_images[index] +
+                                                        epsilon_step * perturbation[index],
+                                                        clip_min, clip_max)
 
-            diff = adv_target_images - target_images
-            new_perturbation = self.projection(diff, epsilon, self.norm, device)
-            adv_target_images = target_images + new_perturbation
+                diff = adv_target_images[index] - target_images[index]
+                new_perturbation = self.projection(diff, epsilon, self.norm, device)
+                adv_target_images[index] = adv_target_images[index] + new_perturbation
 
             if self.verbose:
                 verbose_result['adv_images'].append(adv_target_images.clone().detach())
             del logits
 
         if self.verbose:
-            return adv_target_images, list(range(adv_target_images.shape[0])), verbose_result
+            return adv_target_images, adv_target_indices, verbose_result
 
-        return adv_target_images, list(range(adv_target_images.shape[0]))
+        return adv_target_images, adv_target_indices
 
     @staticmethod
     def make_verbose_PGD_result():
@@ -179,7 +184,7 @@ class ProjectedGradientDescent:
         else:
             epsilon, epsilon_step = self.epsilon, self.epsilon_step
 
-        adv_context_indices = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
+        adv_context_indices = generate_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
         adv_context_images = context_images.clone()
 
         if self.targeted:
