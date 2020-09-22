@@ -426,7 +426,9 @@ class Learner:
                                                                                target_images_small,
                                                                                target_labels_small, self.model, self.model,
                                                                                self.model.device)
-                assert [x.item() for x in adv_context_indices] == adv_target_indices
+                # In general, sanity-check that the target and context sets are the same size
+                if self.args.dataset != "meta-dataset":
+                    assert [x.item() for x in adv_context_indices] == adv_target_indices
 
                 with torch.no_grad():
                     # Evaluate in normal/generation setting
@@ -594,6 +596,8 @@ class Learner:
             target_images, target_labels, eval_images, eval_labels, target_images_small, target_labels_small = split_target_set(
                 all_target_images, all_target_labels, self.args.target_set_size_multiplier, self.args.shot,
                 return_first_target_set=True)
+            target_images_small = target_images_small.to(self.device)
+            target_labels_small = target_labels_small.to(self.device)
             extra_datasets = (target_images_small, target_labels_small, eval_images, eval_labels)
 
         context_images = context_images.to(self.device)
