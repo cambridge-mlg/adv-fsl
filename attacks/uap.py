@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from attacks.attack_utils import generate_context_attack_indices, Logger
+from attacks.attack_utils import generate_attack_indices, Logger
 
 
 class UapAttack:
@@ -48,7 +48,7 @@ class UapAttack:
         return adv_target_images, list(range(adv_target_images.shape[0]))
 
     def _generate_context(self, context_images, context_labels, target_images, target_labels, model, get_logits_fn, device, targeted_labels=None):
-        adv_context_indices = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
+        adv_context_indices = generate_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
         adv_context_images = context_images.clone()
 
         for index in adv_context_indices:

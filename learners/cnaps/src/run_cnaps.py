@@ -377,8 +377,8 @@ class Learner:
 
         context_attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
         context_attack.set_attack_mode('context')
-        assert context_attack.get_shot_fraction() == 1.0
-        assert context_attack.get_class_fraction() == 1.0
+        # assert context_attack.get_shot_fraction() == 1.0
+        # assert context_attack.get_class_fraction() == 1.0
         assert self.args.indep_eval
 
         target_attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
@@ -404,8 +404,7 @@ class Learner:
 
             for t in range(self.args.attack_tasks):
                 task_dict = self.dataset.get_test_task(item, session)
-                context_images, target_images, context_labels, target_labels, (target_images_small, target_labels_small, eval_images, eval_labels) = self.prepare_task(
-                    task_dict, shuffle=False)
+                context_images, target_images, context_labels, target_labels, (target_images_small, target_labels_small, eval_images, eval_labels) = self.prepare_task(task_dict, shuffle=False)
                 '''
                 context_images, all_target_images, context_labels, all_target_labels, context_images_np, target_images_np = \
                     self.prepare_task(task_dict, shuffle=False)
@@ -416,7 +415,7 @@ class Learner:
                     all_target_images, all_target_labels, self.args.target_set_size_multiplier, self.args.shot,
                     return_first_target_set=True)
                 '''
-
+                import pdb; pdb.set_trace()
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels,
                                                                                   target_images,
                                                                                   target_labels, self.model, self.model,
@@ -427,8 +426,8 @@ class Learner:
                                                                                target_labels_small, self.model, self.model,
                                                                                self.model.device)
                 # In general, sanity-check that the target and context sets are the same size
-                if self.args.dataset != "meta-dataset":
-                    assert [x.item() for x in adv_context_indices] == adv_target_indices
+                #if self.args.dataset != "meta-dataset":
+                #    assert [x.item() for x in adv_context_indices] == [x.item() for x in adv_target_indices]
 
                 with torch.no_grad():
                     # Evaluate in normal/generation setting

@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 
 from attacks.attack_utils import distance_l2_squared, distance_l1, one_hot_embedding, fix_logits, convert_labels, \
-    generate_context_attack_indices, Logger
+    generate_attack_indices, Logger
 
 ONE_MINUS_EPS = 0.999999
 '''We check whether we should abort early every max_iterations // NUM_CHECKS iterations'''
@@ -209,7 +209,7 @@ class ElasticNet():
 
         if self.attack_mode == 'context':
             # These indices are tensors. I'm not sure that's what we want, but I don't want to change it without further discussion
-            adv_context_indices_t = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
+            adv_context_indices_t = generate_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
             adv_indices = [index_tensor.item() for index_tensor in adv_context_indices_t]
             attack_set = context_images
             # We are conceptually only performing one attack, albeit over a set of images

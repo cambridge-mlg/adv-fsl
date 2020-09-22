@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, one_hot_embedding, Logger
+from attacks.attack_utils import convert_labels, generate_attack_indices, fix_logits, one_hot_embedding, Logger
 
 INF = 1e+5
 
@@ -168,7 +168,7 @@ class CarliniWagnerL2(object):
         if self.attack_mode == 'context':
             attack_set = context_images
             # Which context_images to attack:
-            adv_indices  = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
+            adv_indices  = generate_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
             num_attacks = 1
         else:
             attack_set = target_images
