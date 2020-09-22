@@ -5,7 +5,7 @@ import torch.distributions.uniform as uniform
 import numpy as np
 from matplotlib import pyplot as plt
 import os.path as path
-from attacks.attack_utils import convert_labels, generate_context_attack_indices, fix_logits, Logger
+from attacks.attack_utils import convert_labels, generate_attack_indices, fix_logits, Logger
 from attacks.attack_utils import get_shifted_targeted_labels, get_random_targeted_labels
 
 
@@ -111,7 +111,7 @@ class ProjectedGradientDescent:
         else:
             labels = target_labels # As in, the true/predicted labels for the target set
 
-        adv_target_indices = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
+        adv_target_indices = generate_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
         adv_target_images = target_images.clone()
 
         # Initial projection step
@@ -184,7 +184,7 @@ class ProjectedGradientDescent:
         else:
             epsilon, epsilon_step = self.epsilon, self.epsilon_step
 
-        adv_context_indices = generate_context_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
+        adv_context_indices = generate_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
         adv_context_images = context_images.clone()
 
         if self.targeted:

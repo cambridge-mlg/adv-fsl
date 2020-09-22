@@ -415,7 +415,6 @@ class Learner:
                     all_target_images, all_target_labels, self.args.target_set_size_multiplier, self.args.shot,
                     return_first_target_set=True)
                 '''
-                import pdb; pdb.set_trace()
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels,
                                                                                   target_images,
                                                                                   target_labels, self.model, self.model,
@@ -426,8 +425,8 @@ class Learner:
                                                                                target_labels_small, self.model, self.model,
                                                                                self.model.device)
                 # In general, sanity-check that the target and context sets are the same size
-                #if self.args.dataset != "meta-dataset":
-                #    assert [x.item() for x in adv_context_indices] == [x.item() for x in adv_target_indices]
+                if self.args.dataset != "meta-dataset":
+                    assert adv_context_indices == adv_target_indices
 
                 with torch.no_grad():
                     # Evaluate in normal/generation setting
