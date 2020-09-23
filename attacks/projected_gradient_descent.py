@@ -111,7 +111,7 @@ class ProjectedGradientDescent:
         else:
             labels = target_labels # As in, the true/predicted labels for the target set
 
-        adv_target_indices = generate_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
+        adv_target_indices = generate_attack_indices(target_labels, self.class_fraction, self.shot_fraction)
         adv_target_images = target_images.clone()
 
         # Initial projection step
