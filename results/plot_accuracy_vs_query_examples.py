@@ -5,57 +5,68 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_curves(file_list, labels, line_styles, output_file):
+def plot_curves(file_list, labels, line_styles, colors, output_file):
     fig = plt.figure()
-    for file, label, line_style in zip(file_list, labels, line_styles):
+    for file, label, line_style, color in zip(file_list, labels, line_styles, colors):
         data = np.genfromtxt(file, delimiter=',', names=['Size', "Accuracy"])
-        plt.plot(data['Size'], data['Accuracy'], label=label, linestyle=line_style)
+        plt.plot(data['Size'], data['Accuracy'], label=label, linestyle=line_style, color=color)
 
     plt.xlabel('Seed Query Set Size', fontsize='x-large')
     plt.xlim(0, 500)
-    plt.ylabel('% Drop in Accuracy', fontsize='x-large')
-    plt.legend(loc='best', fontsize='x-large')
+    plt.ylabel('Decrease in Accuracy (%)', fontsize='x-large')
+    plt.legend(loc='best', fontsize='large')
     plt.savefig(output_file, bbox_inches='tight')
     plt.close()
 
 
 def main():
+    colors = [
+        '#DE3163', '#DE3163', '#64C3EB', '#64C3EB', 'purple', 'purple'
+    ]
     line_styles = [
-        ':', '-', '--', '-.'
+        '-', '--', '-', '--', '-', '--'
     ]
 
     file_list = [
         './data/cnaps_all_1-shot.txt',
         './data/cnaps_single_1-shot.txt',
         './data/protonets_all_1-shot.txt',
-        './data/protonets_single_1-shot.txt'
+        './data/protonets_single_1-shot.txt',
+        './data/maml_all_1-shot.txt',
+        './data/maml_single_1-shot.txt'
     ]
 
     labels = [
         'CNAPs, All, 1-shot',
         'CNAPs, Single, 1-shot',
         'ProtoNets, All, 1-shot',
-        'ProtoNets, Single, 1-shot'
+        'ProtoNets, Single, 1-shot',
+        'MAML, All, 1-shot',
+        'MAML, Single, 1-shot'
     ]
 
-    plot_curves(file_list=file_list, labels=labels, line_styles=line_styles,
+    plot_curves(file_list=file_list, labels=labels, line_styles=line_styles, colors=colors,
                 output_file='./plots/accuracy_vs_query_examples_1_shot.pdf')
 
     file_list = [
         './data/cnaps_all_5-shot.txt',
         './data/cnaps_single_5-shot.txt',
         './data/protonets_all_5-shot.txt',
-        './data/protonets_single_5-shot.txt'
+        './data/protonets_single_5-shot.txt',
+        # './data/maml_all_5-shot.txt',
+        #'./data/maml_single_5-shot.txt'
     ]
 
     labels = [
         'CNAPs, All, 5-shot',
         'CNAPs, Single, 5-shot',
         'ProtoNets, All, 5-shot',
-        'ProtoNets, Single, 5-shot'
+        'ProtoNets, Single, 5-shot',
+        'MAML, All, 5-shot',
+        'MAML, Single, 5-shot'
     ]
 
-    plot_curves(file_list=file_list, labels=labels, line_styles=line_styles,
+    plot_curves(file_list=file_list, labels=labels, line_styles=line_styles, colors=colors,
                 output_file='./plots/accuracy_vs_query_examples_5_shot.pdf')
 
 
