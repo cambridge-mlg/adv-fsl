@@ -90,14 +90,11 @@ class Learner:
         self.logger.print_and_log("using feature extractor from {}".format(self.args.pretrained_feature_extractor_path))
 
         with torch.no_grad():
-            clean_acc_0 = []
-            clean_acc = []
-            adv_acc_0 = []
-            adv_acc = []
-
-            # If we have saved out a swap attack, we also see how well the target attack transfers
-            if self.args.attack_mode == 'swap':
-                target_adv_acc_0 = []
+            accuracies = {'clean_0': [], 'clean': [], 'adv_target_0': [], 'adv_context_0': [],
+                             'adv_context': [], 'target_swap_0': [], 'target_swap': []}
+            attack_descrips = {'clean_0': 'Clean Acc (gen setting)', 'clean': 'Clean Acc', 'adv_target_0': 'Target Attack Acc (gen setting)',
+                               'adv_context_0': 'Context Attack Acc (gen setting)', 'adv_context': 'Target Attack Acc',
+                               'target_swap_0': 'Target as Context (gen setting)', 'target_swap': 'Target as Context'}
 
             for task in tqdm(range(self.max_test_tasks),dynamic_ncols=True):
                 # Clean task
@@ -105,47 +102,48 @@ class Learner:
                 # fine tune the model to the current task
                 self.model.fine_tune(context_images, context_labels)
                 accuracy = self.model.test_linear(target_images, target_labels)
-                clean_acc_0.append(accuracy)
-                clean_acc.append(self.eval(task))
+                accuracies['clean_0'].append(accuracy)
+                accuracies['clean'].append(self.eval(task))
 
                 if self.args.attack_mode == "target":
                     # Run test for efficacy of adversarial target points
                     # Since we don't need to retrain for a target attack, we can re-use the model we just learned
                     context_images, context_labels, adv_target_images, target_labels = self.dataset.get_adversarial_task(task, self.device)
                     accuracy = self.model.test_linear(adv_target_images, target_labels)
-                    adv_acc_0.append(accuracy)
+                    accuracies['adv_target_0'].append(accuracy)
 
-                else:
-                    if self.args.attack_mode == "context":
-                        context_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task, self.device)
-                    else:
-                        # First run target test
-                        _, _, adv_target_images, target_labels = self.dataset.get_adversarial_task(task, self.device, swap_mode="target")
-                        accuracy = self.model.test_linear(adv_target_images, target_labels)
-                        target_adv_acc_0.append(accuracy)
+                elif self.args.attack_mode == "context":
+                    context_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task, self.device)
+                    # fine tune the model to the current task
+                    self.model.fine_tune(context_images, context_labels)
+                    accuracy = self.model.test_linear(target_images, target_labels)
+                    accuracies['adv_context_0'].append(accuracy)
+                    accuracies['adv_context'].append(self.eval(task))
 
-                        # Then request the adversarial context set as usual. This will require retraining.
-                        context_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task, self.device, swap_mode="context")
+                else: #Swap attack
+                    # First run target test
+                    _, _, adv_target_images, target_labels = self.dataset.get_adversarial_task(task, self.device, swap_mode="target")
+                    accuracy = self.model.test_linear(adv_target_images, target_labels)
+                    accuracies['adv_target_0'].append(accuracy)
+
+                    # Now use the adv target set as a context set
+                    self.model.fine_tune(adv_target_images, target_labels)
+                    accuracy = self.model.test_linear(context_images, context_labels)
+                    accuracies['target_swap_0'].append(accuracy)
+                    accuracies['target_swap'].append(self.eval(task)) # will this work?
+
+                    # Then request the adversarial context set as usual, to run a context attack
+                    context_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task, self.device, swap_mode="context")
 
                     # fine tune the model to the current task
                     self.model.fine_tune(context_images, context_labels)
                     accuracy = self.model.test_linear(target_images, target_labels)
-                    adv_acc_0.append(accuracy)
+                    accuracies['adv_context_0'].append(accuracy)
+                    accuracies['adv_context'].append(self.eval(task))
 
-                    adv_acc.append(self.eval(task))
-
-
-            self.print_average_accuracy(clean_acc_0, "Clean Acc (gen setting)")
-            self.print_average_accuracy(clean_acc, "Clean Acc")
-            if self.args.attack_mode == "target":
-                self.print_average_accuracy(adv_acc_0, "Target Attack Acc (gen setting)")
-            elif self.args.attack_mode == "context":
-                self.print_average_accuracy(adv_acc_0, "Context Attack Acc (gen setting)")
-                self.print_average_accuracy(adv_acc, "Context Attack Acc")
-            else:
-                self.print_average_accuracy(adv_acc_0, "Context Attack Acc (gen setting)")
-                self.print_average_accuracy(adv_acc, "Context Attack Acc")
-                self.print_average_accuracy(target_adv_acc_0, "Target Attack Acc (gen setting)")
+            for key in accuracies.keys():
+                if len(accuracies[key]) > 0:
+                    self.print_average_accuracy(accuracies[key], attack_descrips[key])
 
     def prepare_task(self, task_dict):
         context_images_np, context_labels_np = task_dict['context_images'], task_dict['context_labels']
