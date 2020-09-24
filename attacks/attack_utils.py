@@ -8,9 +8,16 @@ import bz2
 import _pickle as cPickle
 
 
-def save_pickle(file_path, data):
-    with bz2.BZ2File(filename=file_path, mode='w') as f:
-        cPickle.dump(data, f)
+def save_pickle(file_path, data, compress=False):
+    if compress:
+        file_path += ".pbz2"
+        with bz2.BZ2File(filename=file_path, mode='w') as f:
+            cPickle.dump(data, f)
+    else:
+        file_path += ".pickle"
+        f = open(file_path, 'wb')
+        pickle.dump(data, f)
+        f.close()
 
 
 def load_pickle(file_path):

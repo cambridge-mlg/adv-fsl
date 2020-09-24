@@ -342,7 +342,7 @@ class Learner:
         self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target")
 
         if self.args.save_attack:
-            save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task.pbz2"), saved_tasks)
+            save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), saved_tasks)
 
     def attack(self, path):
         print_and_log(self.logfile, "")  # add a blank line
@@ -428,7 +428,7 @@ class Learner:
         self.print_average_accuracy(indep_eval_accuracies, "Indep eval attack:")
 
         if self.args.save_attack:
-            save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task.pbz2"), saved_tasks)
+            save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), saved_tasks)
 
     def plot_attacks(self, path):
         print_and_log(self.logfile, "")  # add a blank line

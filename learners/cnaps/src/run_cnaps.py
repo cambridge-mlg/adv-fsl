@@ -473,7 +473,7 @@ class Learner:
             self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", item)
 
             if self.args.save_attack:
-                save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task.pbz2"), saved_tasks)
+                save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), saved_tasks)
 
 
 
@@ -541,7 +541,7 @@ class Learner:
                 self.print_average_accuracy(indep_eval_accuracies, "Indep eval after attack:", item)
 
             if self.args.save_attack:
-                save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task.pbz2"), saved_tasks)
+                save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), saved_tasks)
 
     def prepare_task(self, task_dict, shuffle=True):
         context_images_np, context_labels_np = task_dict['context_images'], task_dict['context_labels']
