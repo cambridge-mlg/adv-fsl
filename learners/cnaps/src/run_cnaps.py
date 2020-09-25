@@ -47,10 +47,12 @@ import numpy as np
 import argparse
 import os
 from normalization_layers import TaskNormI
-from utils import print_and_log, get_log_files, ValidationAccuracies, loss, aggregate_accuracy, verify_checkpoint_dir
+from utils import print_and_log, write_to_log, get_log_files, ValidationAccuracies, loss, aggregate_accuracy, verify_checkpoint_dir
 from model import Cnaps
 from meta_dataset_reader import MetaDatasetReader, SingleDatasetReader
 from attacks.attack_utils import save_pickle
+
+from tqdm import tqdm
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Quiet TensorFlow warnings
 import tensorflow as tf
@@ -358,6 +360,7 @@ class Learner:
         return acc
 
     def print_average_accuracy(self, accuracies, descriptor, item):
+        write_to_log(self.logfile,'{}'.format(accuracies))
         accuracy = np.array(accuracies).mean() * 100.0
         accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
         print_and_log(self.logfile,
@@ -402,19 +405,10 @@ class Learner:
             if self.args.save_attack:
                 saved_tasks = []
 
-            for t in range(self.args.attack_tasks):
+            for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
                 context_images, target_images, context_labels, target_labels, (target_images_small, target_labels_small, eval_images, eval_labels) = self.prepare_task(task_dict, shuffle=False)
-                '''
-                context_images, all_target_images, context_labels, all_target_labels, context_images_np, target_images_np = \
-                    self.prepare_task(task_dict, shuffle=False)
 
-                # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
-                assert self.args.target_set_size_multiplier * self.args.shot * self.args.way <= all_target_images.shape[0]
-                target_images_mult, target_labels_mult, eval_images, eval_labels, target_images, target_labels = split_target_set(
-                    all_target_images, all_target_labels, self.args.target_set_size_multiplier, self.args.shot,
-                    return_first_target_set=True)
-                '''
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels,
                                                                                   target_images,
                                                                                   target_labels, self.model, self.model,
@@ -424,6 +418,7 @@ class Learner:
                                                                                target_images_small,
                                                                                target_labels_small, self.model, self.model,
                                                                                self.model.device)
+                
                 # In general, sanity-check that the target and context sets are the same size
                 if self.args.dataset != "meta-dataset":
                     assert adv_context_indices == adv_target_indices
@@ -452,7 +447,7 @@ class Learner:
                             self.calc_accuracy(adv_target_images, target_labels_small, eval_imgs_k, eval_labels_k))
                         adv_context_as_target_accuracies.append(
                             self.calc_accuracy(eval_imgs_k, eval_labels_k, adv_context_images, context_labels))
-
+                
                 if self.args.save_attack:
                     adv_task_dict = make_swap_attack_task_dict(context_images, context_labels, target_images_small, target_labels_small,
                                                                adv_context_images, adv_context_indices, adv_target_images, adv_target_indices,
@@ -461,6 +456,7 @@ class Learner:
 
                 del adv_context_images, adv_target_images
 
+            
             self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", item)
             self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy", item)
             self.print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy", item)
@@ -471,6 +467,7 @@ class Learner:
             self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", item)
             self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", item)
             self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", item)
+
 
             if self.args.save_attack:
                 save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task.pbz2"), saved_tasks)
@@ -490,7 +487,7 @@ class Learner:
             if self.args.save_attack:
                 saved_tasks = []
 
-            for t in range(self.args.attack_tasks):
+            for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
                 context_images, target_images, context_labels, target_labels, (context_images_np, target_images_np, eval_images, eval_labels) = self.prepare_task(task_dict, shuffle=False)
 
@@ -565,38 +562,36 @@ class Learner:
         if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:
             target_images, target_labels = all_target_images, all_target_labels
             target_images_np = all_target_images_np
-            eval_images, eval_labels = None, None
-            return context_images, target_images, context_labels, target_labels, (context_images_np, target_images_np, eval_images, eval_labels)
-
-        # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
-        # This is slightly trickier for meta-dataset
-        if self.args.dataset == "meta-dataset":
-            target_set_shot = self.args.query_test
-            task_way = len(torch.unique(context_labels))
-            if self.args.target_set_size_multiplier * target_set_shot * task_way > all_target_images.shape[0]:
-                target_set_shot = infer_num_shots(all_target_labels)
-                assert target_set_shot != -1
-                num_target_sets = all_target_images.shape[0] / (task_way * target_set_shot)
-                print_and_log(self.logfile,
-                              "Task had insufficient data for requested number of eval sets. Using what's available: {}".format(num_target_sets))
+            extra_datasets = (context_images_np, target_images_np, None, None)
         else:
-            target_set_shot = self.args.shot
-            task_way = self.args.way
-            assert self.args.target_set_size_multiplier * target_set_shot * task_way <= all_target_images.shape[0]
+            # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
+            # This is slightly trickier for meta-dataset
+            if self.args.dataset == "meta-dataset":
+                target_set_shot = self.args.query_test
+                task_way = len(torch.unique(context_labels))
+                if self.args.target_set_size_multiplier * target_set_shot * task_way > all_target_images.shape[0]:
+                    target_set_shot = infer_num_shots(all_target_labels)
+                    assert target_set_shot != -1
+                    num_target_sets = all_target_images.shape[0] / (task_way * target_set_shot)
+                    print_and_log(self.logfile, "Task had insufficient data for requested number of eval sets. Using what's available: {}".format(num_target_sets))
+            else:
+                target_set_shot = self.args.shot
+                task_way = self.args.way
+                assert self.args.target_set_size_multiplier * target_set_shot * task_way <= all_target_images.shape[0]
 
-        # If this is a swap attack, then we need slightly different results from the target set splitter
-        if not self.args.swap_attack:
-            target_images, target_labels, eval_images, eval_labels, target_images_np = split_target_set(
-                all_target_images, all_target_labels, self.args.target_set_size_multiplier, target_set_shot,
-                all_target_images_np=all_target_images_np)
-            extra_datasets = (context_images_np, target_images_np, eval_images, eval_labels)
-        else:
-            target_images, target_labels, eval_images, eval_labels, target_images_small, target_labels_small = split_target_set(
-                all_target_images, all_target_labels, self.args.target_set_size_multiplier, self.args.shot,
-                return_first_target_set=True)
-            target_images_small = target_images_small.to(self.device)
-            target_labels_small = target_labels_small.to(self.device)
-            extra_datasets = (target_images_small, target_labels_small, eval_images, eval_labels)
+            # If this is a swap attack, then we need slightly different results from the target set splitter
+            if not self.args.swap_attack:
+                target_images, target_labels, eval_images, eval_labels, target_images_np = split_target_set(
+                    all_target_images, all_target_labels, self.args.target_set_size_multiplier, target_set_shot,
+                    all_target_images_np=all_target_images_np)
+                extra_datasets = (context_images_np, target_images_np, eval_images, eval_labels)
+            else:
+                target_images, target_labels, eval_images, eval_labels, target_images_small, target_labels_small = split_target_set(
+                    all_target_images, all_target_labels, self.args.target_set_size_multiplier, self.args.shot,
+                    return_first_target_set=True)
+                target_images_small = target_images_small.to(self.device)
+                target_labels_small = target_labels_small.to(self.device)
+                extra_datasets = (target_images_small, target_labels_small, eval_images, eval_labels)
 
         context_images = context_images.to(self.device)
         target_images = target_images.to(self.device)
