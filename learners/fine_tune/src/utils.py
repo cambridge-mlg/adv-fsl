@@ -17,9 +17,12 @@ class Logger():
     def __del__(self):
         self.file.close()
 
+    def log(self, message):
+        self.file.write(message + '\n')
+
     def print_and_log(self, message):
         print(message, flush=True)
-        self.file.write(message + '\n')
+        self.log(message)
 
 
 def accuracy(logits, test_labels):

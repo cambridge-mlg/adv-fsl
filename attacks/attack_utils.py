@@ -8,9 +8,16 @@ import bz2
 import _pickle as cPickle
 
 
-def save_pickle(file_path, data):
-    with bz2.BZ2File(filename=file_path, mode='w') as f:
-        cPickle.dump(data, f)
+def save_pickle(file_path, data, compress=False):
+    if compress:
+        file_path += ".pbz2"
+        with bz2.BZ2File(filename=file_path, mode='w') as f:
+            cPickle.dump(data, f)
+    else:
+        file_path += ".pickle"
+        f = open(file_path, 'wb')
+        pickle.dump(data, f)
+        f.close()
 
 
 def load_pickle(file_path):
@@ -45,8 +52,10 @@ class AdversarialDataset:
     def get_adversarial_task(self, task_index, device, swap_mode=None):
         context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor).to(device)
         if self.mode == 'context':
+            assert swap_mode is None
             return self.tasks[task_index]['adv_images'].to(device), context_labels, self.tasks[task_index]['target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
         elif self.mode == 'target':
+            assert swap_mode is None
             return self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index]['adv_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
         elif self.mode == 'swap':
             assert swap_mode is not None
