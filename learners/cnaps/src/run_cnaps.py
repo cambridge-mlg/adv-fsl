@@ -570,6 +570,7 @@ class Learner:
                 target_set_shot = self.args.query_test
                 task_way = len(torch.unique(context_labels))
                 if self.args.target_set_size_multiplier * target_set_shot * task_way > all_target_images.shape[0]:
+                    # Check the actual target set's shots can be inferred/is what we expect
                     target_set_shot = infer_num_shots(all_target_labels)
                     assert target_set_shot != -1
                     num_target_sets = all_target_images.shape[0] / (task_way * target_set_shot)
@@ -587,7 +588,7 @@ class Learner:
                 extra_datasets = (context_images_np, target_images_np, eval_images, eval_labels)
             else:
                 target_images, target_labels, eval_images, eval_labels, target_images_small, target_labels_small = split_target_set(
-                    all_target_images, all_target_labels, self.args.target_set_size_multiplier, self.args.shot,
+                    all_target_images, all_target_labels, self.args.target_set_size_multiplier, target_set_shot,
                     return_first_target_set=True)
                 target_images_small = target_images_small.to(self.device)
                 target_labels_small = target_labels_small.to(self.device)
