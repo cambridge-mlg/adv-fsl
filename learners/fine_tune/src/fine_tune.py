@@ -91,11 +91,11 @@ class Learner:
 
         with torch.no_grad():
             accuracies = {'clean_0': [], 'clean': [], 'adv_target_0': [], 'adv_context_0': [],
-                             'adv_context': [], 'target_swap_0': [], 'target_swap': []}
+                             'adv_context': [], 'target_swap_0': [], 'target_swap_1': [], 'target_swap': []}
             attack_descrips = {'clean_0': 'Clean Acc (gen setting)', 'clean': 'Clean Acc', 'adv_target_0': 'Target Attack Acc (gen setting)',
                                'adv_context_0': 'Context Attack Acc (gen setting)', 'adv_context': 'Context Attack Acc',
-                               'target_swap_0': 'Target as Context (gen setting)', 'target_swap': 'Target as Context'}
-            ordered_keys = ['clean_0', 'adv_target_0', 'adv_context_0', 'target_swap_0', 'clean', 'adv_context', 'target_swap']
+                               'target_swap_0': 'Target as Context (gen setting)', 'target_swap_1': 'Target as Context (straight)', 'target_swap': 'Target as Context'}
+            ordered_keys = ['clean_0', 'adv_target_0', 'adv_context_0', 'target_swap_0', 'target_swap_1', 'clean', 'adv_context', 'target_swap']
 
             for task in tqdm(range(self.max_test_tasks),dynamic_ncols=True):
                 # Clean task
@@ -131,7 +131,7 @@ class Learner:
                     self.model.fine_tune(adv_target_images, target_labels)
                     accuracy = self.model.test_linear(context_images, context_labels)
                     accuracies['target_swap_0'].append(accuracy)
-                    accuracies['target_swap'].append(self.eval(task)) # will this work?
+                    accuracies['target_swap_1'].append(self.eval(task)) # will this work?
 
                     # Then request the adversarial context set as usual, to run a context attack
                     context_images, context_labels, target_images, target_labels = self.dataset.get_adversarial_task(task, self.device, swap_mode="context")
@@ -141,6 +141,10 @@ class Learner:
                     accuracy = self.model.test_linear(target_images, target_labels)
                     accuracies['adv_context_0'].append(accuracy)
                     accuracies['adv_context'].append(self.eval(task))
+
+                    target_as_context, context_labels = self.dataset.get_adversarial_task(task, self.device, swap_mode="target_as_context")
+                    self.model.fine_tune(target_as_context, context_labels)
+                    accuracies['target_swap'].append(self.eval(task)) # will this work?
 
             for key in ordered_keys:
                 if len(accuracies[key]) > 0:
