@@ -360,6 +360,7 @@ class Learner:
         return acc
 
     def print_average_accuracy(self, accuracies, descriptor, item):
+        write_to_log(self.logfile, '{}, {}'.format(descriptor, item))
         write_to_log(self.logfile,'{}'.format(accuracies))
         accuracy = np.array(accuracies).mean() * 100.0
         accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
@@ -372,7 +373,7 @@ class Learner:
         save_image(clean_img, os.path.join(self.checkpoint_dir, 'in_task_{}_index_{}.png'.format(task_no, index)))
 
     def attack_swap(self, path, session):
-        print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
+        write_to_log(self.logfile, 'Attacking model {0:}: '.format(path))
         # Swap attacks only make sense if doing evaluation with independent target sets
         #
         self.model = self.init_model()
@@ -456,6 +457,9 @@ class Learner:
 
                 del adv_context_images, adv_target_images
 
+            if self.args.save_attack:
+                save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), saved_tasks)
+
             
             self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", item)
             self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy", item)
@@ -467,11 +471,7 @@ class Learner:
             self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", item)
             self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", item)
             self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", item)
-
-
-            if self.args.save_attack:
-                save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), saved_tasks)
-
+            
 
 
     def attack_homebrew(self, path, session):
