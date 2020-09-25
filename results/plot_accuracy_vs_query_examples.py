@@ -13,8 +13,9 @@ def plot_curves(file_list, labels, line_styles, colors, output_file):
 
     plt.xlabel('Seed Query Set Size', fontsize='x-large')
     plt.xlim(0, 500)
+    plt.ylim(30, 80)
     plt.ylabel('Decrease in Accuracy (%)', fontsize='x-large')
-    plt.legend(loc='best', fontsize='large')
+    plt.legend(loc='lower right', fontsize='large')
     plt.savefig(output_file, bbox_inches='tight')
     plt.close()
 
@@ -37,12 +38,12 @@ def main():
     ]
 
     labels = [
-        'CNAPs, All, 1-shot',
-        'CNAPs, Single, 1-shot',
-        'ProtoNets, All, 1-shot',
-        'ProtoNets, Single, 1-shot',
-        'MAML, All, 1-shot',
-        'MAML, Single, 1-shot'
+        'CNAPs, All',
+        'CNAPs, Single',
+        'ProtoNets, All',
+        'ProtoNets, Single',
+        'MAML, All',
+        'MAML, Single'
     ]
 
     plot_curves(file_list=file_list, labels=labels, line_styles=line_styles, colors=colors,
@@ -53,17 +54,17 @@ def main():
         './data/cnaps_single_5-shot.txt',
         './data/protonets_all_5-shot.txt',
         './data/protonets_single_5-shot.txt',
-        # './data/maml_all_5-shot.txt',
-        #'./data/maml_single_5-shot.txt'
+        './data/maml_all_5-shot.txt',
+        './data/maml_single_5-shot.txt'
     ]
 
     labels = [
-        'CNAPs, All, 5-shot',
-        'CNAPs, Single, 5-shot',
-        'ProtoNets, All, 5-shot',
-        'ProtoNets, Single, 5-shot',
-        'MAML, All, 5-shot',
-        'MAML, Single, 5-shot'
+        'CNAPs, All',
+        'CNAPs, Single',
+        'ProtoNets, All',
+        'ProtoNets, Single',
+        'MAML, All',
+        'MAML, Single'
     ]
 
     plot_curves(file_list=file_list, labels=labels, line_styles=line_styles, colors=colors,
