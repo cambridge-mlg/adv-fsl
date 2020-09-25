@@ -93,8 +93,9 @@ class Learner:
             accuracies = {'clean_0': [], 'clean': [], 'adv_target_0': [], 'adv_context_0': [],
                              'adv_context': [], 'target_swap_0': [], 'target_swap': []}
             attack_descrips = {'clean_0': 'Clean Acc (gen setting)', 'clean': 'Clean Acc', 'adv_target_0': 'Target Attack Acc (gen setting)',
-                               'adv_context_0': 'Context Attack Acc (gen setting)', 'adv_context': 'Target Attack Acc',
+                               'adv_context_0': 'Context Attack Acc (gen setting)', 'adv_context': 'Context Attack Acc',
                                'target_swap_0': 'Target as Context (gen setting)', 'target_swap': 'Target as Context'}
+            ordered_keys = ['clean_0', 'adv_target_0', 'adv_context_0', 'target_swap_0', 'clean', 'adv_context', 'target_swap']
 
             for task in tqdm(range(self.max_test_tasks),dynamic_ncols=True):
                 # Clean task
@@ -141,7 +142,7 @@ class Learner:
                     accuracies['adv_context_0'].append(accuracy)
                     accuracies['adv_context'].append(self.eval(task))
 
-            for key in accuracies.keys():
+            for key in ordered_keys:
                 if len(accuracies[key]) > 0:
                     self.print_average_accuracy(accuracies[key], attack_descrips[key])
 
