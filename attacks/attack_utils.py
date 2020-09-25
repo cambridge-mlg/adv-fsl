@@ -62,9 +62,28 @@ class AdversarialDataset:
             if swap_mode == 'context':
                 return self.tasks[task_index]['adv_context_images'].to(device), context_labels, self.tasks[task_index][
                     'target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
-            else:
+            elif swap_mode == 'target':
                 return self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index][
                     'adv_target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
+            elif swap_mode == 'target_as_context':
+                adv_target_as_context = self.tasks[task_index]['context_images'].to(device)
+                adv_target_indices = self.tasks[task_index]['adv_target_indices']
+                target_labels = self.tasks[task_index]['target_labels']
+                swapped_indices = []
+                for index in adv_target_indices:
+                    c = target_labels[index]
+                    # Replace the first best instance of class c with the adv query point (assuming we haven't already swapped it)
+                    shot_indices = extract_class_indices(context_labels, c)
+                    k = 0
+                    while shot_indices[k] in swapped_indices:
+                        k += 1
+                    index_to_swap = shot_indices[k]
+                    swapped_indices.append(index_to_swap)
+                assert len(swapped_indices) == len(adv_target_indices)
+                # First swap in the clean targets, to make sure the two clean accs are the same (debug)
+                for adv_t_i, swap_i in enumerate(swapped_indices):
+                    adv_target_as_context[swap_i] = self.tasks[task_index]['adv_target_images'][adv_t_i].to(device)
+                return adv_target_as_context, context_labels
 
     def get_eval_task(self, task_index, device):
         eval_labels = self.tasks[task_index]['eval_labels']
