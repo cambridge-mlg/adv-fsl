@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-x_labels = ['ProtoNets', 'MAML']
-legend_labels = ['PGD Specific', 'PGD General', 'UAP', 'Noise', 'Swap', 'Label Shift']
+
+legend_labels = ['Support Specific', 'Support General', 'UAP', 'Noise', 'Swap', 'Label Shift']
 colors = ['#5BB381', '#FFD700', '#DE3163', '#64C3EB', 'orange', 'purple']
 
 
@@ -17,15 +17,15 @@ def autolabel(ax, rects):
                     ha='center', va='bottom')
 
 
-def plot(ax, file, title):
+def plot(ax, file, title, x_labels):
     data = np.genfromtxt(file, delimiter=',', skip_header=1, usecols=(1, 2))
 
     x = np.arange(len(x_labels))  # the label locations
     width = 0.15  # the width of the bars
 
-    rects1 = ax.bar(x - width * 5 / 2, data[3], width, label=legend_labels[3], color=colors[0])
-    rects2 = ax.bar(x - width * 3 / 2 , data[2], width, label=legend_labels[2], color=colors[1])
-    rects3 = ax.bar(x - width / 2, data[5], width, label=legend_labels[5], color=colors[5])
+    rects1 = ax.bar(x - width * 5 / 2, data[5], width, label=legend_labels[5], color=colors[5])
+    rects2 = ax.bar(x - width * 3 / 2, data[3], width, label=legend_labels[3], color=colors[0])
+    rects3 = ax.bar(x - width / 2 , data[2], width, label=legend_labels[2], color=colors[1])
     rects4 = ax.bar(x + width / 2, data[0], width, label=legend_labels[0], color=colors[2])
     rects5 = ax.bar(x + width * 3 / 2, data[1], width, label=legend_labels[1], color=colors[3])
     rects6 = ax.bar(x + width * 5 / 2, data[4], width, label=legend_labels[4], color=colors[4])
@@ -62,11 +62,18 @@ def main():
         '(d) shot: 5, epsilon: 0.1',
     ]
 
+    x_labels_list = [
+        ['ProtoNets (Clean 47.5%)', 'MAML (Clean 46.9%)'],
+        ['ProtoNets (Clean 47.5%)', 'MAML (Clean 46.9%)'],
+        ['ProtoNets (Clean 64.4%)', 'MAML (Clean 61.4%)'],
+        ['ProtoNets (Clean 64.4%)', 'MAML (Clean 61.4%)']
+    ]
+
     fig, axs = plt.subplots(2, 2, sharey=True, figsize=(12.5,6))
     fig.set_dpi(300)
 
-    for file, title, ax in zip(files, titles, [axs[0,0], axs[0,1], axs[1,0], axs[1,1]]):
-        plot(ax, file, title)
+    for file, title, ax, x_labels in zip(files, titles, [axs[0,0], axs[0,1], axs[1,0], axs[1,1]], x_labels_list):
+        plot(ax, file, title, x_labels)
 
     axs[0,0].legend(ncol=len(legend_labels), bbox_to_anchor=(0, 1), loc='lower left', fontsize='x-large')
 
