@@ -69,6 +69,8 @@ def verify_checkpoint_dir(checkpoint_dir, resume, test_mode):
             print("If you want to resume a training run, specify the -r option on the command line.", flush=True)
             sys.exit()
 
+def write_to_log(log_file, message):
+    log_file.write(message + "\n")
 
 def print_and_log(log_file, message):
     """
