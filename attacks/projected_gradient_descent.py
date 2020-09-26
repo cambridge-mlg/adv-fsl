@@ -157,7 +157,7 @@ class ProjectedGradientDescent:
 
                 diff = adv_target_images[index] - target_images[index]
                 new_perturbation = self.projection(diff, epsilon, self.norm, device)
-                adv_target_images[index] = adv_target_images[index] + new_perturbation
+                adv_target_images[index] = target_images[index] + new_perturbation
 
             if self.verbose:
                 verbose_result['adv_images'].append(adv_target_images.clone().detach())
