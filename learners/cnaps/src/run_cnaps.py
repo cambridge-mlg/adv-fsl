@@ -405,6 +405,8 @@ class Learner:
 
             for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
+                while len(task_dict['context_images']) > 200:
+                    task_dict = self.dataset.get_test_task(item, session)
                 context_images, target_images, context_labels, target_labels, (
                 target_images_small, target_labels_small, eval_images, eval_labels) = self.prepare_task(task_dict,shuffle=False)
 
@@ -412,23 +414,31 @@ class Learner:
                 adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels, target_images_small, target_labels_small, self.model, self.model, self.model.device)
 
                 adv_target_as_context = context_images.clone()
-                swapped_indices = []
-                for index in adv_target_indices:
-                    c = target_labels[index]
-                    # Replace the first best instance of class c with the adv query point (assuming we haven't already swapped it)
-                    shot_indices = extract_class_indices(context_labels, c)
-                    k = 0
-                    while shot_indices[k] in swapped_indices:
-                        k += 1
-                    index_to_swap = shot_indices[k]
-                    swapped_indices.append(index_to_swap)
-                assert len(swapped_indices) == len(adv_target_indices)
-                # First swap in the clean targets, to make sure the two clean accs are the same (debug)
-                for adv_t_i, swap_i in enumerate(swapped_indices):
-                    adv_target_as_context[swap_i] = target_images[adv_t_i]
+                # Parallel array to keep track of where we actually put the adv_target_images
+                # Since not all of them might have room to get swapped
+                swap_indices_context = []
+                swap_indices_adv = []
+                target_labels_int = target_labels.type(torch.IntTensor)
+                failed_to_swap = 0
 
-                # In general, sanity-check that the target and context sets are the same size
-                assert adv_context_indices == adv_target_indices
+                for index in adv_target_indices:
+                    c = target_labels_int[index]
+                    # Replace the first best instance of class c with the adv query point (assuming we haven't already swapped it)
+                    shot_indices = extract_class_indices(context_labels.cpu(), c)
+                    k = 0
+                    while k < len(shot_indices) and shot_indices[k] in swap_indices_context:
+                        k += 1
+                    if k == len(shot_indices):
+                        failed_to_swap += 1
+                    else:
+                        index_to_swap = shot_indices[k]
+                        swap_indices_context.append(index_to_swap)
+                        swap_indices_adv.append(index)
+                assert (len(swap_indices_context)+failed_to_swap) == len(adv_target_indices)
+
+                # First swap in the clean targets, to make sure the two clean accs are the same (debug)
+                for i, swap_i in enumerate(swap_indices_context):
+                    adv_target_as_context[swap_i] = target_images[swap_indices_adv[i]]
 
                 with torch.no_grad():
                     # Evaluate in normal/generation setting
@@ -445,11 +455,15 @@ class Learner:
                         eval_labels_k = eval_labels[k].to(self.device)
                         clean_accuracies.append(self.calc_accuracy(context_images, context_labels, eval_imgs_k, eval_labels_k))
                         clean_target_as_context_accuracies.append(self.calc_accuracy(adv_target_as_context, context_labels, eval_imgs_k, eval_labels_k))
+                    
+                    for k in range(len(eval_images)):
+                        eval_imgs_k = eval_images[k].to(self.device)
+                        eval_labels_k = eval_labels[k].to(self.device)
 
                         adv_context_accuracies.append(self.calc_accuracy(adv_context_images, context_labels, eval_imgs_k, eval_labels_k))
                         # Now swap in the adv targets
-                        for adv_t_i, swap_i in enumerate(swapped_indices):
-                            adv_target_as_context[swap_i] = adv_target_images[adv_t_i]
+                        for i, swap_i in enumerate(swap_indices_context):
+                            adv_target_as_context[swap_i] = adv_target_images[swap_indices_adv[i]]
                         adv_target_as_context_accuracies.append(self.calc_accuracy(adv_target_as_context, context_labels, eval_imgs_k, eval_labels_k))
 
                 del adv_target_as_context
