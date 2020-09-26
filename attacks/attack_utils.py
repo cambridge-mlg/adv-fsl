@@ -69,20 +69,31 @@ class AdversarialDataset:
                 adv_target_as_context = self.tasks[task_index]['context_images'].to(device)
                 adv_target_indices = self.tasks[task_index]['adv_target_indices']
                 target_labels = self.tasks[task_index]['target_labels']
-                swapped_indices = []
+
+                swap_indices_context = []
+                swap_indices_adv = []
+                target_labels_int = target_labels.type(torch.IntTensor)
+                failed_to_swap = 0
+
                 for index in adv_target_indices:
-                    c = target_labels[index]
+                    c = target_labels_int[index]
                     # Replace the first best instance of class c with the adv query point (assuming we haven't already swapped it)
-                    shot_indices = extract_class_indices(context_labels, c)
+                    shot_indices = extract_class_indices(context_labels.cpu(), c)
                     k = 0
-                    while shot_indices[k] in swapped_indices:
+                    while k < len(shot_indices) and shot_indices[k] in swap_indices_context:
                         k += 1
-                    index_to_swap = shot_indices[k]
-                    swapped_indices.append(index_to_swap)
-                assert len(swapped_indices) == len(adv_target_indices)
+                    if k == len(shot_indices):
+                        failed_to_swap += 1
+                    else:
+                        index_to_swap = shot_indices[k]
+                        swap_indices_context.append(index_to_swap)
+                        swap_indices_adv.append(index)
+                assert (len(swap_indices_context) + failed_to_swap) == len(adv_target_indices)
+
                 # First swap in the clean targets, to make sure the two clean accs are the same (debug)
-                for adv_t_i, swap_i in enumerate(swapped_indices):
-                    adv_target_as_context[swap_i] = self.tasks[task_index]['adv_target_images'][adv_t_i].to(device)
+                for i, swap_i in enumerate(swap_indices_context):
+                    adv_target_as_context[swap_i] = self.tasks[task_index]['adv_target_images'][swap_indices_adv[i]].to(device)
+
                 return adv_target_as_context, context_labels
 
     def get_eval_task(self, task_index, device):
