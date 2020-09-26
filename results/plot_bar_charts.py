@@ -49,17 +49,17 @@ def plot(ax, file, title, x_labels):
 
 def main():
     files = [
+        './data/basic_support_5-way_1-shot_epsilon-0314.txt',
         './data/basic_support_5-way_1-shot_epsilon-05.txt',
-        './data/basic_support_5-way_1-shot_epsilon-10.txt',
+        './data/basic_support_5-way_5-shot_epsilon-0314.txt',
         './data/basic_support_5-way_5-shot_epsilon-05.txt',
-        './data/basic_support_5-way_5-shot_epsilon-10.txt'
     ]
 
     titles = [
-        '(a) shot: 1, epsilon: 0.05',
-        '(b) shot: 1, epsilon: 0.1',
-        '(c) shot: 5, epsilon: 0.05',
-        '(d) shot: 5, epsilon: 0.1',
+        '(a) shot: 1, epsilon: 0.0314',
+        '(b) shot: 1, epsilon: 0.5',
+        '(c) shot: 5, epsilon: 0.0314',
+        '(d) shot: 5, epsilon: 0.5'
     ]
 
     x_labels_list = [
