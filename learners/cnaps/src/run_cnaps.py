@@ -405,8 +405,9 @@ class Learner:
 
             for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
-                while len(task_dict['context_images']) > 200:
-                    task_dict = self.dataset.get_test_task(item, session)
+                # Retry until the task is small enough to load into debugging machine's memory
+                # while len(task_dict['context_images']) > 200:
+                #    task_dict = self.dataset.get_test_task(item, session)
                 context_images, target_images, context_labels, target_labels, (
                 target_images_small, target_labels_small, eval_images, eval_labels) = self.prepare_task(task_dict,shuffle=False)
 
