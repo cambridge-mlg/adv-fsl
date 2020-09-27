@@ -13,7 +13,7 @@ def plot_curves(file_list, labels, line_styles, colors, output_file):
 
     plt.xlabel('Seed Query Set Size', fontsize='x-large')
     plt.xlim(0, 500)
-    plt.ylim(30, 80)
+    plt.ylim(50, 80)
     plt.ylabel('Decrease in Accuracy (%)', fontsize='x-large')
     plt.legend(loc='lower right', fontsize='large')
     plt.savefig(output_file, bbox_inches='tight')
@@ -29,46 +29,40 @@ def main():
     ]
 
     file_list = [
-        './data/cnaps_all_1-shot.txt',
-        './data/cnaps_single_1-shot.txt',
-        './data/protonets_all_1-shot.txt',
-        './data/protonets_single_1-shot.txt',
-        './data/maml_all_1-shot.txt',
-        './data/maml_single_1-shot.txt'
+        # './data/cnaps_max_1-shot.txt',
+        # './data/cnaps_max_5-shot.txt',
+        './data/protonets_max_1-shot.txt',
+        './data/protonets_max_5-shot.txt',
+        './data/maml_max_1-shot.txt',
+        './data/maml_max_5-shot.txt'
     ]
 
     labels = [
-        'CNAPs, All',
-        'CNAPs, Single',
-        'ProtoNets, All',
-        'ProtoNets, Single',
-        'MAML, All',
-        'MAML, Single'
+        # 'CNAPs 1-shot',
+        # 'CNAPs 5-shot',
+        'ProtoNets 1-shot',
+        'ProtoNets 5-shot',
+        'MAML 1-shot',
+        'MAML 5-shot'
     ]
 
     plot_curves(file_list=file_list, labels=labels, line_styles=line_styles, colors=colors,
-                output_file='./plots/accuracy_vs_query_examples_1_shot.pdf')
+                output_file='./plots/accuracy_vs_query_examples.pdf')
 
-    file_list = [
-        './data/cnaps_all_5-shot.txt',
-        './data/cnaps_single_5-shot.txt',
-        './data/protonets_all_5-shot.txt',
-        './data/protonets_single_5-shot.txt',
-        './data/maml_all_5-shot.txt',
-        './data/maml_single_5-shot.txt'
-    ]
-
-    labels = [
-        'CNAPs, All',
-        'CNAPs, Single',
-        'ProtoNets, All',
-        'ProtoNets, Single',
-        'MAML, All',
-        'MAML, Single'
-    ]
-
-    plot_curves(file_list=file_list, labels=labels, line_styles=line_styles, colors=colors,
-                output_file='./plots/accuracy_vs_query_examples_5_shot.pdf')
+    # file_list = [
+    #     './data/cnaps_max_5-shot.txt',
+    #     './data/protonets_max_5-shot.txt',
+    #     './data/maml_max_5-shot.txt'
+    # ]
+    #
+    # labels = [
+    #     'CNAPs',
+    #     'ProtoNets',
+    #     'MAML',
+    # ]
+    #
+    # plot_curves(file_list=file_list, labels=labels, line_styles=line_styles, colors=colors,
+    #             output_file='./plots/accuracy_vs_query_examples_5_shot.pdf')
 
 
 if __name__ == '__main__':
