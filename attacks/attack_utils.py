@@ -49,6 +49,42 @@ class AdversarialDataset:
         context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor).to(device)
         return self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index]['target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
 
+    def get_frac_adversarial_set(self, task_index, device, class_frac, shot_frac, set_type="target"):
+        import pdb; pdb.set_trace()
+        # Right now, we only support this for swap attacks because we're short on time.
+        assert self.mode == 'swap'
+        assert len(self.tasks[task_index]['context_labels']) == len(self.tasks[task_index]['target_labels'])
+
+        if set_type == "target":
+            target_labels = self.tasks[task_index]['target_labels']
+            # Make sure we have enough adv images available to fill request.
+            # Easiest way to make sure everything matches up, is to check that all the target images have adversarial versions.
+            assert len(target_labels) == len(self.tasks[task_index]['adv_target_indices'])
+
+            # See which indices need to be swapped to adhere to requested adv fracs
+            adv_indices = generate_attack_indices(target_labels, class_frac, shot_frac)
+            # This is a lot simpler than the swap attack stuff, because we're replacing into the same set
+            frac_adv_target_images = self.tasks[task_index]['target_images'].to(device)
+            for index in adv_indices:
+                frac_adv_target_images[index] = self.tasks[task_index]['adv_target_images'][index].to(device)
+
+            return frac_adv_target_images, target_labels.to(device)
+        else:
+            context_labels = self.tasks[task_index]['context_labels']
+            # Make sure we have enough adv images available to fill request.
+            # Easiest way to make sure everything matches up, is to check that all the target images have adversarial versions.
+            assert len(context_labels) == len(self.tasks[task_index]['adv_context_indices'])
+
+            # See which indices need to be swapped to adhere to requested adv fracs
+            adv_indices = generate_attack_indices(context_labels, class_frac, shot_frac)
+            # This is a lot simpler than the swap attack stuff, because we're replacing into the same set
+            frac_adv_context_images = self.tasks[task_index]['context_images'].to(device)
+            for index in adv_indices:
+                frac_adv_context_images[index] = self.tasks[task_index]['adv_context_images'][index].to(device)
+
+            return frac_adv_context_images, context_labels.type(torch.LongTensor).to(device)
+
+
     def get_adversarial_task(self, task_index, device, swap_mode=None):
         context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor).to(device)
         if self.mode == 'context':
