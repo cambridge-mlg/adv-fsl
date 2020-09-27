@@ -382,8 +382,6 @@ class Learner:
 
     def vary_swap_attack(self, path, session):
         write_to_log(self.logfile, 'Attacking model {0:}: '.format(path))
-        # Swap attacks only make sense if doing evaluation with independent target sets
-        #
         self.model = self.init_model()
         self.model.load_state_dict(torch.load(path), strict=False)
 

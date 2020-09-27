@@ -3,6 +3,7 @@ import numpy as np
 import argparse
 import os
 import pickle
+from tqdm import tqdm
 from learners.protonets.src.utils import print_and_log, get_log_files, categorical_accuracy, loss, get_labels
 from learners.protonets.src.model import ProtoNets
 from learners.protonets.src.data import MiniImageNetData, OmniglotData
@@ -13,6 +14,7 @@ from attacks.attack_utils import save_pickle
 import torch.nn.functional as F
 import matplotlib.pylab as pl
 from matplotlib.colors import ListedColormap
+from attacks.attack_utils import AdversarialDataset
 
 NUM_VALIDATION_TASKS = 400
 NUM_TEST_TASKS = 1000
@@ -44,6 +46,8 @@ class Learner:
             self.dataset = MiniImageNetData(self.args.data_path, 111)
         elif self.args.dataset == "omniglot":
             self.dataset = OmniglotData(self.args.data_path, 111)
+        elif self.args.dataset == "from_file":
+            self.dataset = AdversarialDataset(self.args.data_path)
         else:
             self.dataset = None
 
@@ -66,7 +70,7 @@ class Learner:
     def parse_command_line(self):
         parser = argparse.ArgumentParser()
 
-        parser.add_argument("--dataset", choices=['omniglot', "mini_imagenet"], default="mini_imagenet", help="Dataset to use.")
+        parser.add_argument("--dataset", choices=['omniglot', "mini_imagenet", "from_file"], default="mini_imagenet", help="Dataset to use.")
         parser.add_argument("--data_path", default="../datasets", help="Path to dataset records.")
         parser.add_argument("--mode", choices=["train", "test", "train_test", "attack"], default="train_test",
                             help="Whether to run training only, testing only, or both training and testing.")
@@ -152,7 +156,9 @@ class Learner:
             self.test(self.args.test_model_path)
 
         if self.args.mode == 'attack':
-            if self.args.swap_attack and not self.args.bottleneck:
+            if self.args.swap_attack and self.args.dataset == 'from_file':
+                self.vary_swap_attack(self.args.test_model_path)
+            elif self.args.swap_attack and not self.args.bottleneck:
                 self.attack_swap(self.args.test_model_path)
             elif not self.args.swap_attack and self.args.bottleneck:
                 self.plot_attacks(self.args.test_model_path)
@@ -235,6 +241,82 @@ class Learner:
         save_image(clean_img.cpu().detach().numpy(), os.path.join(self.checkpoint_dir,
                                                                   'in_task_{}_index_{}.png'.format(task_no, index)),
                    scaling='zero_to_one')
+
+    def vary_swap_attack(self, path):
+        print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
+        self.model = self.init_model()
+        self.model.load_state_dict(torch.load(path))
+        self.model.eval()
+
+        shot = self.dataset.shot
+        way = self.dataset.way
+        if shot == 1:
+            class_fracs = [(k+1)/way for k in range(0,way)]
+            shot_fracs = [1.0]
+        elif shot == 5:
+            class_fracs = [k/way for k in [1, 3, 5]]
+            shot_fracs = [k/shot for k in [1, 3, 5]]
+        elif shot == 10:
+            class_fracs = [k/way for k in [1, 3, 5]]
+            shot_fracs = [k/shot for k in [1, 3, 5, 10]]
+        else:
+            print("ERROR - Unsupported shot/way for vary swap attack")
+            return
+
+        gen_clean_accuracies = []
+        clean_accuracies = []
+        clean_target_as_context_accuracies = []
+        # num_tasks = min(2, self.dataset.get_num_tasks())
+        num_tasks = min(self.dataset.get_num_tasks(), self.args.attack_tasks)
+        for task in tqdm(range(num_tasks), dynamic_ncols=True):
+            with torch.no_grad():
+                context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
+                gen_clean_accuracies.append(self.calc_accuracy(context_images, context_labels, target_images, target_labels))
+
+                eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
+                # Evaluate on independent target sets
+                for k in range(len(eval_images)):
+                    eval_imgs_k = eval_images[k].to(self.device)
+                    eval_labels_k = eval_labels[k].to(self.device)
+                    clean_accuracies.append(self.calc_accuracy(context_images, context_labels, eval_imgs_k, eval_labels_k))
+                    clean_target_as_context_accuracies.append(self.calc_accuracy(target_images, target_labels, eval_imgs_k, eval_labels_k))
+
+        self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", "")
+        self.print_average_accuracy(clean_accuracies, "Clean accuracy", "")
+        self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy", "")
+
+        for class_frac in class_fracs:
+            for shot_frac in shot_fracs:
+                frac_descrip = "{}_ac_{}_ash".format(class_frac, shot_frac)
+
+                # Accuracies for evaluation setting
+                adv_context_accuracies = []
+                adv_target_accuracies = []
+                adv_target_as_context_accuracies = []
+                adv_context_as_target_accuracies = []
+
+                for task in tqdm(range(num_tasks), dynamic_ncols=True):
+                    with torch.no_grad():
+                        adv_target_images, target_labels = self.dataset.get_frac_adversarial_set(task, self.device, class_frac, shot_frac, set_type="target")
+                        adv_context_images, context_labels = self.dataset.get_frac_adversarial_set(task, self.device, class_frac, shot_frac, set_type="context")
+
+                        eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
+
+                        # Evaluate on independent target sets
+                        for k in range(len(eval_images)):
+                            eval_imgs_k = eval_images[k].to(self.device)
+                            eval_labels_k = eval_labels[k].to(self.device)
+
+                            adv_context_accuracies.append(self.calc_accuracy(adv_context_images, context_labels, eval_imgs_k, eval_labels_k))
+                            adv_target_accuracies.append(self.calc_accuracy(eval_imgs_k, eval_labels_k, adv_target_images, target_labels))
+
+                            adv_target_as_context_accuracies.append(self.calc_accuracy(adv_target_images, target_labels, eval_imgs_k, eval_labels_k))
+                            adv_context_as_target_accuracies.append(self.calc_accuracy(eval_imgs_k, eval_labels_k, adv_context_images, context_labels))
+
+                self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", frac_descrip)
+                self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", frac_descrip)
+                self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", frac_descrip)
+                self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", frac_descrip)
 
     def attack_swap(self, path):
         print_and_log(self.logfile, "")  # add a blank line
