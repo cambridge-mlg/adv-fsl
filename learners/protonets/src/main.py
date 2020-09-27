@@ -281,9 +281,9 @@ class Learner:
                     clean_accuracies.append(self.calc_accuracy(context_images, context_labels, eval_imgs_k, eval_labels_k))
                     clean_target_as_context_accuracies.append(self.calc_accuracy(target_images, target_labels, eval_imgs_k, eval_labels_k))
 
-        self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", "")
-        self.print_average_accuracy(clean_accuracies, "Clean accuracy", "")
-        self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy", "")
+        self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy")
+        self.print_average_accuracy(clean_accuracies, "Clean accuracy")
+        self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy")
 
         for class_frac in class_fracs:
             for shot_frac in shot_fracs:
@@ -313,10 +313,10 @@ class Learner:
                             adv_target_as_context_accuracies.append(self.calc_accuracy(adv_target_images, target_labels, eval_imgs_k, eval_labels_k))
                             adv_context_as_target_accuracies.append(self.calc_accuracy(eval_imgs_k, eval_labels_k, adv_context_images, context_labels))
 
-                self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", frac_descrip)
-                self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", frac_descrip)
-                self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", frac_descrip)
-                self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", frac_descrip)
+                self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy {}".format(frac_descrip))
+                self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy {}".format(frac_descrip))
+                self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy {}".format(frac_descrip))
+                self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target {}".format(frac_descrip))
 
     def attack_swap(self, path):
         print_and_log(self.logfile, "")  # add a blank line
