@@ -50,7 +50,6 @@ class AdversarialDataset:
         return self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index]['target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
 
     def get_frac_adversarial_set(self, task_index, device, class_frac, shot_frac, set_type="target"):
-        import pdb; pdb.set_trace()
         # Right now, we only support this for swap attacks because we're short on time.
         assert self.mode == 'swap'
         assert len(self.tasks[task_index]['context_labels']) == len(self.tasks[task_index]['target_labels'])

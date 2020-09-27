@@ -292,10 +292,13 @@ class Learner:
             if self.args.mode == 'attack':
                 if not self.args.swap_attack:
                     self.attack_homebrew(self.args.test_model_path, session)
-                elif self.args.dataset != "meta-dataset":
-                    self.attack_swap(self.args.test_model_path, session)
-                else:
+                elif self.args.dataset == "from_file":
+                    self.vary_swap_attack(self.args.test_model_path, session)
+                elif self.args.dataset == "meta-dataset":
                     self.meta_dataset_attack_swap(self.args.test_model_path, session)
+                else:
+                    self.attack_swap(self.args.test_model_path, session)
+
 
             self.logfile.close()
 
@@ -387,7 +390,7 @@ class Learner:
         shot = self.dataset.shot
         way = self.dataset.way
         if shot == 1:
-            class_fracs = [k/way for k in range(0,way)]
+            class_fracs = [(k+1)/way for k in range(0,way)]
             shot_fracs = [1.0]
         elif shot == 5:
             class_fracs = [k/way for k in [1, 3, 5]]
@@ -402,7 +405,9 @@ class Learner:
         gen_clean_accuracies = []
         clean_accuracies = []
         clean_target_as_context_accuracies = []
-        for task in tqdm(range(self.dataset.get_num_tasks()), dynamic_ncols=True):
+        # num_tasks = min(2, self.dataset.get_num_tasks())
+        num_tasks = min(self.dataset.get_num_tasks(), self.args.attack_tasks)
+        for task in tqdm(range(num_tasks), dynamic_ncols=True):
             with torch.no_grad():
                 context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
                 gen_clean_accuracies.append(self.calc_accuracy(context_images, context_labels, target_images, target_labels))
@@ -430,7 +435,7 @@ class Learner:
                 adv_target_as_context_accuracies = []
                 adv_context_as_target_accuracies = []
 
-                for task in tqdm(range(self.dataset.get_num_tasks()), dynamic_ncols=True):
+                for task in tqdm(range(num_tasks), dynamic_ncols=True):
                     with torch.no_grad():
                         adv_target_images, target_labels = self.dataset.get_frac_adversarial_set(task, self.device, class_frac, shot_frac, set_type="target")
                         adv_context_images, context_labels = self.dataset.get_frac_adversarial_set(task, self.device, class_frac, shot_frac, set_type="context")
