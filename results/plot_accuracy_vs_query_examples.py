@@ -49,21 +49,6 @@ def main():
     plot_curves(file_list=file_list, labels=labels, line_styles=line_styles, colors=colors,
                 output_file='./plots/accuracy_vs_query_examples.pdf')
 
-    # file_list = [
-    #     './data/cnaps_max_5-shot.txt',
-    #     './data/protonets_max_5-shot.txt',
-    #     './data/maml_max_5-shot.txt'
-    # ]
-    #
-    # labels = [
-    #     'CNAPs',
-    #     'ProtoNets',
-    #     'MAML',
-    # ]
-    #
-    # plot_curves(file_list=file_list, labels=labels, line_styles=line_styles, colors=colors,
-    #             output_file='./plots/accuracy_vs_query_examples_5_shot.pdf')
-
 
 if __name__ == '__main__':
     main()
