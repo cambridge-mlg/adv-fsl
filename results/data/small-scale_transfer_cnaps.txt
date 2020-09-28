@@ -1,0 +1,3 @@
+Extractor, 1-shot, 5-shot
+ResNet18, 34.2, 0
+MNASNet, 4.2, 0
