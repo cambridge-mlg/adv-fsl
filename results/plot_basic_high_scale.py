@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-x_labels = ['ILSVRC', 'Omniglot', 'Aircraft', 'Birds', 'Textures', 'Quick Draw', 'Fungi', 'VGG Flower', 'Traffic Signs', 'MSCOCO', 'MNIST', 'CIFAR10', 'CIFAR100']
+x_labels = ['ILSVRC', 'Aircraft', 'Birds', 'Quick Draw', 'VGG Flower', 'Traffic Signs', 'MSCOCO', 'MNIST', 'CIFAR10', 'CIFAR100']
 # legend_labels = ['PGD Specific', 'PGD General', 'UAP', 'Noise', 'Swap', 'Label Shift']
 # colors = ['#5BB381', '#FFD700', '#DE3163', '#64C3EB', 'orange', 'purple']
-legend_labels = ['Noise', 'UAP', 'PGD Specific', 'PGD General']
-colors = ['#5BB381', '#FFD700', '#DE3163', '#64C3EB']
+legend_labels = ['Noise', 'UAP', 'Support Specific', 'Support General', 'Swap']
+colors = ['#5BB381', '#FFD700', '#DE3163', '#64C3EB', 'orange']
 
 
 def autolabel(ax, rects):
@@ -14,21 +14,22 @@ def autolabel(ax, rects):
         height = rect.get_height()
         ax.annotate('{}'.format(height),
                     xy=(rect.get_x() + rect.get_width() / 2, height),
-                    xytext=(5, 1),  # 3 points vertical offset
+                    xytext=(0, 1),  # 3 points vertical offset
                     textcoords="offset points",
-                    ha='center', va='bottom', rotation=45, fontsize='x-small')
+                    ha='center', va='bottom', rotation=90, fontsize='x-small')
 
 
 def plot(ax, file, title):
-    data = np.genfromtxt(file, delimiter=',', skip_header=1, usecols=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13))
+    data = np.genfromtxt(file, delimiter=',', skip_header=1, usecols=(1, 3, 4, 6, 8, 9, 10, 11, 12, 13))
 
     x = np.arange(len(x_labels))  # the label locations
     width = 0.18  # the width of the bars
 
-    rects1 = ax.bar(x - width * 3 / 2, data[0], width, label=legend_labels[0], color=colors[0])
-    rects2 = ax.bar(x - width / 2, data[1], width, label=legend_labels[1], color=colors[1])
-    rects3 = ax.bar(x + width / 2, data[2], width, label=legend_labels[2], color=colors[2])
-    rects4 = ax.bar(x + width * 3 / 2, data[3], width, label=legend_labels[3], color=colors[3])
+    rects1 = ax.bar(x - width * 2, data[0], width, label=legend_labels[0], color=colors[0])
+    rects2 = ax.bar(x - width, data[1], width, label=legend_labels[1], color=colors[1])
+    rects3 = ax.bar(x, data[2], width, label=legend_labels[2], color=colors[2])
+    rects4 = ax.bar(x + width, data[3], width, label=legend_labels[3], color=colors[3])
+    rects5 = ax.bar(x + width * 2, data[4], width, label=legend_labels[4], color=colors[4])
 
     right_side = ax.spines["right"]
     right_side.set_visible(False)
@@ -36,12 +37,13 @@ def plot(ax, file, title):
     top.set_visible(False)
 
     ax.set_xticks(x)
-    ax.set_xticklabels(x_labels, fontsize='medium', rotation=60)
+    ax.set_xticklabels(x_labels, fontsize='medium', rotation=20)
 
     autolabel(ax, rects1)
     autolabel(ax, rects2)
     autolabel(ax, rects3)
     autolabel(ax, rects4)
+    autolabel(ax, rects5)
 
 
 def main():
@@ -55,7 +57,7 @@ def main():
     for file, ax in zip(files, [axs]):
         plot(ax, file, None)
 
-    axs.legend(ncol=len(legend_labels), bbox_to_anchor=(0, 1.0), loc='lower left', fontsize='medium')
+    axs.legend(ncol=len(legend_labels), bbox_to_anchor=(0, 1.1), loc='lower left', fontsize='medium')
 
     fig.text(-0.002, 0.5, 'Decrease in Accuracy (%)', va='center', rotation='vertical', fontsize='medium')
     fig.tight_layout()
