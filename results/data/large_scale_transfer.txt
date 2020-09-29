@@ -1,3 +1,3 @@
 Model,    ILSVRC, Omniglot, Aircraft, Birds, Textures, QuickDraw, Fungi, VggFlower, TrafficSign, MSCOCO, Mnist, Cifar10, Cifar100
-ResNet18, 0.0,    0.0,      0.0,      0.0,   0.0,      0.0,       0.0,   0.0,       0.0,         0.0,    0.0,   0.0,     0.0
-MNASNet,  0.0,    0.0,      0.0,      0.0,   0.0,      0.0,       0.0,   0.0,       0.0,         0.0,    0.0,   0.0,     0.0
+ResNet18, 8.0,    0.0,      10.0,     13.1,  0.0,      8.9,       0.0,   6.0,       5.6,         12.2,   3.3,   5.7,     11.5
+MNASNet,  1.4,    0.0,      2.6,      1.7,   0.0,      0.5,       0.0,   0.1,       0.0,         2.9,    1.4,   0.0,     2.2

@@ -14,17 +14,17 @@ def autolabel(ax, rects):
                     xy=(rect.get_x() + rect.get_width() / 2, height),
                     xytext=(0, 1),  # 3 points vertical offset
                     textcoords="offset points",
-                    ha='center', va='bottom', rotation=90, fontsize='x-small')
+                    ha='center', va='bottom', fontsize='x-small')
 
 
 def plot(ax, file, title):
     data = np.genfromtxt(file, delimiter=',', skip_header=1, usecols=(1, 3, 4, 6, 8, 9, 10, 11, 12, 13))
 
     x = np.arange(len(x_labels))  # the label locations
-    width = 0.18  # the width of the bars
+    width = 0.3  # the width of the bars
 
-    rects1 = ax.bar(x - width * 2, data[0], width, label=legend_labels[0], color=colors[0])
-    rects2 = ax.bar(x + width * 2, data[1], width, label=legend_labels[1], color=colors[1])
+    rects1 = ax.bar(x - width / 2, data[0], width, label=legend_labels[0], color=colors[0])
+    rects2 = ax.bar(x + width / 2, data[1], width, label=legend_labels[1], color=colors[1])
 
     right_side = ax.spines["right"]
     right_side.set_visible(False)
@@ -43,18 +43,18 @@ def main():
         './data/large_scale_transfer.txt'
     ]
 
-    fig, axs = plt.subplots(sharey=True, figsize=(8, 3))
+    fig, axs = plt.subplots(sharey=True, figsize=(8, 2.25))
     fig.set_dpi(300)
 
     for file, ax in zip(files, [axs]):
         plot(ax, file, None)
 
-    axs.legend(ncol=len(legend_labels), bbox_to_anchor=(0, 1.1), loc='lower left', fontsize='medium')
+    axs.legend(ncol=len(legend_labels), bbox_to_anchor=(0, 1.03), loc='lower left', fontsize='medium')
 
-    fig.text(-0.002, 0.5, 'Decrease in Accuracy (%)', va='center', rotation='vertical', fontsize='medium')
+    fig.text(0.01, 0.55, 'Decrease in Accuracy (%)', va='center', rotation='vertical', fontsize='medium')
     fig.tight_layout()
 
-    plt.subplots_adjust(wspace=0.05)
+    plt.subplots_adjust(wspace=0.1)
     plt.savefig('./plots/large-scale_transfer.pdf', bbox_inches='tight')
 
 
