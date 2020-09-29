@@ -188,5 +188,5 @@ def save_image(image_array, save_path):
     if image_array.shape[2] == 1:  # single channel image
         image_array = image_array.squeeze()
         mode = 'L'
-    im = Image.fromarray(np.clip(image_array * 255.0, 0, 255).astype(np.uint8), mode=mode)
+    im = Image.fromarray(np.clip((image_array + 1.0) * 127.5 + 0.5, 0, 255).astype(np.uint8), mode=mode)
     im.save(save_path)
