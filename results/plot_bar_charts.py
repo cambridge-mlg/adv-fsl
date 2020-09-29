@@ -57,9 +57,9 @@ def main():
 
     titles = [
         '(a) shot: 1, epsilon: 0.0314',
-        '(b) shot: 1, epsilon: 0.5',
+        '(b) shot: 1, epsilon: 0.05',
         '(c) shot: 5, epsilon: 0.0314',
-        '(d) shot: 5, epsilon: 0.5'
+        '(d) shot: 5, epsilon: 0.05'
     ]
 
     x_labels_list = [
@@ -77,7 +77,7 @@ def main():
 
     axs[0,0].legend(ncol=len(legend_labels), bbox_to_anchor=(0, 1), loc='lower left', fontsize='x-large')
 
-    fig.text(-0.002, 0.5, 'Decrease in Accuracy (%)', va='center', rotation='vertical', fontsize='x-large')
+    fig.text(-0.002, 0.5, 'Relative Decrease in Accuracy (%)', va='center', rotation='vertical', fontsize='x-large')
     fig.tight_layout()
 
     plt.subplots_adjust(wspace=0.05)

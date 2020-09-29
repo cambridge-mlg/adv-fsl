@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-x_labels = ['ILSVRC', 'Aircraft', 'Birds', 'Quick Draw', 'VGG Flower', 'Traffic Signs', 'MSCOCO', 'MNIST', 'CIFAR10', 'CIFAR100']
+x_labels = ['ILSVRC', 'Aircraft', 'Birds', 'Quick Draw', 'VGG Flower', 'MSCOCO', 'MNIST', 'CIFAR10', 'CIFAR100']
 legend_labels = ['ResNet18', 'MNASNet']
 colors = colors = ['#DE3163', '#64C3EB']
 
@@ -18,7 +18,7 @@ def autolabel(ax, rects):
 
 
 def plot(ax, file, title):
-    data = np.genfromtxt(file, delimiter=',', skip_header=1, usecols=(1, 3, 4, 6, 8, 9, 10, 11, 12, 13))
+    data = np.genfromtxt(file, delimiter=',', skip_header=1, usecols=(1, 3, 4, 6, 8, 10, 11, 12, 13))
 
     x = np.arange(len(x_labels))  # the label locations
     width = 0.3  # the width of the bars
@@ -32,7 +32,7 @@ def plot(ax, file, title):
     top.set_visible(False)
 
     ax.set_xticks(x)
-    ax.set_xticklabels(x_labels, fontsize='medium', rotation=20)
+    ax.set_xticklabels(x_labels, fontsize='medium', rotation=10)
 
     autolabel(ax, rects1)
     autolabel(ax, rects2)
@@ -43,7 +43,7 @@ def main():
         './data/large_scale_transfer.txt'
     ]
 
-    fig, axs = plt.subplots(sharey=True, figsize=(8, 2.25))
+    fig, axs = plt.subplots(sharey=True, figsize=(8, 2.0))
     fig.set_dpi(300)
 
     for file, ax in zip(files, [axs]):
@@ -51,7 +51,7 @@ def main():
 
     axs.legend(ncol=len(legend_labels), bbox_to_anchor=(0, 1.03), loc='lower left', fontsize='medium')
 
-    fig.text(0.01, 0.55, 'Decrease in Accuracy (%)', va='center', rotation='vertical', fontsize='medium')
+    fig.text(-0.02, 0.55, 'Relative Decrease\nin Accuracy (%)', va='center', rotation='vertical', fontsize='medium')
     fig.tight_layout()
 
     plt.subplots_adjust(wspace=0.1)

@@ -11,11 +11,11 @@ def plot_curves(file_list, labels, line_styles, colors, output_file):
         data = np.genfromtxt(file, delimiter=',', names=['Size', "Accuracy"])
         plt.plot(data['Size'], data['Accuracy'], label=label, linestyle=line_style, color=color)
 
-    plt.xlabel('Seed Query Set Size', fontsize='x-large')
+    plt.xlabel('Seed Query Set Size', fontsize='xx-large')
     plt.xlim(0, 500)
     plt.ylim(50, 80)
-    plt.ylabel('Decrease in Accuracy (%)', fontsize='x-large')
-    plt.legend(loc='lower right', fontsize='large')
+    plt.ylabel('Relative Decrease in Accuracy (%)', fontsize='xx-large')
+    plt.legend(loc='lower right', fontsize='x-large')
     plt.savefig(output_file, bbox_inches='tight')
     plt.close()
 

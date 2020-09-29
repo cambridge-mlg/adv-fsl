@@ -66,7 +66,7 @@ def main():
 
     axs[0].legend(ncol=len(legend_labels), bbox_to_anchor=(0, 1.1), loc='lower left', fontsize='x-large')
 
-    fig.text(-0.002, 0.55, 'Decrease in Accuracy (%)', va='center', rotation='vertical', fontsize='large')
+    fig.text(-0.002, 0.55, 'Relative Decrease in Accuracy (%)', va='center', rotation='vertical', fontsize='medium')
     fig.tight_layout()
 
     plt.subplots_adjust(wspace=0.05)
