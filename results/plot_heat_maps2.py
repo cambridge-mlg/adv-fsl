@@ -124,7 +124,7 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
 
 
 def main():
-    fig, axs = plt.subplots(1, 3, sharex=True, figsize=(9,5))
+    fig, axs = plt.subplots(1, 3, sharex=True, figsize=(9,3))
 
     class_labels = ["1", "3", "5"]
     shot_labels = ["1", "3", "5"]
@@ -136,7 +136,7 @@ def main():
     ]
 
     titles = [
-        '(a) Joint',
+        '(a) Support',
         '(b) Swap',
         '(c) Sub-selected'
     ]
@@ -151,6 +151,10 @@ def main():
         ax.set_title(title, y=-0.15, fontsize='x-large', color='blue')
         ax.set_xlabel('Adversarial Classes', fontsize='x-large')
         ax.xaxis.set_label_position('top')
+
+    # Create colorbar
+    # cbar = ax.figure.colorbar(im, ax=axs[2])
+    # cbar.ax.set_ylabel("Relative Decrease in Accuracy (%)", rotation=-90, va="bottom")
 
     axs[0].set_ylabel('Adversarial Shots', fontsize='x-large')
     plt.subplots_adjust(wspace=0.3)
