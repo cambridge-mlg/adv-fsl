@@ -32,7 +32,7 @@ def heatmap(data, row_labels, col_labels, ax=None,
         ax = plt.gca()
 
     # Plot the heatmap
-    im = ax.imshow(data, **kwargs)
+    im = ax.imshow(data, vmin=0, vmax=100, **kwargs)
 
     # Create colorbar
     # cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
@@ -126,26 +126,26 @@ def annotate_heatmap(im, data1=None, data2=None, valfmt="{x:.2f}",
         for j in range(data1.shape[1]):
             kw.update(color=textcolors[int(im.norm(data1[i, j]) > threshold)])
             # text = im.axes.text(j, i, valfmt(data[i, j], None), **kw)
-            text = im.axes.text(j, i, '{:.1f}\n{:.1f}'.format(data1[i, j], data2[i, j]), **kw)
+            text = im.axes.text(j, i, '{:.1f}'.format(data1[i, j]), **kw)
             texts.append(text)
 
     return texts
 
 
 def main():
-    fig, axs = plt.subplots(1, 2, sharey=True, sharex=True, figsize=(6,3))
+    fig, axs = plt.subplots(1, 2, sharey=True, sharex=True)
 
     class_labels = ["1", "3", "5"]
     shot_labels = ["1", "3", "5"]
 
     files = [
-        './data/scale_protonets_5-way_5-shot_epsilon-05.txt',
-        './data/scale_maml_5-way_5-shot_epsilon-05.txt'
+        './data/scale_maml_5-way_5-shot_epsilon-05.txt',
+        './data/scale_cnaps_5-way_5-shot_epsilon-05.txt'
     ]
 
     titles = [
-        '(c) ProtoNets, 5-shot (Clean 66.3%)',
-        '(d) MAML, 5-shot (Clean 61.4%)'
+        'MAML, 5-shot (Clean 61.4%)',
+        'CNAPs, 5-shot (Clean 66.7%)'
     ]
 
     images = []
@@ -165,23 +165,25 @@ def main():
     fig.tight_layout()
     plt.savefig('./plots/heat_maps_5-shot.pdf', bbox_inches='tight')
 
-    fig, axs = plt.subplots(2, 1, sharex=True, sharey=True, figsize=(6,3))
+    fig, axs = plt.subplots(3, 1, sharex=True, sharey=True)
 
     class_labels = ["1", "2", "3", "4", "5"]
     shot_labels = ["1"]
 
     files = [
         './data/scale_protonets_5-way_1-shot_epsilon-05.txt',
-        './data/scale_maml_5-way_1-shot_epsilon-05.txt'
+        './data/scale_maml_5-way_1-shot_epsilon-05.txt',
+        './data/scale_cnaps_5-way_1-shot_epsilon-05.txt'
     ]
 
     titles = [
-        '(a) ProtoNets, 1-shot (Clean 46.3%)',
-        '(b) MAML, 1-shot (Clean 45.9%)'
+        'ProtoNets, 1-shot (Clean 46.3%)',
+        'MAML, 1-shot (Clean 45.9%)',
+        'CNAPS, 1-shot (Clean 46.6%)'
     ]
 
     images = []
-    for file, title, ax in zip(files, titles, [axs[0], axs[1]]):
+    for file, title, ax in zip(files, titles, [axs[0], axs[1], axs[2]]):
         data = np.genfromtxt(file, delimiter=',')
         data = np.expand_dims(data, axis=0)
 

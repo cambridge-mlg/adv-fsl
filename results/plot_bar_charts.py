@@ -69,7 +69,7 @@ def main():
         ['ProtoNets (Clean 64.4%)', 'MAML (Clean 61.4%)']
     ]
 
-    fig, axs = plt.subplots(2, 2, sharey=True, figsize=(12.5,6))
+    fig, axs = plt.subplots(2, 2, sharey=True, figsize=(12.5,5.5))
     fig.set_dpi(300)
 
     for file, title, ax, x_labels in zip(files, titles, [axs[0,0], axs[0,1], axs[1,0], axs[1,1]], x_labels_list):

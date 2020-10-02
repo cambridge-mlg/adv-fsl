@@ -31,7 +31,7 @@ def heatmap(data, row_labels, col_labels, ax=None,
         ax = plt.gca()
 
     # Plot the heatmap
-    im = ax.imshow(data, vmin=0, vmax=100, **kwargs)
+    im = ax.imshow(data, vmin=0, vmax=68, **kwargs)
 
     # Create colorbar
     # cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
@@ -41,8 +41,8 @@ def heatmap(data, row_labels, col_labels, ax=None,
     ax.set_xticks(np.arange(data.shape[1]))
     ax.set_yticks(np.arange(data.shape[0]))
     # ... and label them with the respective list entries.
-    ax.set_xticklabels(col_labels, fontsize='large')
-    ax.set_yticklabels(row_labels, fontsize='large')
+    ax.set_xticklabels(col_labels, fontsize='x-large')
+    ax.set_yticklabels(row_labels, fontsize='x-large')
 
     # Let the horizontal axes labeling appear on top.
     ax.tick_params(top=True, bottom=False,
@@ -124,42 +124,40 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
 
 
 def main():
-    fig, axs = plt.subplots(1, 3, sharex=True, figsize=(7,3))
+    fig, axs = plt.subplots(1, 4, sharex=True, figsize=(11,4))
 
     class_labels = ["1", "3", "5"]
-    shot_labels = ["1", "3", "5"]
+    shot_labels = ["1", "3", "5", "10"]
 
     files = [
-        './data/scale_protonets_5-way_5-shot_epsilon-05.txt',
-        './data/scale_protonets_5-way_5-shot_epsilon-10_swap.txt',
-        './data/scale_protonets_5-way_5-shot_epsilon-05_alt.txt'
+        './data/transfer_cnaps_resnet_5-way_epsilon-05.txt',
+        './data/transfer_cnaps_resnet_5-way_epsilon-10.txt',
+        './data/transfer_cnaps_mnasnet_5-way_epsilon-05.txt',
+        './data/transfer_cnaps_mnasnet_5-way_epsilon-10.txt'
     ]
 
     titles = [
-        'Support',
-        'Swap',
-        'Subselected'
+        'ResNet18, epsilon 0.05',
+        'ResNet18, epsilon 0.1',
+        'MNASNet, epsilon 0.05',
+        'MNASNet, epsilon 0.1'
     ]
 
     images = []
-    for file, title, ax in zip(files, titles, [axs[0], axs[1], axs[2]]):
+    for file, title, ax in zip(files, titles, [axs[0], axs[1], axs[2], axs[3]]):
         data = np.genfromtxt(file, delimiter=',')
 
-        im = heatmap(data, class_labels, shot_labels, ax=ax, cmap="Reds", cbarlabel="% Relative Decrease in Accuracy")
+        im = heatmap(data, shot_labels, class_labels, ax=ax, cmap="Reds", cbarlabel="% Relative Decrease in Accuracy")
         images.append(im)
-        texts = annotate_heatmap(im, valfmt="{x:.1f}", fontsize='large')
-        ax.set_title(title, y=-0.15, fontsize='large', color='blue')
-        ax.set_xlabel('Adversarial Classes', fontsize='large')
+        texts = annotate_heatmap(im, threshold=23, valfmt="{x:.1f}", fontsize='x-large')
+        ax.set_title(title, y=-0.15, fontsize='x-large', color='blue')
+        ax.set_xlabel('Adversarial Classes', fontsize='x-large')
         ax.xaxis.set_label_position('top')
 
-    # Create colorbar
-    # cbar = ax.figure.colorbar(im, ax=axs[2])
-    # cbar.ax.set_ylabel("Relative Decrease in Accuracy (%)", rotation=-90, va="bottom")
-
-    axs[0].set_ylabel('Adversarial Shots', fontsize='large')
+    axs[0].set_ylabel('Adversarial Shots', fontsize='x-large')
     plt.subplots_adjust(wspace=0.01)
     fig.tight_layout()
-    plt.savefig('./plots/heat_maps2.pdf', bbox_inches='tight')
+    plt.savefig('./plots/heat_maps_cnaps_transfer.pdf', bbox_inches='tight')
 
 
 if __name__ == '__main__':

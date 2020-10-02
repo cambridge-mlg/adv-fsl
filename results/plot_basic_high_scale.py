@@ -16,7 +16,7 @@ def autolabel(ax, rects):
                     xy=(rect.get_x() + rect.get_width() / 2, height),
                     xytext=(0, 1),  # 3 points vertical offset
                     textcoords="offset points",
-                    ha='center', va='bottom', rotation=90, fontsize='x-small')
+                    ha='center', va='bottom', rotation=90, fontsize='small')
 
 
 def plot(ax, file, title):
@@ -37,7 +37,7 @@ def plot(ax, file, title):
     top.set_visible(False)
 
     ax.set_xticks(x)
-    ax.set_xticklabels(x_labels, fontsize='medium', rotation=10)
+    ax.set_xticklabels(x_labels, fontsize='medium', rotation=0)
 
     autolabel(ax, rects1)
     autolabel(ax, rects2)
@@ -51,15 +51,15 @@ def main():
         './data/basic_meta-dataset_all_epsilon-05-shot-20.txt'
     ]
 
-    fig, axs = plt.subplots(sharey=True, figsize=(8, 2.5))
+    fig, axs = plt.subplots(sharey=True, figsize=(10, 2.3))
     fig.set_dpi(300)
 
     for file, ax in zip(files, [axs]):
         plot(ax, file, None)
 
-    axs.legend(ncol=len(legend_labels), bbox_to_anchor=(0, 1.15), loc='lower left', fontsize='medium')
+    axs.legend(ncol=len(legend_labels), bbox_to_anchor=(0, 1.22), loc='lower left', fontsize='medium')
 
-    fig.text(-0.002, 0.5, 'Relative Decrease in Accuracy (%)', va='center', rotation='vertical', fontsize='small')
+    fig.text(-0.016, 0.42, 'Relative Decrease\nin Accuracy (%)', va='center', rotation='vertical', fontsize='medium')
     fig.tight_layout()
 
     plt.subplots_adjust(wspace=0.05)
