@@ -45,6 +45,49 @@ class AdversarialDataset:
         assert mode == 'context' or mode == 'target' or mode == 'swap'
         self.mode = mode
 
+    def test_fancy_target_swap(self):
+        failed_swaps_frac = []
+        actual_adv_target_swap = []
+        actual_adv_context_swap = []
+
+        for task_index in range(0, len(self.tasks)):
+            context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor)
+            adv_target_indices = self.tasks[task_index]['adv_target_indices']
+            target_labels = self.tasks[task_index]['target_labels']
+
+            swap_indices_context = []
+            swap_indices_adv = []
+            target_labels_int = target_labels.type(torch.IntTensor)
+            failed_to_swap = 0
+
+            for index in adv_target_indices:
+                c = target_labels_int[index]
+                # Replace the first best instance of class c with the adv query point (assuming we haven't already swapped it)
+                shot_indices = extract_class_indices(context_labels.cpu(), c)
+                k = 0
+                while k < len(shot_indices) and shot_indices[k] in swap_indices_context:
+                    k += 1
+                if k == len(shot_indices):
+                    failed_to_swap += 1
+                else:
+                    index_to_swap = shot_indices[k]
+                    swap_indices_context.append(index_to_swap)
+                    swap_indices_adv.append(index)
+            assert (len(swap_indices_context) + failed_to_swap) == len(adv_target_indices)
+
+            failed_swaps_frac.append(failed_to_swap/len(adv_target_indices))
+            actual_adv_target_swap.append(len(swap_indices_context)/len(context_labels))
+            actual_adv_context_swap.append(len(self.tasks[task_index]['adv_context_indices'])/len(context_labels))
+
+        failed_swaps_frac = np.asarray(failed_swaps_frac)
+        actual_adv_target_swap = np.asarray(actual_adv_target_swap)
+        actual_adv_context_swap = np.asarray(actual_adv_context_swap)
+
+        print("Percentage of failed swaps: {}".format(failed_swaps_frac.mean()))
+        print("Percentage of original adv context: {}".format(actual_adv_context_swap.mean()))
+        print("Percentage of adv target when swapped: {}".format(actual_adv_target_swap.mean()))
+
+
     def get_clean_task(self, task_index, device):
         context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor).to(device)
         return self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index]['target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
