@@ -23,7 +23,7 @@ def save_pickle(file_path, data, compress=False):
 def save_partial_pickle(path, partial_index, data):
     if not os.path.exists(path):
         os.makedirs(path)
-    file_path = os.path.join(path, partial_index, '.pickle')
+    file_path = os.path.join(path, '{}.pickle'.format(partial_index))
     f = open(file_path, 'wb')
     pickle.dump(data, f)
     f.close()
@@ -45,7 +45,7 @@ def load_pickle(file_path):
 def load_partial_pickle(file_path):
     # No zip supoprt
     def get_task(index) :
-        f = open(os.path.join(file_path, index, '.pickle'), 'rb')
+        f = open(os.path.join(file_path, '{}.pickle'.format(index)), 'rb')
         data = pickle.load(f)
         f.close()
         return data
