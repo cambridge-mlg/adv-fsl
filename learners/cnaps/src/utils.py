@@ -95,8 +95,13 @@ def get_log_files(checkpoint_dir, resume, test_mode):
         logfile = open(logfile_path, "a", buffering=1)
     else:
         logfile = open(logfile_path, "w", buffering=1)
+    debugfile_path = os.path.join(checkpoint_dir, 'dump.txt')
+    if os.path.isfile(debugfile_path):
+        debugfile = open(debugfile_path, "a", buffering=1)
+    else:
+        debugfile = open(debugfile_path, "w", buffering=1)
 
-    return checkpoint_dir, logfile, checkpoint_path_validation, checkpoint_path_final
+    return checkpoint_dir, logfile, checkpoint_path_validation, checkpoint_path_final, debugfile
 
 
 def stack_first_dim(x):

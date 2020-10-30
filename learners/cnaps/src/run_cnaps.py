@@ -105,7 +105,7 @@ class Learner:
             if not os.path.exists(self.args.checkpoint_dir):
                 os.makedirs(self.args.checkpoint_dir)
 
-        self.checkpoint_dir, self.logfile, self.checkpoint_path_validation, self.checkpoint_path_final \
+        self.checkpoint_dir, self.logfile, self.checkpoint_path_validation, self.checkpoint_path_final, self.debugfile \
             = get_log_files(self.args.checkpoint_dir, self.args.resume_from_checkpoint, self.args.mode == "test" or
                             self.args.mode == "attack")
 
@@ -370,7 +370,7 @@ class Learner:
 
     def print_average_accuracy(self, accuracies, descriptor, item):
         write_to_log(self.logfile, '{}, {}'.format(descriptor, item))
-        write_to_log(self.logfile,'{}'.format(accuracies))
+        write_to_log(self.debugfile,'{}'.format(accuracies))
         accuracy = np.array(accuracies).mean() * 100.0
         accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
         print_and_log(self.logfile,
