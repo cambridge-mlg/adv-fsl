@@ -64,8 +64,8 @@ from PIL import Image
 import sys
 # sys.path.append(os.path.abspath('attacks'))
 from attacks.attack_helpers import create_attack
-from attacks.attack_utils import split_target_set, make_adversarial_task_dict, infer_way_and_shots, make_swap_attack_task_dict, infer_num_shots
-from attacks.attack_utils import AdversarialDataset
+from attacks.attack_utils import split_target_set, make_adversarial_task_dict, make_swap_attack_task_dict, infer_num_shots
+from attacks.attack_utils import AdversarialDataset, save_partial_pickle
 
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
@@ -489,9 +489,6 @@ class Learner:
             adv_context_accuracies = []
             adv_target_as_context_accuracies = []
 
-            if self.args.save_attack:
-                saved_tasks = []
-
             for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
                 # Retry until the task is small enough to load into debugging machine's memory
@@ -565,12 +562,9 @@ class Learner:
                                                                adv_target_images, adv_target_indices,
                                                                self.args.way, self.args.shot, self.args.query_test,
                                                                eval_images, eval_labels)
-                    saved_tasks.append(adv_task_dict)
+                    save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t, adv_task_dict)
 
                 del adv_context_images, adv_target_images
-
-            if self.args.save_attack:
-                save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), saved_tasks)
 
             self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", item)
             self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy", item)

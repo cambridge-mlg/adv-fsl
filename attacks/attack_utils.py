@@ -20,23 +20,52 @@ def save_pickle(file_path, data, compress=False):
         f.close()
 
 
+def save_partial_pickle(path, partial_index, data):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    file_path = os.path.join(path, partial_index, '.pickle')
+    f = open(file_path, 'wb')
+    pickle.dump(data, f)
+    f.close()
+
+
 def load_pickle(file_path):
     extension = os.path.splitext(file_path)[1]
     if extension == '.pbz2':
-        data = bz2.BZ2File(file_path, 'rb')
-        data = cPickle.load(data)
+        task_dict_list = bz2.BZ2File(file_path, 'rb')
+        task_dict_list = cPickle.load(task_dict_list)
     else:
         f = open(file_path, 'rb')
+        task_dict_list = pickle.load(f)
+        f.close()
+    get_task = lambda index : task_dict_list[index]
+    return task_dict_list, get_task
+
+
+def load_partial_pickle(file_path):
+    # No zip supoprt
+    def get_task(index) :
+        f = open(os.path.join(file_path, index, '.pickle'), 'rb')
         data = pickle.load(f)
         f.close()
-    return data
+        return data
+    # Load the first task, so that we have access to the shot, way, etc
+    task_0 = get_task(0)
+    lazy_task_list = [task_0]
+    return lazy_task_list, get_task
 
 
 class AdversarialDataset:
     def __init__(self, pickle_file_path):
-        task_dict_list = load_pickle(pickle_file_path)
+        # If path is directory, then we are loading task-by-task
+        if os.path.isdir(pickle_file_path):
+            task_dict_list, get_task = load_partial_pickle(pickle_file_path)
+        # Else if path is to an actual file, we just load the whole file
+        else:
+            task_dict_list, get_task = load_pickle(pickle_file_path)
+
         assert len(task_dict_list) > 0
-        self.tasks = task_dict_list
+        self.tasks = get_task
 
         self.shot = task_dict_list[0]['shot']
         self.way = task_dict_list[0]['way']
@@ -51,9 +80,10 @@ class AdversarialDataset:
         actual_adv_context_swap = []
 
         for task_index in range(0, len(self.tasks)):
-            context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor)
-            adv_target_indices = self.tasks[task_index]['adv_target_indices']
-            target_labels = self.tasks[task_index]['target_labels']
+            task = self.tasks(task_index)
+            context_labels = task['context_labels'].type(torch.LongTensor)
+            adv_target_indices = task['adv_target_indices']
+            target_labels = task['target_labels']
 
             swap_indices_context = []
             swap_indices_adv = []
@@ -77,7 +107,7 @@ class AdversarialDataset:
 
             failed_swaps_frac.append(failed_to_swap/len(adv_target_indices))
             actual_adv_target_swap.append(len(swap_indices_context)/len(context_labels))
-            actual_adv_context_swap.append(len(self.tasks[task_index]['adv_context_indices'])/len(context_labels))
+            actual_adv_context_swap.append(len(task['adv_context_indices'])/len(context_labels))
 
         failed_swaps_frac = np.asarray(failed_swaps_frac)
         actual_adv_target_swap = np.asarray(actual_adv_target_swap)
@@ -87,66 +117,68 @@ class AdversarialDataset:
         print("Percentage of original adv context: {}".format(actual_adv_context_swap.mean()))
         print("Percentage of adv target when swapped: {}".format(actual_adv_target_swap.mean()))
 
-
     def get_clean_task(self, task_index, device):
-        context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor).to(device)
-        return self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index]['target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
+        task = self.tasks(task_index)
+        context_labels = task['context_labels'].type(torch.LongTensor).to(device)
+        return task['context_images'].to(device), context_labels, task['target_images'].to(device), task['target_labels'].to(device)
 
     def get_frac_adversarial_set(self, task_index, device, class_frac, shot_frac, set_type="target"):
         # Right now, we only support this for swap attacks because we're short on time.
         assert self.mode == 'swap'
-        assert len(self.tasks[task_index]['context_labels']) == len(self.tasks[task_index]['target_labels'])
+        task = self.tasks(task_index)
+        assert len(task['context_labels']) == len(task['target_labels'])
 
         if set_type == "target":
-            target_labels = self.tasks[task_index]['target_labels']
+            target_labels = task['target_labels']
             # Make sure we have enough adv images available to fill request.
             # Easiest way to make sure everything matches up, is to check that all the target images have adversarial versions.
-            assert len(target_labels) == len(self.tasks[task_index]['adv_target_indices'])
+            assert len(target_labels) == len(task['adv_target_indices'])
 
             # See which indices need to be swapped to adhere to requested adv fracs
             adv_indices = generate_attack_indices(target_labels, class_frac, shot_frac)
             # This is a lot simpler than the swap attack stuff, because we're replacing into the same set
-            frac_adv_target_images = self.tasks[task_index]['target_images'].to(device)
+            frac_adv_target_images = task['target_images'].to(device)
             for index in adv_indices:
-                frac_adv_target_images[index] = self.tasks[task_index]['adv_target_images'][index].to(device)
+                frac_adv_target_images[index] = task['adv_target_images'][index].to(device)
 
             return frac_adv_target_images, target_labels.to(device)
         else:
-            context_labels = self.tasks[task_index]['context_labels']
+            context_labels = task['context_labels']
             # Make sure we have enough adv images available to fill request.
             # Easiest way to make sure everything matches up, is to check that all the target images have adversarial versions.
-            assert len(context_labels) == len(self.tasks[task_index]['adv_context_indices'])
+            assert len(context_labels) == len(task['adv_context_indices'])
 
             # See which indices need to be swapped to adhere to requested adv fracs
             adv_indices = generate_attack_indices(context_labels, class_frac, shot_frac)
             # This is a lot simpler than the swap attack stuff, because we're replacing into the same set
-            frac_adv_context_images = self.tasks[task_index]['context_images'].to(device)
+            frac_adv_context_images = task['context_images'].to(device)
             for index in adv_indices:
-                frac_adv_context_images[index] = self.tasks[task_index]['adv_context_images'][index].to(device)
+                frac_adv_context_images[index] = task['adv_context_images'][index].to(device)
 
             return frac_adv_context_images, context_labels.type(torch.LongTensor).to(device)
 
 
     def get_adversarial_task(self, task_index, device, swap_mode=None):
-        context_labels = self.tasks[task_index]['context_labels'].type(torch.LongTensor).to(device)
+        task = self.tasks(task_index)
+        context_labels = task['context_labels'].type(torch.LongTensor).to(device)
         if self.mode == 'context':
             assert swap_mode is None
-            return self.tasks[task_index]['adv_images'].to(device), context_labels, self.tasks[task_index]['target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
+            return task['adv_images'].to(device), context_labels, task['target_images'].to(device), task['target_labels'].to(device)
         elif self.mode == 'target':
             assert swap_mode is None
-            return self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index]['adv_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
+            return task['context_images'].to(device), context_labels, task['adv_images'].to(device), task['target_labels'].to(device)
         elif self.mode == 'swap':
             assert swap_mode is not None
             if swap_mode == 'context':
-                return self.tasks[task_index]['adv_context_images'].to(device), context_labels, self.tasks[task_index][
-                    'target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
+                return task['adv_context_images'].to(device), context_labels, task[
+                    'target_images'].to(device), task['target_labels'].to(device)
             elif swap_mode == 'target':
-                return self.tasks[task_index]['context_images'].to(device), context_labels, self.tasks[task_index][
-                    'adv_target_images'].to(device), self.tasks[task_index]['target_labels'].to(device)
+                return task['context_images'].to(device), context_labels, task[
+                    'adv_target_images'].to(device), task['target_labels'].to(device)
             elif swap_mode == 'target_as_context':
-                adv_target_as_context = self.tasks[task_index]['context_images'].to(device)
-                adv_target_indices = self.tasks[task_index]['adv_target_indices']
-                target_labels = self.tasks[task_index]['target_labels']
+                adv_target_as_context = task['context_images'].to(device)
+                adv_target_indices = task['adv_target_indices']
+                target_labels = task['target_labels']
 
                 swap_indices_context = []
                 swap_indices_adv = []
@@ -170,13 +202,14 @@ class AdversarialDataset:
 
                 # First swap in the clean targets, to make sure the two clean accs are the same (debug)
                 for i, swap_i in enumerate(swap_indices_context):
-                    adv_target_as_context[swap_i] = self.tasks[task_index]['adv_target_images'][swap_indices_adv[i]].to(device)
+                    adv_target_as_context[swap_i] = task['adv_target_images'][swap_indices_adv[i]].to(device)
 
                 return adv_target_as_context, context_labels
 
     def get_eval_task(self, task_index, device):
-        eval_labels = self.tasks[task_index]['eval_labels']
-        eval_images = self.tasks[task_index]['eval_images']
+        task = self.tasks(task_index)
+        eval_labels = task['eval_labels']
+        eval_images = task['eval_images']
         eval_images_gpu = []
         eval_labels_gpu = []
         for i in range(len(eval_labels)):
@@ -361,8 +394,7 @@ def one_hot_embedding(labels, num_classes):
     y = torch.eye(num_classes)
     return y[labels]
 
-
-def save_image(image_array, save_path, scaling='neg_one_to_one'):
+def convert_to_image(image_array, scaling='neg_one_to_one'):
     image_array = image_array.transpose([1, 2, 0])
     mode = 'RGB'
     if image_array.shape[2] == 1:  # single channel image
@@ -372,6 +404,10 @@ def save_image(image_array, save_path, scaling='neg_one_to_one'):
         im = Image.fromarray(np.clip((image_array + 1.0) * 127.5 + 0.5, 0, 255).astype(np.uint8), mode=mode)
     else:
         im = Image.fromarray(np.clip(image_array * 255.0, 0, 255).astype(np.uint8), mode=mode)
+    return im
+
+def save_image(image_array, save_path, scaling='neg_one_to_one'):
+    im = convert_to_image(image_array, scaling)
     im.save(save_path)
 
 def make_adversarial_task_dict(context_images, context_labels, target_images, target_labels, adv_images, adv_indices, attack_mode, way, shot, query, split_target_images, split_target_labels):
