@@ -39,7 +39,7 @@ def load_pickle(file_path):
         task_dict_list = pickle.load(f)
         f.close()
     get_task = lambda index : task_dict_list[index]
-    return task_dict_list, get_task
+    return task_dict_list, get_task, len(task_dict_list)
 
 
 def load_partial_pickle(file_path):
@@ -52,19 +52,22 @@ def load_partial_pickle(file_path):
     # Load the first task, so that we have access to the shot, way, etc
     task_0 = get_task(0)
     lazy_task_list = [task_0]
-    return lazy_task_list, get_task
+    # Get the number of tasks in the dir
+    num_tasks = len([name for name in os.listdir(file_path) if os.path.isfile(name)])
+    return lazy_task_list, get_task, num_tasks
 
 
 class AdversarialDataset:
     def __init__(self, pickle_file_path):
         # If path is directory, then we are loading task-by-task
         if os.path.isdir(pickle_file_path):
-            task_dict_list, get_task = load_partial_pickle(pickle_file_path)
+            task_dict_list, get_task, num_tasks = load_partial_pickle(pickle_file_path)
         # Else if path is to an actual file, we just load the whole file
         else:
-            task_dict_list, get_task = load_pickle(pickle_file_path)
+            task_dict_list, get_task, num_tasks = load_pickle(pickle_file_path)
 
         assert len(task_dict_list) > 0
+        self.num_tasks = num_tasks
         self.tasks = get_task
 
         self.shot = task_dict_list[0]['shot']
@@ -79,7 +82,7 @@ class AdversarialDataset:
         actual_adv_target_swap = []
         actual_adv_context_swap = []
 
-        for task_index in range(0, len(self.tasks)):
+        for task_index in range(0, self.num_tasks):
             task = self.tasks(task_index)
             context_labels = task['context_labels'].type(torch.LongTensor)
             adv_target_indices = task['adv_target_indices']
@@ -218,7 +221,7 @@ class AdversarialDataset:
         return eval_images_gpu, eval_labels_gpu
 
     def get_num_tasks(self):
-        return len(self.tasks)
+        return self.num_tasks
 
     def get_way(self):
         return self.way
