@@ -64,7 +64,8 @@ from PIL import Image
 import sys
 # sys.path.append(os.path.abspath('attacks'))
 from attacks.attack_helpers import create_attack
-from attacks.attack_utils import split_target_set, make_adversarial_task_dict, infer_way_and_shots, make_swap_attack_task_dict, infer_num_shots
+from attacks.attack_utils import split_target_set, make_adversarial_task_dict, make_swap_attack_task_dict, infer_num_shots
+from attacks.attack_utils import AdversarialDataset, save_partial_pickle
 
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
@@ -127,9 +128,12 @@ class Learner:
             self.dataset = MetaDatasetReader(self.args.data_path, self.args.mode, self.train_set, self.validation_set,
                                              self.test_set, self.args.max_way_train, self.args.max_way_test,
                                              self.args.max_support_train, self.args.max_support_test, self.args.query_test * num_target_sets)
-        else:
+        elif self.args.dataset != "from_file":
             self.dataset = SingleDatasetReader(self.args.data_path, self.args.mode, self.args.dataset, self.args.way,
                                                self.args.shot, self.args.query_train, self.args.query_test * num_target_sets)
+        else:
+            self.dataset = AdversarialDataset(self.args.data_path)
+
         self.loss = loss
         self.accuracy_fn = aggregate_accuracy
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.args.learning_rate)
@@ -175,7 +179,7 @@ class Learner:
 
         parser.add_argument("--dataset", choices=["meta-dataset", "ilsvrc_2012", "omniglot", "aircraft", "cu_birds",
                                                   "dtd", "quickdraw", "fungi", "vgg_flower", "traffic_sign", "mscoco",
-                                                  "mnist", "cifar10", "cifar100"], default="meta-dataset",
+                                                  "mnist", "cifar10", "cifar100", "from_file"], default="meta-dataset",
                             help="Dataset to use.")
         parser.add_argument('--test_datasets', nargs='+', help='Datasets to use for testing',
                             default=["quickdraw", "ilsvrc_2012", "omniglot", "aircraft", "cu_birds", "dtd",     "fungi",
@@ -288,10 +292,13 @@ class Learner:
             if self.args.mode == 'attack':
                 if not self.args.swap_attack:
                     self.attack_homebrew(self.args.test_model_path, session)
-                elif self.args.dataset != "meta-dataset":
-                    self.attack_swap(self.args.test_model_path, session)
-                else:
+                elif self.args.dataset == "from_file":
+                    self.vary_swap_attack(self.args.test_model_path, session)
+                elif self.args.dataset == "meta-dataset":
                     self.meta_dataset_attack_swap(self.args.test_model_path, session)
+                else:
+                    self.attack_swap(self.args.test_model_path, session)
+
 
             self.logfile.close()
 
@@ -373,6 +380,88 @@ class Learner:
         save_image(adv_img.cpu().detach().numpy(),os.path.join(self.checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task_no, index)))
         save_image(clean_img, os.path.join(self.checkpoint_dir, 'in_task_{}_index_{}.png'.format(task_no, index)))
 
+    def vary_swap_attack(self, path, session):
+        write_to_log(self.logfile, 'Attacking model {0:}: '.format(path))
+        self.model = self.init_model()
+        self.model.load_state_dict(torch.load(path), strict=False)
+
+        shot = self.dataset.shot
+        way = self.dataset.way
+        if shot == 1:
+            class_fracs = [(k+1)/way for k in range(0,way)]
+            shot_fracs = [1.0]
+        elif shot == 5:
+            class_fracs = [k/way for k in [1, 3, 5]]
+            shot_fracs = [k/shot for k in [1, 3, 5]]
+        elif shot == 10:
+            class_fracs = [k/way for k in [1, 3, 5]]
+            shot_fracs = [k/shot for k in [1, 3, 5, 10]]
+        else:
+            print("ERROR - Unsupported shot/way for vary swap attack")
+            return
+
+        gen_clean_accuracies = []
+        clean_accuracies = []
+        clean_target_as_context_accuracies = []
+        # num_tasks = min(2, self.dataset.get_num_tasks())
+        num_tasks = min(self.dataset.get_num_tasks(), self.args.attack_tasks)
+        for task in tqdm(range(num_tasks), dynamic_ncols=True):
+            with torch.no_grad():
+                context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
+                gen_clean_accuracies.append(self.calc_accuracy(context_images, context_labels, target_images, target_labels))
+
+                eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
+                # Evaluate on independent target sets
+                for k in range(len(eval_images)):
+                    eval_imgs_k = eval_images[k].to(self.device)
+                    eval_labels_k = eval_labels[k].to(self.device)
+                    clean_accuracies.append(self.calc_accuracy(context_images, context_labels, eval_imgs_k, eval_labels_k))
+                    clean_target_as_context_accuracies.append(self.calc_accuracy(target_images, target_labels, eval_imgs_k, eval_labels_k))
+
+        self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", "")
+        self.print_average_accuracy(clean_accuracies, "Clean accuracy", "")
+        self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy", "")
+
+        for class_frac in class_fracs:
+            for shot_frac in shot_fracs:
+                #Do the swap attack
+                frac_descrip = "{}_ac_{}_ash".format(class_frac, shot_frac)
+
+                # Accuracies for evaluation setting
+                adv_context_accuracies = []
+                adv_target_accuracies = []
+                adv_target_as_context_accuracies = []
+                adv_context_as_target_accuracies = []
+
+                for task in tqdm(range(num_tasks), dynamic_ncols=True):
+                    with torch.no_grad():
+                        adv_target_images, target_labels = self.dataset.get_frac_adversarial_set(task, self.device, class_frac, shot_frac, set_type="target")
+                        adv_context_images, context_labels = self.dataset.get_frac_adversarial_set(task, self.device, class_frac, shot_frac, set_type="context")
+
+                        eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
+
+                        # Evaluate in normal/generation setting
+                        # Doesn't account for collusion
+                        #gen_adv_context_accuracies.append(self.calc_accuracy(adv_context_images, context_labels, target_images, target_labels))
+                        # Doesn't account for a bunch of the samples not being perturbed
+                        #gen_adv_target_accuracies.append(self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels))
+
+                        # Evaluate on independent target sets
+                        for k in range(len(eval_images)):
+                            eval_imgs_k = eval_images[k].to(self.device)
+                            eval_labels_k = eval_labels[k].to(self.device)
+
+                            adv_context_accuracies.append(self.calc_accuracy(adv_context_images, context_labels, eval_imgs_k, eval_labels_k))
+                            adv_target_accuracies.append(self.calc_accuracy(eval_imgs_k, eval_labels_k, adv_target_images, target_labels))
+
+                            adv_target_as_context_accuracies.append(self.calc_accuracy(adv_target_images, target_labels, eval_imgs_k, eval_labels_k))
+                            adv_context_as_target_accuracies.append(self.calc_accuracy(eval_imgs_k, eval_labels_k, adv_context_images, context_labels))
+
+                self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", frac_descrip)
+                self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", frac_descrip)
+                self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", frac_descrip)
+                self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", frac_descrip)
+
     def meta_dataset_attack_swap(self, path, session):
         write_to_log(self.logfile, 'Attacking model {0:}: '.format(path))
         # Swap attacks only make sense if doing evaluation with independent target sets
@@ -399,9 +488,6 @@ class Learner:
             clean_target_as_context_accuracies = []
             adv_context_accuracies = []
             adv_target_as_context_accuracies = []
-
-            if self.args.save_attack:
-                saved_tasks = []
 
             for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
@@ -476,12 +562,9 @@ class Learner:
                                                                adv_target_images, adv_target_indices,
                                                                self.args.way, self.args.shot, self.args.query_test,
                                                                eval_images, eval_labels)
-                    saved_tasks.append(adv_task_dict)
+                    save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t, adv_task_dict)
 
                 del adv_context_images, adv_target_images
-
-            if self.args.save_attack:
-                save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), saved_tasks)
 
             self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", item)
             self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy", item)

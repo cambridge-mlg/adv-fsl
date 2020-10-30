@@ -3,6 +3,7 @@ import torch
 import os
 import numpy as np
 from attacks.attack_utils import save_pickle
+from tqdm import tqdm
 
 from learners.maml.src.mini_imagenet import MiniImageNetData, prepare_task
 from learners.maml.src.omniglot import OmniglotData
@@ -13,6 +14,7 @@ from learners.maml.src.shrinkage_maml import PredCPMAML as pMAML
 from learners.maml.src.utils import save_image
 from attacks.attack_helpers import create_attack
 from attacks.attack_utils import extract_class_indices, Logger, split_target_set, make_adversarial_task_dict, make_swap_attack_task_dict
+from attacks.attack_utils import AdversarialDataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_INDEP_EVAL_TASKS = 50
@@ -206,6 +208,82 @@ def save_image_pair(checkpoint_dir, adv_img, clean_img, task_no, index):
                os.path.join(checkpoint_dir, 'adv_task_{}_index_{}.png'.format(task_no, index)))
     save_image(clean_img.cpu().detach().numpy(), os.path.join(checkpoint_dir, 'in_task_{}_index_{}.png'.format(task_no, index)))
 
+
+def vary_swap_attack(model, dataset, model_path, num_attack_tasks, config_path, checkpoint_dir):
+    logger.print_and_log('Attacking model {0:}: '.format(model_path))
+    if device.type == 'cpu':
+            load_dict = torch.load(model_path, map_location='cpu')
+    else:
+            load_dict = torch.load(model_path)
+    model.load_state_dict(load_dict)
+    model.set_gradient_steps(test_gradient_steps)
+
+    shot = dataset.shot
+    way = dataset.way
+    if shot == 1:
+        class_fracs = [(k+1)/way for k in range(0,way)]
+        shot_fracs = [1.0]
+    elif shot == 5:
+        class_fracs = [k/way for k in [1, 3, 5]]
+        shot_fracs = [k/shot for k in [1, 3, 5]]
+    elif shot == 10:
+        class_fracs = [k/way for k in [1, 3, 5]]
+        shot_fracs = [k/shot for k in [1, 3, 5, 10]]
+    else:
+        print("ERROR - Unsupported shot/way for vary swap attack")
+        return
+
+    gen_clean_accuracies = []
+    clean_accuracies = []
+    clean_target_as_context_accuracies = []
+    num_tasks = min(num_attack_tasks, dataset.get_num_tasks())
+    for task in tqdm(range(num_tasks), dynamic_ncols=True):
+        context_images, context_labels, target_images, target_labels = dataset.get_clean_task(task, device)
+        gen_clean_accuracies.append(model.compute_objective(context_images, context_labels, target_images, target_labels, accuracy=True)[1].item())
+
+        eval_images, eval_labels = dataset.get_eval_task(task, device)
+        # Evaluate on independent target sets
+        for k in range(len(eval_images)):
+            eval_imgs_k = eval_images[k].to(device)
+            eval_labels_k = eval_labels[k].to(device)
+            clean_accuracies.append(model.compute_objective(context_images, context_labels, eval_imgs_k, eval_labels_k, accuracy=True)[1].item())
+            clean_target_as_context_accuracies.append(model.compute_objective(target_images, target_labels, eval_imgs_k, eval_labels_k, accuracy=True)[1].item())
+
+    print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy")
+    print_average_accuracy(clean_accuracies, "Clean accuracy")
+    print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy")
+
+    for class_frac in class_fracs:
+        for shot_frac in shot_fracs:
+            #Do the swap attack
+            frac_descrip = "{}_ac_{}_ash".format(class_frac, shot_frac)
+
+            # Accuracies for evaluation setting
+            adv_context_accuracies = []
+            adv_target_accuracies = []
+            adv_target_as_context_accuracies = []
+            # adv_context_as_target_accuracies = []
+
+            for task in tqdm(range(num_tasks), dynamic_ncols=True):
+                adv_target_images, target_labels = dataset.get_frac_adversarial_set(task, device, class_frac, shot_frac, set_type="target")
+                adv_context_images, context_labels = dataset.get_frac_adversarial_set(task, device, class_frac, shot_frac, set_type="context")
+                eval_images, eval_labels = dataset.get_eval_task(task, device)
+
+                # Evaluate on independent target sets
+                for k in range(len(eval_images)):
+                    eval_imgs_k = eval_images[k].to(device)
+                    eval_labels_k = eval_labels[k].to(device)
+
+                    adv_context_accuracies.append(model.compute_objective(adv_context_images, context_labels, eval_imgs_k, eval_labels_k, accuracy=True)[1].item())
+                    adv_target_accuracies.append(model.compute_objective(eval_imgs_k, eval_labels_k, adv_target_images, target_labels, accuracy=True)[1].item())
+
+                    adv_target_as_context_accuracies.append(model.compute_objective(adv_target_images, target_labels, eval_imgs_k, eval_labels_k, accuracy=True)[1].item())
+                    # adv_context_as_target_accuracies.append(model.compute_objective(eval_imgs_k, eval_labels_k, adv_context_images, context_labels, accuracy=True)[1].item())
+
+            print_average_accuracy(adv_context_accuracies, "Context attack accuracy {}".format(frac_descrip))
+            print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy {}".format(frac_descrip))
+            print_average_accuracy(adv_target_accuracies, "Target attack accuracy {}".format(frac_descrip))
+            # print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target {}".format(frac_descrip))
 
 def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     # load the model
@@ -404,7 +482,7 @@ parser.add_argument('--beta',
                     'term (pMAML and sMAML only)')
 parser.add_argument('--dataset',
                     type=str,
-                    choices=['omniglot', 'mini_imagenet'],
+                    choices=['omniglot', 'mini_imagenet', 'from_file'],
                     default='omniglot',
                     help='Choice of dataset to use')
 parser.add_argument('--mode',
@@ -497,6 +575,14 @@ args.model_path = os.path.join(args.checkpoint_dir, model_str)
 # Initialize data generator
 if args.dataset == 'mini_imagenet':
     data = MiniImageNetData(path=args.data_path, seed=111)
+    in_channels = 3
+    num_channels = 32
+    max_pool = True
+    flatten = True
+    hidden_dim = 800
+    test_gradient_steps = 10
+elif args.dataset == "from_file":
+    data = AdversarialDataset(args.data_path)
     in_channels = 3
     num_channels = 32
     max_pool = True
@@ -613,7 +699,10 @@ elif args.mode == 'attack':
     if not args.swap_attack:
         attack(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
     else:
-        attack_swap(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
+        if args.dataset == 'from_file':
+            vary_swap_attack(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
+        else:
+            attack_swap(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
 
 else:  # test only
     if args.test_by_example:
