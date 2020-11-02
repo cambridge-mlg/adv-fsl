@@ -229,6 +229,8 @@ class Learner:
         # Currently only implemented for non-swap attacks
         parser.add_argument("--save_attack", default=False,
                             help="Save all the tasks and adversarial images to a pickle file. Currently only applicable to non-swap attacks.")
+        parser.add_argument("--continue_from_task", type=int, default=0,
+                            help="When saving out large numbers of tasks one by one, this allows us to continue labelling new tasks from a certain point")
         parser.add_argument("--save_samples", default=False,
                             help="Output samples of the clean and adversarial images")
         parser.add_argument("--indep_eval", default=False,
@@ -491,6 +493,9 @@ class Learner:
 
             for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
+                if self.args.continue_from_task != 0:
+                    #Skip the first one, which is deterministic
+                    task_dict = self.dataset.get_test_task(item, session)
                 # Retry until the task is small enough to load into debugging machine's memory
                 # while len(task_dict['context_images']) > 200:
                 #    task_dict = self.dataset.get_test_task(item, session)
@@ -562,7 +567,8 @@ class Learner:
                                                                adv_target_images, adv_target_indices,
                                                                self.args.way, self.args.shot, self.args.query_test,
                                                                eval_images, eval_labels)
-                    save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t, adv_task_dict)
+                    if self.args.continue_from_task != 0:
+                    save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t+self.args.continue_from_task, adv_task_dict)
 
                 del adv_context_images, adv_target_images
 
