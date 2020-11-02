@@ -53,7 +53,7 @@ def load_partial_pickle(file_path):
     task_0 = get_task(0)
     lazy_task_list = [task_0]
     # Get the number of tasks in the dir
-    num_tasks = len([name for name in os.listdir(file_path) if os.path.isfile(name)])
+    num_tasks = len([name for name in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, name))])
     return lazy_task_list, get_task, num_tasks
 
 
