@@ -491,7 +491,7 @@ class Learner:
             adv_context_accuracies = []
             adv_target_as_context_accuracies = []
 
-            for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
+            for t in tqdm(range(self.args.attack_tasks - self.args.continue_from_task), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
                 if self.args.continue_from_task != 0:
                     #Skip the first one, which is deterministic
