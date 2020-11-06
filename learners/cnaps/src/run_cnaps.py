@@ -412,6 +412,7 @@ class Learner:
                 context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
                 gen_clean_accuracies.append(self.calc_accuracy(context_images, context_labels, target_images, target_labels))
 
+
                 eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
                 # Evaluate on independent target sets
                 for k in range(len(eval_images)):
@@ -435,18 +436,21 @@ class Learner:
                 adv_target_as_context_accuracies = []
                 adv_context_as_target_accuracies = []
 
+                gen_adv_context_accuracies = []
+                gen_adv_target_accuracies = []
+
                 for task in tqdm(range(num_tasks), dynamic_ncols=True):
                     with torch.no_grad():
+                        context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
                         adv_target_images, target_labels = self.dataset.get_frac_adversarial_set(task, self.device, class_frac, shot_frac, set_type="target")
                         adv_context_images, context_labels = self.dataset.get_frac_adversarial_set(task, self.device, class_frac, shot_frac, set_type="context")
 
-                        eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
-
                         # Evaluate in normal/generation setting
                         # Doesn't account for collusion
-                        #gen_adv_context_accuracies.append(self.calc_accuracy(adv_context_images, context_labels, target_images, target_labels))
-                        # Doesn't account for a bunch of the samples not being perturbed
-                        #gen_adv_target_accuracies.append(self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels))
+                        gen_adv_context_accuracies.append(self.calc_accuracy(adv_context_images, context_labels, target_images, target_labels))
+                        gen_adv_target_accuracies.append(self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels))
+
+                        eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
 
                         # Evaluate on independent target sets
                         for k in range(len(eval_images)):
@@ -458,6 +462,9 @@ class Learner:
 
                             adv_target_as_context_accuracies.append(self.calc_accuracy(adv_target_images, target_labels, eval_imgs_k, eval_labels_k))
                             adv_context_as_target_accuracies.append(self.calc_accuracy(eval_imgs_k, eval_labels_k, adv_context_images, context_labels))
+
+                self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy", frac_descrip)
+                self.print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy", frac_descrip)
 
                 self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", frac_descrip)
                 self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", frac_descrip)
