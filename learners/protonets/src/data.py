@@ -38,37 +38,42 @@ class MiniImageNetData(object):
         self.augment_transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
             transforms.RandomResizedCrop(self.image_height),
             transforms.ColorJitter(
                 brightness=0.4,
                 contrast=0.4,
                 saturation=0.4,
                 hue=0.2),
+            #transforms.GaussianBlur(3),
             normalize
         ])
 
-    def get_train_task(self, way, shot, target_shot, target_multiplier=1):
+    def get_train_task(self, way, shot, target_shot, target_multiplier=1, eval_tasks=0):
         return self._generate_task(images=self.train_set,
                                    shot=shot,
                                    way=way,
                                    eval_samples=target_shot,
-                                   target_multiplier=target_multiplier)
+                                   target_multiplier=target_multiplier,
+                                   eval_tasks=eval_tasks)
 
-    def get_validation_task(self, way, shot, target_shot, target_multiplier=1):
+    def get_validation_task(self, way, shot, target_shot, target_multiplier=1, eval_tasks=0):
         return self._generate_task(images=self.validation_set,
                                    shot=shot,
                                    way=way,
                                    eval_samples=target_shot,
-                                   target_multiplier=target_multiplier)
+                                   target_multiplier=target_multiplier,
+                                   eval_multiplier=eval_tasks)
 
-    def get_test_task(self, way, shot, target_shot, target_multiplier=1):
+    def get_test_task(self, way, shot, target_shot, target_multiplier=1, eval_tasks=0):
         return self._generate_task(images=self.test_set,
                                    shot=shot,
                                    way=way,
                                    eval_samples=target_shot,
-                                   target_multiplier=target_multiplier)
+                                   target_multiplier=target_multiplier,
+                                   eval_tasks=eval_tasks)
 
-    def _generate_task(self, images, shot, way, eval_samples, target_multiplier):
+    def _generate_task(self, images, shot, way, eval_samples, target_multiplier, eval_tasks):
         """
         Sample a k-shot batch from images.
         :param images: Data to sample from [n_classes, n_samples, h, w, c] (either of xTrain, xVal, xTest)
@@ -83,11 +88,11 @@ class MiniImageNetData(object):
             * Labels: [tasksPerBatch, classesPerTask*samplesPerClassTrain/Test, classesPerTask]
                       (one-hot encoded in last dim)
         """
-        samples_per_class = shot + eval_samples
         classes_idx = np.arange(images.shape[0])
         samples_idx = np.arange(images.shape[1])
 
-        num_test_instances = eval_samples
+        num_test_instances = (1 + eval_tasks) * eval_samples
+        samples_per_class = shot + num_test_instances
         train_images_list, test_images_list = [], []
 
         choose_classes = np.random.choice(classes_idx, size=way, replace=False)
@@ -100,15 +105,16 @@ class MiniImageNetData(object):
 
         train_images, test_images = np.vstack(train_images_list), np.vstack(test_images_list)
         train_labels = np.arange(way).repeat(shot, 0)
-        test_labels = np.arange(way).repeat(num_test_instances * target_multiplier, 0)
+        test_labels = np.arange(way).repeat(target_multiplier + eval_tasks, 0)
 
         train_shape = train_images.shape
         train_images_tensor = torch.empty(
             size=(train_shape[0], self.image_channels, self.image_height, self.image_width),
             dtype=torch.float)
         test_shape = test_images.shape
+        test_task_size = way * eval_samples
         test_images_tensor = torch.empty(
-            size=(test_shape[0] * target_multiplier, self.image_channels, self.image_height, self.image_width),
+            size=(test_task_size * (target_multiplier + eval_tasks), self.image_channels, self.image_height, self.image_width),
             dtype=torch.float)
 
         # convert images to pytorch tensors, normalize them, and set them to the device
@@ -116,12 +122,18 @@ class MiniImageNetData(object):
             train_images_tensor[i] = self.basic_transform(train_images[i])
 
         if target_multiplier > 1:
-            for i in range(test_shape[0] * target_multiplier):
-                if i % test_shape[0] == 0:
+            for i in range(test_task_size * (target_multiplier + eval_tasks)):
+                modulo = i % (target_multiplier + eval_tasks) + 1
+                if modulo == 0:
                     transform = self.basic_transform
-                else:
+                    test_images_tensor[i] = transform(test_images[i // (target_multiplier + eval_tasks + 1)])
+                elif modulo < target_multiplier:
                     transform = self.augment_transform
-                test_images_tensor[i] = transform(test_images[i // test_shape[0]])
+                    test_images_tensor[i] = transform(test_images[i // (target_multiplier + eval_tasks + 1)])
+                else:
+                    transform = self.basic_transform
+                    offset = (((i // (target_multiplier + eval_tasks)) + 1) * target_multiplier) - 1
+                    test_images_tensor[i] = self.basic_transform(test_images[i - offset])
         else:
             for i in range(test_shape[0]):
                 test_images_tensor[i] = self.basic_transform(test_images[i])
