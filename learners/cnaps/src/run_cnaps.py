@@ -574,8 +574,8 @@ class Learner:
                                                                adv_target_images, adv_target_indices,
                                                                self.args.way, self.args.shot, self.args.query_test,
                                                                eval_images, eval_labels)
-                    if self.args.continue_from_task != 0:
-                        save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t+self.args.continue_from_task, adv_task_dict)
+                    #if self.args.continue_from_task != 0:
+                    save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t+self.args.continue_from_task, adv_task_dict)
 
                 del adv_context_images, adv_target_images
 
