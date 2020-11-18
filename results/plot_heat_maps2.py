@@ -149,14 +149,14 @@ def main():
         images.append(im)
         texts = annotate_heatmap(im, valfmt="{x:.1f}", fontsize='large')
         ax.set_title(title, y=-0.15, fontsize='large', color='blue')
-        ax.set_xlabel('Adversarial Classes', fontsize='large')
+        ax.set_xlabel('Poisoned Classes', fontsize='large')
         ax.xaxis.set_label_position('top')
 
     # Create colorbar
     # cbar = ax.figure.colorbar(im, ax=axs[2])
     # cbar.ax.set_ylabel("Relative Decrease in Accuracy (%)", rotation=-90, va="bottom")
 
-    axs[0].set_ylabel('Adversarial Shots', fontsize='large')
+    axs[0].set_ylabel('Poisoned Shots', fontsize='large')
     plt.subplots_adjust(wspace=0.01)
     fig.tight_layout()
     plt.savefig('./plots/heat_maps2.pdf', bbox_inches='tight')
