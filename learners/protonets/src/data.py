@@ -251,4 +251,3 @@ class OmniglotData(object):
         }
 
         return task_dict
-
