@@ -102,6 +102,9 @@ class Learner:
                             help="For swap attacks, the relative size of the target set used when generating the adv context set (eg. x times larger). Currently only implemented for swap attacks")
         parser.add_argument("--indep_eval", default=False,
                             help="Whether to use independent target sets for evaluation automagically")
+        parser.add_argument("--adversarial_training_interval", type=int, default=100000,
+                            help="If True, train adversarially using 'attack_config'.")
+
         args = parser.parse_args()
 
         return args
@@ -113,11 +116,11 @@ class Learner:
             total_iterations = self.args.training_iterations
             for iteration in range(self.start_iteration, total_iterations):
                 current_lr = self.adjust_learning_rate(iteration)
-                # torch.set_grad_enabled(True)
                 task_dict = self.dataset.get_train_task(self.args.train_way,
                                                         self.args.train_shot,
                                                         self.args.query)
-                task_loss, task_accuracy = self.train_task(task_dict)
+                task_loss, task_accuracy = self.train_task(task_dict, iteration)
+
                 losses.append(task_loss)
                 train_accuracies.append(task_accuracy)
 
@@ -169,12 +172,15 @@ class Learner:
 
         self.logfile.close()
 
-    def train_task(self, task_dict):
+    def train_task(self, task_dict, iteration):
         self.model.train()
         context_images, target_images, context_labels, target_labels = self.prepare_task(task_dict, shuffle=False)
-
-        logits = self.model(context_images, context_labels, target_images)
-        # target_labels = get_labels(self.args.train_way, self.args.query)
+        if iteration % self.args.adversarial_training_interval == 0:
+            adv_context_images = self._generate_adversarial_support_set(context_images, target_images,
+                                                                        context_labels, target_labels)
+            logits = self.model(adv_context_images, context_labels, target_images)
+        else:
+            logits = self.model(context_images, context_labels, target_images)
         task_loss = self.loss(logits, target_labels) / self.args.tasks_per_batch
         task_loss.backward()
         accuracy = self.accuracy_fn(logits, target_labels)
@@ -221,6 +227,14 @@ class Learner:
             accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
 
             print_and_log(self.logfile, 'Test Accuracy: {0:3.1f}+/-{1:2.1f}'.format(accuracy, accuracy_confidence))
+
+    def _generate_adversarial_support_set(self, context_images, target_images, context_labels, target_labels):
+        attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
+
+        adv_images, _ = attack.generate(context_images, context_labels, target_images, target_labels, self.model,
+                                        self.model, self.device)
+
+        return adv_images
 
     def calc_accuracy(self, context_images, context_labels, target_images, target_labels):
         logits = self.model(context_images, context_labels, target_images)

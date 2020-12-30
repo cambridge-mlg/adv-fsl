@@ -444,7 +444,7 @@ def make_swap_attack_task_dict(context_images, context_labels, target_images, ta
     return adv_task_dict
 
 
-class Logger():
+class Logger:
     def __init__(self, checkpoint_dir, log_file_name):
         log_file_path = os.path.join(checkpoint_dir, log_file_name)
         self.file = None
@@ -458,4 +458,7 @@ class Logger():
 
     def print_and_log(self, message):
         print(message, flush=True)
+        self.file.write(message + '\n')
+
+    def log(self, message):
         self.file.write(message + '\n')

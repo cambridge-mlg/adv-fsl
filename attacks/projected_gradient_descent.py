@@ -82,12 +82,12 @@ class ProjectedGradientDescent:
                 self.logger.print_and_log("Generating random labels for targeted attack")
                 targeted_labels = get_random_targeted_labels(true_target_labels, device)
 
-        self.logger.print_and_log("Performing PGD attack on {} set. Settings = (norm={}, epsilon={}, epsilon_step={}, "
-                                  "num_iterations={}, use_true_labels={},target_loss_mode={})"
-                                  .format(self.attack_mode, self.norm, self.epsilon, self.epsilon_step,
-                                          self.num_iterations, self.use_true_target_labels, self.target_loss_mode))
-        self.logger.print_and_log("class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
-        self.logger.print_and_log("context set size = {}, target set size = {}".format(context_images.shape[0], target_images.shape[0]))
+        self.logger.log("Performing PGD attack on {} set. Settings = (norm={}, epsilon={}, epsilon_step={}, "
+                        "num_iterations={}, use_true_labels={},target_loss_mode={})"
+                        .format(self.attack_mode, self.norm, self.epsilon, self.epsilon_step,
+                                self.num_iterations, self.use_true_target_labels, self.target_loss_mode))
+        self.logger.log("class_fraction = {}, shot_fraction = {}".format(self.class_fraction, self.shot_fraction))
+        self.logger.log("context set size = {}, target set size = {}".format(context_images.shape[0], target_images.shape[0]))
 
         if self.attack_mode == 'target':
             return self._generate_target(context_images, context_labels, target_images, labels, model, get_logits_fn,
