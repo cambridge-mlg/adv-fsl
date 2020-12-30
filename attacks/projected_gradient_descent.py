@@ -76,7 +76,7 @@ class ProjectedGradientDescent:
                 # When in 'exact' mode, the actual targeted labels must be specified
                 assert targeted_labels is not None
             elif self.targeted_labels == 'shifted':
-                self.logger.print_and_log("Generating shifted labels for targeted attack")
+                self.logger.log("Generating shifted labels for targeted attack")
                 targeted_labels = get_shifted_targeted_labels(true_target_labels, device)
             else: #random labels
                 self.logger.print_and_log("Generating random labels for targeted attack")
