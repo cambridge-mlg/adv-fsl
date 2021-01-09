@@ -1,10 +1,12 @@
 import yaml
+import numpy as np
 from attacks.projected_gradient_descent import ProjectedGradientDescent
 from attacks.carlini_wagner_l2 import CarliniWagnerL2
 from attacks.elastic_net import ElasticNet
 from attacks.shift_attack import ShiftAttack
 from attacks.uap import UapAttack
 from attacks.random import RandomAttack
+
 
 def create_attack(attack_config_path, checkpoint_dir):
     with open(attack_config_path) as f:
@@ -21,22 +23,47 @@ def create_attack(attack_config_path, checkpoint_dir):
             if 'shot_fraction' in attack_params.keys():
                 shot_fraction = attack_params['shot_fraction']
 
+            randomize_attack_params=False
+            if 'randomize' in attack_params.keys():
+                randomize_attack_params = attack_params['randomize']
+
             # create the attack
-            attack = ProjectedGradientDescent(
-                checkpoint_dir=checkpoint_dir,
-                norm=attack_params['norm'],
-                epsilon=attack_params['epsilon'],
-                num_iterations=attack_params['num_iterations'],
-                epsilon_step=attack_params['epsilon_step'],
-                project_step=attack_params['project_step'],
-                attack_mode=attack_params['attack_mode'],
-                class_fraction=class_fraction,
-                shot_fraction=shot_fraction,
-                use_true_target_labels=attack_params['use_true_target_labels'],
-                target_loss_mode=attack_params['target_loss_mode'],
-                targeted=attack_params['targeted'],
-                targeted_labels=attack_params['targeted_labels'],
-            )
+            if randomize_attack_params:
+                epsilon = np.random.uniform(low=0.01, high=0.1)
+                num_iterations = np.random.randint(low=5, high=101)
+                epsilon_step = epsilon * 3.0 / float(num_iterations)
+                print("eps={}, iters={}, step={}".format(epsilon, num_iterations, epsilon_step))
+                attack = ProjectedGradientDescent(
+                    checkpoint_dir=checkpoint_dir,
+                    norm=attack_params['norm'],
+                    epsilon=epsilon,
+                    num_iterations=num_iterations,
+                    epsilon_step=epsilon_step,
+                    project_step=attack_params['project_step'],
+                    attack_mode=attack_params['attack_mode'],
+                    class_fraction=class_fraction,
+                    shot_fraction=shot_fraction,
+                    use_true_target_labels=attack_params['use_true_target_labels'],
+                    target_loss_mode=attack_params['target_loss_mode'],
+                    targeted=attack_params['targeted'],
+                    targeted_labels=attack_params['targeted_labels'],
+                )
+            else:
+                attack = ProjectedGradientDescent(
+                    checkpoint_dir=checkpoint_dir,
+                    norm=attack_params['norm'],
+                    epsilon=attack_params['epsilon'],
+                    num_iterations=attack_params['num_iterations'],
+                    epsilon_step=attack_params['epsilon_step'],
+                    project_step=attack_params['project_step'],
+                    attack_mode=attack_params['attack_mode'],
+                    class_fraction=class_fraction,
+                    shot_fraction=shot_fraction,
+                    use_true_target_labels=attack_params['use_true_target_labels'],
+                    target_loss_mode=attack_params['target_loss_mode'],
+                    targeted=attack_params['targeted'],
+                    targeted_labels=attack_params['targeted_labels'],
+                )
         elif attack_params['attack'] == 'carlini_wagner':
             attack = CarliniWagnerL2(
                 checkpoint_dir=checkpoint_dir,
