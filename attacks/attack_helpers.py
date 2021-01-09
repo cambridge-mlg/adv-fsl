@@ -33,37 +33,26 @@ def create_attack(attack_config_path, checkpoint_dir):
                 num_iterations = np.random.randint(low=5, high=101)
                 epsilon_step = epsilon * 3.0 / float(num_iterations)
                 print("eps={}, iters={}, step={}".format(epsilon, num_iterations, epsilon_step))
-                attack = ProjectedGradientDescent(
-                    checkpoint_dir=checkpoint_dir,
-                    norm=attack_params['norm'],
-                    epsilon=epsilon,
-                    num_iterations=num_iterations,
-                    epsilon_step=epsilon_step,
-                    project_step=attack_params['project_step'],
-                    attack_mode=attack_params['attack_mode'],
-                    class_fraction=class_fraction,
-                    shot_fraction=shot_fraction,
-                    use_true_target_labels=attack_params['use_true_target_labels'],
-                    target_loss_mode=attack_params['target_loss_mode'],
-                    targeted=attack_params['targeted'],
-                    targeted_labels=attack_params['targeted_labels'],
-                )
             else:
-                attack = ProjectedGradientDescent(
-                    checkpoint_dir=checkpoint_dir,
-                    norm=attack_params['norm'],
-                    epsilon=attack_params['epsilon'],
-                    num_iterations=attack_params['num_iterations'],
-                    epsilon_step=attack_params['epsilon_step'],
-                    project_step=attack_params['project_step'],
-                    attack_mode=attack_params['attack_mode'],
-                    class_fraction=class_fraction,
-                    shot_fraction=shot_fraction,
-                    use_true_target_labels=attack_params['use_true_target_labels'],
-                    target_loss_mode=attack_params['target_loss_mode'],
-                    targeted=attack_params['targeted'],
-                    targeted_labels=attack_params['targeted_labels'],
-                )
+                epsilon = attack_params['epsilon']
+                num_iterations = attack_params['num_iterations']
+                epsilon_step = attack_params['epsilon_step']
+
+            attack = ProjectedGradientDescent(
+                checkpoint_dir=checkpoint_dir,
+                norm=attack_params['norm'],
+                epsilon=epsilon,
+                num_iterations=num_iterations,
+                epsilon_step=epsilon_step,
+                project_step=attack_params['project_step'],
+                attack_mode=attack_params['attack_mode'],
+                class_fraction=class_fraction,
+                shot_fraction=shot_fraction,
+                use_true_target_labels=attack_params['use_true_target_labels'],
+                target_loss_mode=attack_params['target_loss_mode'],
+                targeted=attack_params['targeted'],
+                targeted_labels=attack_params['targeted_labels'],
+            )
         elif attack_params['attack'] == 'carlini_wagner':
             attack = CarliniWagnerL2(
                 checkpoint_dir=checkpoint_dir,
