@@ -1,5 +1,6 @@
 import yaml
 import numpy as np
+import random
 from attacks.projected_gradient_descent import ProjectedGradientDescent
 from attacks.carlini_wagner_l2 import CarliniWagnerL2
 from attacks.elastic_net import ElasticNet
@@ -29,7 +30,7 @@ def create_attack(attack_config_path, checkpoint_dir):
 
             # create the attack
             if randomize_attack_params:
-                epsilon = np.random.uniform(low=0.01, high=0.1)
+                epsilon = 0.0314 if random.getrandbits(1) else 0.05
                 num_iterations = np.random.randint(low=5, high=101)
                 epsilon_step = epsilon * 3.0 / float(num_iterations)
                 print("eps={}, iters={}, step={}".format(epsilon, num_iterations, epsilon_step))
