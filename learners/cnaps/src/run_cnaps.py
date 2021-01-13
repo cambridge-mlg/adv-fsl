@@ -37,12 +37,8 @@ python run_cnaps.py --feature_adaptation film -i 20000 -lr 0.001 --batch_normali
                     -- dataset omniglot --way 5 --shot 5 --data_path <path to directory containing Meta-Dataset records>
 
 """
-# import os
-# os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-# os.environ["CUDA_VISIBLE_DEVICES"]="1"  # specify which GPU(s) to be used
 
 import torch
-import torch.nn as nn
 import numpy as np
 import argparse
 import os
@@ -237,6 +233,8 @@ class Learner:
                             help="Whether to use independent target sets for evaluation automagically")
         parser.add_argument("--do_not_freeze_feature_extractor", dest="do_not_freeze_feature_extractor", default=False,
                             action="store_true", help="If True, don't freeze the feature extractor.")
+        parser.add_argument("--adversarial_training_interval", type=int, default=100000,
+                            help="If True, train adversarially using 'attack_config'.")
         args = parser.parse_args()
 
         return args
@@ -252,7 +250,7 @@ class Learner:
                 for iteration in range(self.start_iteration, total_iterations):
                     torch.set_grad_enabled(True)
                     task_dict = self.dataset.get_train_task(session)
-                    task_loss, task_accuracy = self.train_task(task_dict)
+                    task_loss, task_accuracy = self.train_task(task_dict, iteration)
                     train_accuracies.append(task_accuracy)
                     losses.append(task_loss)
 
@@ -301,13 +299,16 @@ class Learner:
                 else:
                     self.attack_swap(self.args.test_model_path, session)
 
-
             self.logfile.close()
 
-    def train_task(self, task_dict):
+    def train_task(self, task_dict, iteration):
         context_images, target_images, context_labels, target_labels, _ = self.prepare_task(task_dict)
-
-        target_logits = self.model(context_images, context_labels, target_images)
+        if iteration % self.args.adversarial_training_interval == 0:
+            adv_context_images = self._generate_adversarial_support_set(context_images, target_images,
+                                                                        context_labels, target_labels)
+            target_logits = self.model(adv_context_images, context_labels, target_images)
+        else:
+            target_logits = self.model(context_images, context_labels, target_images)
         task_loss = self.loss(target_logits, target_labels, self.device) / self.args.tasks_per_batch
         if self.args.feature_adaptation == 'film' or self.args.feature_adaptation == 'film+ar':
             if self.use_two_gpus():
