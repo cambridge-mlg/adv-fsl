@@ -254,11 +254,10 @@ def generate_loss_indices(adv_class_label, target_class_labels, predicted_labels
             
     # Now extract the required number of shots from the targeted class
     shot_indices = extract_class_indices(target_class_labels, targeted_class)
-    
     attack_indices = None
     if target_loss_mode == 'single_same_class' or target_loss_mode == 'single_other_class':
         # Choose the first, best class member that the classifier currently gets right.
-        for index in range(shot_indices):
+        for index in shot_indices:
             if predicted_labels[index] == target_class_labels[index]:
                 attack_indices = [index]
                 break

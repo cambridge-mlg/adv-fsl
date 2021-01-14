@@ -204,7 +204,6 @@ class ProjectedGradientDescent:
         targets_for_loss_indices = None
         if (self.target_loss_mode == 'single_same_class' or self.target_loss_mode == 'single_other_class' or 
             self.target_loss_mode == 'all_same_class' or self.target_loss_mode == 'all_other_class'):
-            import pdb; pdb.set_trace()
             # get the predicted target labels
             logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
             predicted_labels = convert_labels(logits)
@@ -259,24 +258,24 @@ class ProjectedGradientDescent:
             # Invert the gradient if the attack is targeted
             grad = adv_context_images.grad * (1 - 2 * int(self.targeted))
 
-            adv_context_images = adv_context_images.detach()
+            #adv_context_images = adv_context_images.detach()
+            with torch.no_grad():
+                # apply norm bound
+                if self.norm == 'inf':
+                    perturbation = torch.sign(grad)
 
-            # apply norm bound
-            if self.norm == 'inf':
-                perturbation = torch.sign(grad)
+                for index in adv_context_indices:
+                    adv_context_images[index] = torch.clamp(adv_context_images[index] +
+                                                            epsilon_step * perturbation[index],
+                                                            clip_min, clip_max)
 
-            for index in adv_context_indices:
-                adv_context_images[index] = torch.clamp(adv_context_images[index] +
-                                                        epsilon_step * perturbation[index],
-                                                        clip_min, clip_max)
+                    diff = adv_context_images[index] - context_images[index]
+                    new_perturbation = self.projection(diff, epsilon, self.norm, device)
+                    adv_context_images[index] = context_images[index] + new_perturbation
 
-                diff = adv_context_images[index] - context_images[index]
-                new_perturbation = self.projection(diff, epsilon, self.norm, device)
-                adv_context_images[index] = context_images[index] + new_perturbation
-
-            if self.verbose:
-                verbose_result['adv_images'].append(adv_context_images.clone().detach())
-            del logits
+                if self.verbose:
+                    verbose_result['adv_images'].append(adv_context_images.clone().detach())
+                del logits
 
         if self.verbose:
             return adv_context_images, adv_context_indices, verbose_result

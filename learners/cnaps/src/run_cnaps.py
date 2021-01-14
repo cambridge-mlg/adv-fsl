@@ -795,7 +795,6 @@ class Learner:
 
                 assert attack.get_attack_mode() == 'context'
                 clean_version = context_images_np
-
                 adv_images, adv_indices, targeted_indices, targeted_labels = attack.generate(context_images, context_labels, target_images, target_labels,
                                                           self.model, self.model, self.model.device)
                 targeted_images = target_images[targeted_indices]
@@ -820,8 +819,8 @@ class Learner:
                 del adv_images
 
             self.print_average_accuracy(overall_before_acc, "Before attack (overall)", item)
-            self.print_average_accuracy(overall_after_acc, "Before backdoor attack (specific)", item)
-            self.print_average_accuracy(accuracies_before, "After attack (overall)", item)
+            self.print_average_accuracy(accuracies_before, "Before backdoor attack (specific)", item)
+            self.print_average_accuracy(overall_after_acc, "After attack (overall)", item)
             self.print_average_accuracy(accuracies_after, "After backdoor attack (specific)", item)
             self.print_average_accuracy(perc_successfully_flipped, "Successfully flipped", item)
 
