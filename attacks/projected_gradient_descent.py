@@ -189,7 +189,7 @@ class ProjectedGradientDescent:
             epsilon, epsilon_step = self.epsilon, self.epsilon_step
 
         adv_context_indices = generate_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
-        assert len(context_indices) > 0
+        assert len(adv_context_indices) > 0
         if (self.target_loss_mode == 'single_same_class' or self.target_loss_mode == 'single_other_class' or 
             self.target_loss_mode == 'all_same_class' or self.target_loss_mode == 'all_other_class'):
             assert calc_num_class_to_attack(context_labels, self.class_fraction) == 1
@@ -203,12 +203,19 @@ class ProjectedGradientDescent:
         # If only calculating loss w.r.t. (fixed) subset of the target points, then discard the rest
         if (self.target_loss_mode == 'single_same_class' or self.target_loss_mode == 'single_other_class' or 
             self.target_loss_mode == 'all_same_class' or self.target_loss_mode == 'all_other_class'):
+            import pdb; pdb.set_trace()
             # Class to which the poisoned context image belongs
             # Safe becuase we know they're all the same class and we have at least one
             adv_class = context_labels[adv_context_indices[0]] 
             targets_for_loss_indices = generate_loss_indices(adv_class, target_labels, self.target_loss_mode)
             target_images = target_images[targets_for_loss_indices]
-            labels = labels[target_for_loss_indices]
+            # Some magic to allow sub-indexing in this fashion
+            if len(targets_for_loss_indices) > 1:
+                labels = (labels.unsqueeze(1)[targets_for_loss_indices]).squeeze()
+                target_labels = (target_labels.unsqueeze(1)[targets_for_loss_indices]).squeeze()
+            else:
+                labels = labels[targets_for_loss_indices]
+                target_labels = target_labels[targets_for_loss_indices]
             
         # Initial projection step
         size = adv_context_images.size()
