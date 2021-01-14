@@ -19,7 +19,25 @@ from attacks.attack_utils import AdversarialDataset
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_INDEP_EVAL_TASKS = 50
 
-def train(model, dataset, batch_size):
+
+def generate_adversarial_support_set(
+        context_images,
+        target_images,
+        context_labels,
+        target_labels,
+        attack_config_path,
+        checkpoint_dir,
+        model,
+        device):
+    attack = create_attack(attack_config_path, checkpoint_dir)
+
+    adv_images, _ = attack.generate(context_images, context_labels, target_images, target_labels, model,
+                                    model.compute_logits, device)
+
+    return adv_images
+
+
+def train(model, dataset, batch_size, iteration, attack_stuff):
     """Compute loss and accuracy for a batch of tasks """
     model.set_gradient_steps(args.gradient_steps)
     loss, accuracy = 0, 0
@@ -32,8 +50,16 @@ def train(model, dataset, batch_size):
         inputs.append(xc)
 
         # Compute task loss
-        task_loss, task_accuracy = model.compute_objective(xc, yc, xt, yt,
-                                                           accuracy=True)
+        if iteration % attack_stuff['adversarial_training_interval'] == 0:
+            print(iteration)
+            adv_xc = generate_adversarial_support_set(xc, xt, yc, yt,
+                                                      attack_stuff['attack_config_path'],
+                                                      attack_stuff['checkpoint_dir'],
+                                                      attack_stuff['model'],
+                                                      attack_stuff['device'])
+            task_loss, task_accuracy = model.compute_objective(adv_xc, yc, xt, yt, accuracy=True)
+        else:
+            task_loss, task_accuracy = model.compute_objective(xc, yc, xt, yt, accuracy=True)
         loss += task_loss
         accuracy += task_accuracy
     
@@ -560,6 +586,8 @@ parser.add_argument("--target_set_size_multiplier", type=int, default=1,
                     help="For swap attacks, the relative size of the target set used when generating the adv context set (eg. x times larger). Currently only implemented for swap attacks")
 parser.add_argument("--indep_eval", default=False,
                     help="Whether to use independent target sets for evaluation automagically")
+parser.add_argument("--adversarial_training_interval", type=int, default=100000,
+                    help="If True, train adversarially using 'attack_config'.")
 args = parser.parse_args()
 
 # Create checkpoint directory (if required)
@@ -645,11 +673,19 @@ if args.mode == 'train_and_test':
     if not os.path.exists(args.checkpoint_dir):
         os.makedirs(args.checkpoint_dir)
 
+    attack_stuff = {
+        'attack_config_path': args.attack_config_path,
+        'checkpoint_dir': args.checkpoint_dir,
+        'model': model,
+        'device': device,
+        'adversarial_training_interval': args.adversarial_training_interval
+    }
+
     # Training loop
     best_validation_accuracy = 0.0
     for iteration in range(args.iterations):
 
-        loss, accuracy = train(model, data, args.tasks_per_batch)
+        loss, accuracy = train(model, data, args.tasks_per_batch, iteration, attack_stuff)
         # Compute gradient to global parameters and take step
         optimizer.zero_grad()
         loss.backward()
