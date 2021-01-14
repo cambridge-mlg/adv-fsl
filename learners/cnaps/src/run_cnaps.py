@@ -62,6 +62,7 @@ import sys
 from attacks.attack_helpers import create_attack
 from attacks.attack_utils import split_target_set, make_adversarial_task_dict, make_swap_attack_task_dict, infer_num_shots
 from attacks.attack_utils import AdversarialDataset, save_partial_pickle
+from attacks.attack_utils import AdversarialDataset
 
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
@@ -362,6 +363,14 @@ class Learner:
                 accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
 
                 print_and_log(self.logfile, '{0:}: {1:3.1f}+/-{2:2.1f}'.format(item, accuracy, accuracy_confidence))
+
+    def _generate_adversarial_support_set(self, context_images, target_images, context_labels, target_labels):
+        attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
+
+        adv_images, _ = attack.generate(context_images, context_labels, target_images, target_labels, self.model,
+                                        self.model, self.device)
+
+        return adv_images
 
     def calc_accuracy(self, context_images, context_labels, target_images, target_labels):
         logits = self.model(context_images, context_labels, target_images)
