@@ -235,6 +235,8 @@ class Learner:
                             help="Output samples of the clean and adversarial images")
         parser.add_argument("--indep_eval", default=False,
                             help="Whether to use independent target sets for evaluation automagically")
+        parser.add_argument("--backdoor", default=False,
+                            help="Whether this is a backdoor attack")
         parser.add_argument("--do_not_freeze_feature_extractor", dest="do_not_freeze_feature_extractor", default=False,
                             action="store_true", help="If True, don't freeze the feature extractor.")
         args = parser.parse_args()
@@ -292,15 +294,23 @@ class Learner:
                 self.test(self.args.test_model_path, session)
 
             if self.args.mode == 'attack':
-                if not self.args.swap_attack:
-                    self.attack_homebrew(self.args.test_model_path, session)
-                elif self.args.dataset == "from_file":
-                    self.vary_swap_attack(self.args.test_model_path, session)
-                elif self.args.dataset == "meta-dataset":
-                    self.meta_dataset_attack_swap(self.args.test_model_path, session)
+                # Check for ambiguity in the attack mode
+                # Ideally these should be a single parameter, but refactoring now would destroy backwards compatability
+                assert ((self.args.swap_attack and not self.args.backdoor) or 
+                    (not self.args.swap_attack and self.args.backdoor))
+                    
+                if self.args.swap_attack:
+                    if self.args.dataset == "from_file":
+                        self.vary_swap_attack(self.args.test_model_path, session)
+                    elif self.args.dataset == "meta-dataset":
+                        self.meta_dataset_attack_swap(self.args.test_model_path, session)
+                    else:
+                        self.attack_swap(self.args.test_model_path, session)
                 else:
-                    self.attack_swap(self.args.test_model_path, session)
-
+                    if self.args.backdoor:
+                        self.backdoor(self.args.test_model_path, session)
+                    else:
+                        self.attack_homebrew(self.args.test_model_path, session)
 
             self.logfile.close()
 
@@ -689,8 +699,7 @@ class Learner:
             self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", item)
             self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", item)
             
-
-
+            
     def attack_homebrew(self, path, session):
         print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
         self.model = self.init_model()
@@ -756,6 +765,57 @@ class Learner:
 
             if self.args.save_attack:
                 save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), saved_tasks)
+                
+    def backdoor(self, path, session):
+        print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
+        self.model = self.init_model()
+        self.model.load_state_dict(torch.load(path), strict=False)
+
+        attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
+        for item in self.test_set:
+            overall_before_acc = []
+            overall_after_acc = []
+            
+            accuracies_before = []
+            accuracies_after = []
+            perc_successfully_flipped = []
+
+            for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
+                task_dict = self.dataset.get_test_task(item, session)
+                context_images, target_images, context_labels, target_labels, (context_images_np, target_images_np, eval_images, eval_labels) = self.prepare_task(task_dict, shuffle=False)
+
+                assert attack.get_attack_mode() == 'context'
+                clean_version = context_images_np
+
+                adv_images, adv_indices, targeted_indices, targeted_labels = attack.generate(context_images, context_labels, target_images, target_labels,
+                                                          self.model, self.model, self.model.device)
+                targeted_images = target_images[targeted_indices]
+                correct_targeted_labels = target_labels[targeted_indices] # As opposed to targeted_labels, which may be shifted
+                
+                with torch.no_grad():
+                    acc_before = self.calc_accuracy(context_images, context_labels, target_images, target_labels)
+                    overall_before_acc.append(acc_before)
+                    acc_after = self.calc_accuracy(adv_images, context_labels, target_images, target_labels)
+                    overall_after_acc.append(acc_after)
+                    
+                    correct_before = self.calc_accuracy(context_images, context_labels, targeted_images, correct_targeted_labels)
+                    accuracies_before.append(correct_before)
+                    flipped = self.calc_accuracy(adv_images, context_labels, targeted_images, targeted_labels)
+                    perc_successfully_flipped.append(flipped)
+                    correct_after = self.calc_accuracy(adv_images, context_labels, targeted_images, correct_targeted_labels)
+                    accuracies_after.append(correct_after)
+                
+                if self.args.save_samples and t < 10:
+                    for index in adv_indices:
+                        self.save_image_pair(adv_images[index], clean_version[index], t, index)
+                del adv_images
+
+            self.print_average_accuracy(overall_before_acc, "Before attack (overall)", item)
+            self.print_average_accuracy(overall_after_acc, "Before backdoor attack (specific)", item)
+            self.print_average_accuracy(accuracies_before, "After attack (overall)", item)
+            self.print_average_accuracy(accuracies_after, "After backdoor attack (specific)", item)
+            self.print_average_accuracy(perc_successfully_flipped, "Successfully flipped", item)
+
 
     def prepare_task(self, task_dict, shuffle=True):
         context_images_np, context_labels_np = task_dict['context_images'], task_dict['context_labels']

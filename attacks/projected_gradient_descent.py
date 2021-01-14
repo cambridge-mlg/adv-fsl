@@ -201,13 +201,17 @@ class ProjectedGradientDescent:
             labels = target_labels # As in, the true/predicted labels for the target set
 
         # If only calculating loss w.r.t. (fixed) subset of the target points, then discard the rest
+        targets_for_loss_indices = None
         if (self.target_loss_mode == 'single_same_class' or self.target_loss_mode == 'single_other_class' or 
             self.target_loss_mode == 'all_same_class' or self.target_loss_mode == 'all_other_class'):
             import pdb; pdb.set_trace()
+            # get the predicted target labels
+            logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
+            predicted_labels = convert_labels(logits)
             # Class to which the poisoned context image belongs
             # Safe becuase we know they're all the same class and we have at least one
             adv_class = context_labels[adv_context_indices[0]] 
-            targets_for_loss_indices = generate_loss_indices(adv_class, target_labels, self.target_loss_mode)
+            targets_for_loss_indices = generate_loss_indices(adv_class, target_labels, predicted_labels, self.target_loss_mode)
             target_images = target_images[targets_for_loss_indices]
             # Some magic to allow sub-indexing in this fashion
             if len(targets_for_loss_indices) > 1:
@@ -277,6 +281,9 @@ class ProjectedGradientDescent:
         if self.verbose:
             return adv_context_images, adv_context_indices, verbose_result
 
+        if targets_for_loss_indices is not None:
+            return adv_context_images, adv_context_indices, targets_for_loss_indices, labels
+            
         return adv_context_images, adv_context_indices
 
     def get_verbose(self):
