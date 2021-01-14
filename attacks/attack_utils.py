@@ -242,7 +242,7 @@ def calc_num_class_to_attack(class_labels, class_fraction):
     num_classes_to_attack = max(1, math.ceil(class_fraction * num_classes))
     return num_classes_to_attack
 
-def generate_loss_indices(adv_class_label, target_class_labels, target_loss_mode):
+def generate_loss_indices(adv_class_label, target_class_labels, predicted_labels,  target_loss_mode):
     if target_loss_mode == 'single_same_class' or target_loss_mode == 'all_same_class':
         targeted_class = adv_class_label
     elif target_loss_mode == 'single_other_class' or target_loss_mode == 'all_other_class':
@@ -255,12 +255,21 @@ def generate_loss_indices(adv_class_label, target_class_labels, target_loss_mode
     # Now extract the required number of shots from the targeted class
     shot_indices = extract_class_indices(target_class_labels, targeted_class)
     
+    attack_indices = None
     if target_loss_mode == 'single_same_class' or target_loss_mode == 'single_other_class':
-        num_shots_to_target = 1
+        # Choose the first, best class member that the classifier currently gets right.
+        for index in range(shot_indices):
+            if predicted_labels[index] == target_class_labels[index]:
+                attack_indices = [index]
+                break
+        # We should be able to find at least one such point for shot > 1
+        if attack_indices is None:
+            print("WARNING: FAILED TO FIND CORRECTLY CLASSIFIED POINT")
+            attack_indices = shot_indices[0:1]
+            
     elif target_loss_mode == 'all_same_class' or target_loss_mode == 'all_other_class':
-        num_shots_to_target = len(shot_indices)
-    
-    attack_indices = shot_indices[0:num_shots_to_target]
+        attack_indices = shot_indices[0:len(shot_indices)]
+        
     indices = []
     for index in attack_indices:
         indices.append(index.item())
