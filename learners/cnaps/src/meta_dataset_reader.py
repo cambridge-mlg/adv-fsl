@@ -28,7 +28,7 @@ class MetaDatasetReader:
             self.train_dataset_next_task = self._init_multi_source_dataset(train_set, learning_spec.Split.TRAIN,
                                                                            train_episode_description)
 
-            test_episode_description = self._get_test_episode_description(max_way_test, max_support_test)
+            test_episode_description = self._get_test_episode_description(max_way_test, max_support_test, query_test=10)
             for item in validation_set:
                 next_task = self.validation_dataset = self._init_single_source_dataset(item, learning_spec.Split.VALID,
                                                                                        test_episode_description)
