@@ -37,12 +37,8 @@ python run_cnaps.py --feature_adaptation film -i 20000 -lr 0.001 --batch_normali
                     -- dataset omniglot --way 5 --shot 5 --data_path <path to directory containing Meta-Dataset records>
 
 """
-# import os
-# os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-# os.environ["CUDA_VISIBLE_DEVICES"]="1"  # specify which GPU(s) to be used
 
 import torch
-import torch.nn as nn
 import numpy as np
 import argparse
 import os
@@ -66,6 +62,7 @@ import sys
 from attacks.attack_helpers import create_attack
 from attacks.attack_utils import split_target_set, make_adversarial_task_dict, make_swap_attack_task_dict, infer_num_shots
 from attacks.attack_utils import AdversarialDataset, save_partial_pickle
+from attacks.attack_utils import AdversarialDataset
 
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
@@ -239,85 +236,89 @@ class Learner:
                             help="Whether this is a backdoor attack")
         parser.add_argument("--do_not_freeze_feature_extractor", dest="do_not_freeze_feature_extractor", default=False,
                             action="store_true", help="If True, don't freeze the feature extractor.")
+        parser.add_argument("--adversarial_training_interval", type=int, default=100000,
+                            help="If True, train adversarially using 'attack_config'.")
         args = parser.parse_args()
 
         return args
 
     def run(self):
-        config = tf.compat.v1.ConfigProto()
-        config.gpu_options.allow_growth = True
-        with tf.compat.v1.Session(config=config) as session:
-            if self.args.mode == 'train' or self.args.mode == 'train_test':
-                train_accuracies = []
-                losses = []
-                total_iterations = self.args.training_iterations
-                for iteration in range(self.start_iteration, total_iterations):
-                    torch.set_grad_enabled(True)
-                    task_dict = self.dataset.get_train_task(session)
-                    task_loss, task_accuracy = self.train_task(task_dict)
-                    train_accuracies.append(task_accuracy)
-                    losses.append(task_loss)
+        session = None
+        if self.args.mode == 'train' or self.args.mode == 'train_test':
+            train_accuracies = []
+            losses = []
+            total_iterations = self.args.training_iterations
+            for iteration in range(self.start_iteration, total_iterations):
+                torch.set_grad_enabled(True)
+                task_dict = self.dataset.get_train_task(session)
+                task_loss, task_accuracy = self.train_task(task_dict, iteration)
+                train_accuracies.append(task_accuracy)
+                losses.append(task_loss)
 
-                    # optimize
-                    if ((iteration + 1) % self.args.tasks_per_batch == 0) or (iteration == (total_iterations - 1)):
-                        self.optimizer.step()
-                        self.optimizer.zero_grad()
+                # optimize
+                if ((iteration + 1) % self.args.tasks_per_batch == 0) or (iteration == (total_iterations - 1)):
+                    self.optimizer.step()
+                    self.optimizer.zero_grad()
 
-                    if (iteration + 1) % PRINT_FREQUENCY == 0:
-                        # print training stats
-                        print_and_log(self.logfile, 'Task [{}/{}], Train Loss: {:.7f}, Train Accuracy: {:.7f}'
-                                      .format(iteration + 1, total_iterations, torch.Tensor(losses).mean().item(),
-                                              torch.Tensor(train_accuracies).mean().item()))
-                        train_accuracies = []
-                        losses = []
+                if (iteration + 1) % PRINT_FREQUENCY == 0:
+                    # print training stats
+                    print_and_log(self.logfile, 'Task [{}/{}], Train Loss: {:.7f}, Train Accuracy: {:.7f}'
+                                  .format(iteration + 1, total_iterations, torch.Tensor(losses).mean().item(),
+                                          torch.Tensor(train_accuracies).mean().item()))
+                    train_accuracies = []
+                    losses = []
 
-                    if ((iteration + 1) % self.args.val_freq == 0) and (iteration + 1) != total_iterations:
-                        # validate
-                        accuracy_dict = self.validate(session)
-                        self.validation_accuracies.print(self.logfile, accuracy_dict)
-                        # save the model if validation is the best so far
-                        if self.validation_accuracies.is_better(accuracy_dict):
-                            self.validation_accuracies.replace(accuracy_dict)
-                            torch.save(self.model.state_dict(), self.checkpoint_path_validation)
-                            print_and_log(self.logfile, 'Best validation model was updated.')
-                            print_and_log(self.logfile, '')
-                        self.save_checkpoint(iteration + 1)
+                if ((iteration + 1) % self.args.val_freq == 0) and (iteration + 1) != total_iterations:
+                    # validate
+                    accuracy_dict = self.validate(session)
+                    self.validation_accuracies.print(self.logfile, accuracy_dict)
+                    # save the model if validation is the best so far
+                    if self.validation_accuracies.is_better(accuracy_dict):
+                        self.validation_accuracies.replace(accuracy_dict)
+                        torch.save(self.model.state_dict(), self.checkpoint_path_validation)
+                        print_and_log(self.logfile, 'Best validation model was updated.')
+                        print_and_log(self.logfile, '')
+                    self.save_checkpoint(iteration + 1)
 
-                # save the final model
-                torch.save(self.model.state_dict(), self.checkpoint_path_final)
+            # save the final model
+            torch.save(self.model.state_dict(), self.checkpoint_path_final)
 
-            if self.args.mode == 'train_test':
-                self.test(self.checkpoint_path_final, session)
-                self.test(self.checkpoint_path_validation, session)
+        if self.args.mode == 'train_test':
+            self.test(self.checkpoint_path_final, session)
+            self.test(self.checkpoint_path_validation, session)
 
-            if self.args.mode == 'test':
-                self.test(self.args.test_model_path, session)
+        if self.args.mode == 'test':
+            self.test(self.args.test_model_path, session)
 
-            if self.args.mode == 'attack':
-                # Check for ambiguity in the attack mode
-                # Ideally these should be a single parameter, but refactoring now would destroy backwards compatability
-                assert ((self.args.swap_attack and not self.args.backdoor) or 
-                    (not self.args.swap_attack and self.args.backdoor))
-                    
-                if self.args.swap_attack:
-                    if self.args.dataset == "from_file":
-                        self.vary_swap_attack(self.args.test_model_path, session)
-                    elif self.args.dataset == "meta-dataset":
-                        self.meta_dataset_attack_swap(self.args.test_model_path, session)
-                    else:
-                        self.attack_swap(self.args.test_model_path, session)
+        if self.args.mode == 'attack':
+            # Check for ambiguity in the attack mode
+            # Ideally these should be a single parameter, but refactoring now would destroy backwards compatability
+            assert ((self.args.swap_attack and not self.args.backdoor) or 
+                (not self.args.swap_attack and self.args.backdoor))
+                
+            if self.args.swap_attack:
+                if self.args.dataset == "from_file":
+                    self.vary_swap_attack(self.args.test_model_path, session)
+                elif self.args.dataset == "meta-dataset":
+                    self.meta_dataset_attack_swap(self.args.test_model_path, session)
                 else:
-                    if self.args.backdoor:
-                        self.backdoor(self.args.test_model_path, session)
-                    else:
-                        self.attack_homebrew(self.args.test_model_path, session)
+                    self.attack_swap(self.args.test_model_path, session)
+            else:
+                if self.args.backdoor:
+                    self.backdoor(self.args.test_model_path, session)
+                else:
+                    self.attack_homebrew(self.args.test_model_path, session)
 
-            self.logfile.close()
+        self.logfile.close()
 
-    def train_task(self, task_dict):
+    def train_task(self, task_dict, iteration):
         context_images, target_images, context_labels, target_labels, _ = self.prepare_task(task_dict)
-
-        target_logits = self.model(context_images, context_labels, target_images)
+        if iteration % self.args.adversarial_training_interval == 0:
+            adv_context_images = self._generate_adversarial_support_set(context_images, target_images,
+                                                                        context_labels, target_labels)
+            target_logits = self.model(adv_context_images, context_labels, target_images)
+        else:
+            target_logits = self.model(context_images, context_labels, target_images)
         task_loss = self.loss(target_logits, target_labels, self.device) / self.args.tasks_per_batch
         if self.args.feature_adaptation == 'film' or self.args.feature_adaptation == 'film+ar':
             if self.use_two_gpus():
@@ -373,6 +374,14 @@ class Learner:
                 accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
 
                 print_and_log(self.logfile, '{0:}: {1:3.1f}+/-{2:2.1f}'.format(item, accuracy, accuracy_confidence))
+
+    def _generate_adversarial_support_set(self, context_images, target_images, context_labels, target_labels):
+        attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
+
+        adv_images, _ = attack.generate(context_images, context_labels, target_images, target_labels, self.model,
+                                        self.model, self.device)
+
+        return adv_images
 
     def calc_accuracy(self, context_images, context_labels, target_images, target_labels):
         logits = self.model(context_images, context_labels, target_images)
