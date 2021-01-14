@@ -242,16 +242,24 @@ def calc_num_class_to_attack(class_labels, class_fraction):
     num_classes_to_attack = max(1, math.ceil(class_fraction * num_classes))
     return num_classes_to_attack
 
-def generate_loss_indices(adv_class_label, target_class_labels, shot_fraction):
-    classes = torch.unique(target_class_labels)
-    # Choose a random class label that isn't the adv_class_label
-    targeted_class = np.random.randint(0, len(classes)-1)
-    if targeted_class >= adv_class_label:
-        targeted_class = targeted_class +1
+def generate_loss_indices(adv_class_label, target_class_labels, target_loss_mode):
+    if target_loss_mode == 'single_same_class' or target_loss_mode == 'all_same_class':
+        targeted_class = adv_class_label
+    elif target_loss_mode == 'single_other_class' or target_loss_mode == 'all_other_class':
+        classes = torch.unique(target_class_labels)
+        # Choose a random class label that isn't the adv_class_label
+        targeted_class = np.random.randint(0, len(classes)-1)
+        if targeted_class >= adv_class_label:
+            targeted_class = targeted_class +1
+            
     # Now extract the required number of shots from the targeted class
     shot_indices = extract_class_indices(target_class_labels, targeted_class)
-    num_shots_in_class = len(shot_indices)
-    num_shots_to_target = max(1, math.ceil(shot_fraction * num_shots_in_class))
+    
+    if target_loss_mode == 'single_same_class' or target_loss_mode == 'single_other_class':
+        num_shots_to_target = 1
+    elif target_loss_mode == 'all_same_class' or target_loss_mode == 'all_other_class':
+        num_shots_to_target = len(shot_indices)
+    
     attack_indices = shot_indices[0:num_shots_to_target]
     indices = []
     for index in attack_indices:

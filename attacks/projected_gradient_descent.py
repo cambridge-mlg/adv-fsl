@@ -206,7 +206,7 @@ class ProjectedGradientDescent:
             # Class to which the poisoned context image belongs
             # Safe becuase we know they're all the same class and we have at least one
             adv_class = context_labels[adv_context_indices[0]] 
-            targets_for_loss_indices = generate_loss_indices(adv_class, target_labels, self.shot_fraction)
+            targets_for_loss_indices = generate_loss_indices(adv_class, target_labels, self.target_loss_mode)
             target_images = target_images[targets_for_loss_indices]
             labels = labels[target_for_loss_indices]
             
