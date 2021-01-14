@@ -240,66 +240,64 @@ class Learner:
         return args
 
     def run(self):
-        config = tf.compat.v1.ConfigProto()
-        config.gpu_options.allow_growth = True
-        with tf.compat.v1.Session(config=config) as session:
-            if self.args.mode == 'train' or self.args.mode == 'train_test':
-                train_accuracies = []
-                losses = []
-                total_iterations = self.args.training_iterations
-                for iteration in range(self.start_iteration, total_iterations):
-                    torch.set_grad_enabled(True)
-                    task_dict = self.dataset.get_train_task(session)
-                    task_loss, task_accuracy = self.train_task(task_dict, iteration)
-                    train_accuracies.append(task_accuracy)
-                    losses.append(task_loss)
+        session = None
+        if self.args.mode == 'train' or self.args.mode == 'train_test':
+            train_accuracies = []
+            losses = []
+            total_iterations = self.args.training_iterations
+            for iteration in range(self.start_iteration, total_iterations):
+                torch.set_grad_enabled(True)
+                task_dict = self.dataset.get_train_task(session)
+                task_loss, task_accuracy = self.train_task(task_dict, iteration)
+                train_accuracies.append(task_accuracy)
+                losses.append(task_loss)
 
-                    # optimize
-                    if ((iteration + 1) % self.args.tasks_per_batch == 0) or (iteration == (total_iterations - 1)):
-                        self.optimizer.step()
-                        self.optimizer.zero_grad()
+                # optimize
+                if ((iteration + 1) % self.args.tasks_per_batch == 0) or (iteration == (total_iterations - 1)):
+                    self.optimizer.step()
+                    self.optimizer.zero_grad()
 
-                    if (iteration + 1) % PRINT_FREQUENCY == 0:
-                        # print training stats
-                        print_and_log(self.logfile, 'Task [{}/{}], Train Loss: {:.7f}, Train Accuracy: {:.7f}'
-                                      .format(iteration + 1, total_iterations, torch.Tensor(losses).mean().item(),
-                                              torch.Tensor(train_accuracies).mean().item()))
-                        train_accuracies = []
-                        losses = []
+                if (iteration + 1) % PRINT_FREQUENCY == 0:
+                    # print training stats
+                    print_and_log(self.logfile, 'Task [{}/{}], Train Loss: {:.7f}, Train Accuracy: {:.7f}'
+                                  .format(iteration + 1, total_iterations, torch.Tensor(losses).mean().item(),
+                                          torch.Tensor(train_accuracies).mean().item()))
+                    train_accuracies = []
+                    losses = []
 
-                    if ((iteration + 1) % self.args.val_freq == 0) and (iteration + 1) != total_iterations:
-                        # validate
-                        accuracy_dict = self.validate(session)
-                        self.validation_accuracies.print(self.logfile, accuracy_dict)
-                        # save the model if validation is the best so far
-                        if self.validation_accuracies.is_better(accuracy_dict):
-                            self.validation_accuracies.replace(accuracy_dict)
-                            torch.save(self.model.state_dict(), self.checkpoint_path_validation)
-                            print_and_log(self.logfile, 'Best validation model was updated.')
-                            print_and_log(self.logfile, '')
-                        self.save_checkpoint(iteration + 1)
+                if ((iteration + 1) % self.args.val_freq == 0) and (iteration + 1) != total_iterations:
+                    # validate
+                    accuracy_dict = self.validate(session)
+                    self.validation_accuracies.print(self.logfile, accuracy_dict)
+                    # save the model if validation is the best so far
+                    if self.validation_accuracies.is_better(accuracy_dict):
+                        self.validation_accuracies.replace(accuracy_dict)
+                        torch.save(self.model.state_dict(), self.checkpoint_path_validation)
+                        print_and_log(self.logfile, 'Best validation model was updated.')
+                        print_and_log(self.logfile, '')
+                    self.save_checkpoint(iteration + 1)
 
-                # save the final model
-                torch.save(self.model.state_dict(), self.checkpoint_path_final)
+            # save the final model
+            torch.save(self.model.state_dict(), self.checkpoint_path_final)
 
-            if self.args.mode == 'train_test':
-                self.test(self.checkpoint_path_final, session)
-                self.test(self.checkpoint_path_validation, session)
+        if self.args.mode == 'train_test':
+            self.test(self.checkpoint_path_final, session)
+            self.test(self.checkpoint_path_validation, session)
 
-            if self.args.mode == 'test':
-                self.test(self.args.test_model_path, session)
+        if self.args.mode == 'test':
+            self.test(self.args.test_model_path, session)
 
-            if self.args.mode == 'attack':
-                if not self.args.swap_attack:
-                    self.attack_homebrew(self.args.test_model_path, session)
-                elif self.args.dataset == "from_file":
-                    self.vary_swap_attack(self.args.test_model_path, session)
-                elif self.args.dataset == "meta-dataset":
-                    self.meta_dataset_attack_swap(self.args.test_model_path, session)
-                else:
-                    self.attack_swap(self.args.test_model_path, session)
+        if self.args.mode == 'attack':
+            if not self.args.swap_attack:
+                self.attack_homebrew(self.args.test_model_path, session)
+            elif self.args.dataset == "from_file":
+                self.vary_swap_attack(self.args.test_model_path, session)
+            elif self.args.dataset == "meta-dataset":
+                self.meta_dataset_attack_swap(self.args.test_model_path, session)
+            else:
+                self.attack_swap(self.args.test_model_path, session)
 
-            self.logfile.close()
+        self.logfile.close()
 
     def train_task(self, task_dict, iteration):
         context_images, target_images, context_labels, target_labels, _ = self.prepare_task(task_dict)

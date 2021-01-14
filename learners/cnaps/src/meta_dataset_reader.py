@@ -21,6 +21,8 @@ class MetaDatasetReader:
         self.train_dataset_next_task = None
         self.validation_set_dict = {}
         self.test_set_dict = {}
+        tf.compat.v1.disable_eager_execution()
+        self.session = tf.compat.v1.Session()
         gin.parse_config_file('learners/cnaps/src/meta_dataset_config.gin')
 
         if mode == 'train' or mode == 'train_test':
@@ -93,7 +95,7 @@ class MetaDatasetReader:
         return iterator.get_next()
 
     def _get_task(self, next_task, session):
-        (episode, source_id) = session.run(next_task)
+        (episode, source_id) = self.session.run(next_task)
         task_dict = {
             'context_images': episode[0],
             'context_labels': episode[1],
@@ -158,6 +160,8 @@ class SingleDatasetReader:
         self.train_next_task = None
         self.validation_next_task = None
         self.test_next_task = None
+        tf.compat.v1.disable_eager_execution()
+        self.session = tf.compat.v1.Session()
         gin.parse_config_file('learners/cnaps/src/meta_dataset_config.gin')
 
         fixed_way_shot_train = self._get_train_episode_description(num_ways=way, num_support=shot, num_query=query_train)
@@ -187,7 +191,7 @@ class SingleDatasetReader:
         return iterator.get_next()
 
     def _get_task(self, next_task, session):
-        (episode, source_id) = session.run(next_task)
+        (episode, source_id) = self.session.run(next_task)
         task_dict = {
             'context_images': episode[0],
             'context_labels': episode[1],
