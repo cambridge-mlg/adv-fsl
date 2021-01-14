@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import os.path as path
 from attacks.attack_utils import convert_labels, generate_attack_indices, fix_logits, Logger
-from attacks.attack_utils import get_shifted_targeted_labels, get_random_targeted_labels
+from attacks.attack_utils import get_shifted_targeted_labels, get_random_targeted_labels, calc_num_class_to_attack, generate_loss_indices
 
 
 class ProjectedGradientDescent:
@@ -38,7 +38,9 @@ class ProjectedGradientDescent:
         # We could use either true or predicted labels when selecting "target attack" labels for a targeted attack
         self.use_true_target_labels = use_true_target_labels
         self.normalize_perturbation = normalize_perturbation
-        assert target_loss_mode == 'all' or target_loss_mode == 'round_robin' or target_loss_mode == 'random'
+        assert (target_loss_mode == 'all' or target_loss_mode == 'round_robin' or target_loss_mode == 'random'
+            or target_loss_mode == 'single_same_class' or target_loss_mode == 'single_other_class' or 
+            target_loss_mode == 'all_same_class' or target_loss_mode == 'all_other_class')
         self.target_loss_mode = target_loss_mode
         self.targeted = targeted
         if self.targeted:
@@ -90,6 +92,8 @@ class ProjectedGradientDescent:
         self.logger.log("context set size = {}, target set size = {}".format(context_images.shape[0], target_images.shape[0]))
 
         if self.attack_mode == 'target':
+            # Other loss modes only make sense for context attacks
+            assert self.target_loss_mode == 'all' or target_loss_mode == 'round_robin' or target_loss_mode == 'random'
             return self._generate_target(context_images, context_labels, target_images, labels, model, get_logits_fn,
                                          device, targeted_labels=targeted_labels)
         else:  # context
@@ -185,6 +189,10 @@ class ProjectedGradientDescent:
             epsilon, epsilon_step = self.epsilon, self.epsilon_step
 
         adv_context_indices = generate_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
+        assert len(context_indices) > 0
+        if (self.target_loss_mode == 'single_same_class' or self.target_loss_mode == 'single_other_class' or 
+            self.target_loss_mode == 'all_same_class' or self.target_loss_mode == 'all_other_class'):
+            assert calc_num_class_to_attack(context_labels, self.class_fraction) == 1
         adv_context_images = context_images.clone()
 
         if self.targeted:
@@ -192,6 +200,16 @@ class ProjectedGradientDescent:
         else:
             labels = target_labels # As in, the true/predicted labels for the target set
 
+        # If only calculating loss w.r.t. (fixed) subset of the target points, then discard the rest
+        if (self.target_loss_mode == 'single_same_class' or self.target_loss_mode == 'single_other_class' or 
+            self.target_loss_mode == 'all_same_class' or self.target_loss_mode == 'all_other_class'):
+            # Class to which the poisoned context image belongs
+            # Safe becuase we know they're all the same class and we have at least one
+            adv_class = context_labels[adv_context_indices[0]] 
+            targets_for_loss_indices = generate_loss_indices(adv_class, target_labels, self.shot_fraction)
+            target_images = target_images[targets_for_loss_indices]
+            labels = labels[target_for_loss_indices]
+            
         # Initial projection step
         size = adv_context_images.size()
         m = size[1] * size[2] * size[3]

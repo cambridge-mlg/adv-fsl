@@ -236,6 +236,28 @@ def fix_logits(logits):
         logits = torch.squeeze(logits, dim=0)
     return logits
 
+def calc_num_class_to_attack(class_labels, class_fraction):
+    classes = torch.unique(class_labels)
+    num_classes = len(classes)
+    num_classes_to_attack = max(1, math.ceil(class_fraction * num_classes))
+    return num_classes_to_attack
+
+def generate_loss_indices(adv_class_label, target_class_labels, shot_fraction):
+    classes = torch.unique(target_class_labels)
+    # Choose a random class label that isn't the adv_class_label
+    targeted_class = np.random.randint(0, len(classes)-1)
+    if targeted_class >= adv_class_label:
+        targeted_class = targeted_class +1
+    # Now extract the required number of shots from the targeted class
+    shot_indices = extract_class_indices(target_class_labels, targeted_class)
+    num_shots_in_class = len(shot_indices)
+    num_shots_to_target = max(1, math.ceil(shot_fraction * num_shots_in_class))
+    attack_indices = shot_indices[0:num_shots_to_target]
+    indices = []
+    for index in attack_indices:
+        indices.append(index.item())
+    return indices
+
 
 def generate_attack_indices(class_labels, class_fraction, shot_fraction):
     '''
@@ -245,9 +267,7 @@ def generate_attack_indices(class_labels, class_fraction, shot_fraction):
         For shot_fraction = 0.25, one quarter of the context set images for a particular class will be adversarial
     '''
     indices = []
-    classes = torch.unique(class_labels)
-    num_classes = len(classes)
-    num_classes_to_attack = max(1, math.ceil(class_fraction * num_classes))
+    num_classes_to_attack = calc_num_class_to_attack(class_labels, class_fraction)
     for c in range(num_classes_to_attack):
         shot_indices = extract_class_indices(class_labels, c)
         num_shots_in_class = len(shot_indices)
