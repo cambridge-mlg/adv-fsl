@@ -293,8 +293,7 @@ class Learner:
         if self.args.mode == 'attack':
             # Check for ambiguity in the attack mode
             # Ideally these should be a single parameter, but refactoring now would destroy backwards compatability
-            assert ((self.args.swap_attack and not self.args.backdoor) or 
-                (not self.args.swap_attack and self.args.backdoor))
+            assert not (self.args.swap_attack and self.args.backdoor)
                 
             if self.args.swap_attack:
                 if self.args.dataset == "from_file":
