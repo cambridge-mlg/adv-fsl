@@ -382,6 +382,72 @@ def attack_swap(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         save_pickle(os.path.join(args.checkpoint_dir, "adv_task"), saved_tasks)
 
 
+def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
+    # load the model
+    if device.type == 'cpu':
+            load_dict = torch.load(model_path, map_location='cpu')
+    else:
+            load_dict = torch.load(model_path)
+    model.load_state_dict(load_dict)
+
+    model.set_gradient_steps(test_gradient_steps)
+
+    assert args.target_set_size_multiplier >= 1
+    assert not args.indep_eval
+    num_target_sets = args.target_set_size_multiplier
+
+    attack = create_attack(config_path, checkpoint_dir)
+    assert attack.get_attack_mode() == 'context'
+
+    overall_before_acc = []
+    overall_after_acc = []
+    
+    accuracies_before = []
+    accuracies_after = []
+    perc_successfully_flipped = []
+
+    for task in tqdm(range(tasks), dynamic_ncols=True):
+        # when testing, target_shot is just shot
+        task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.shot * num_target_sets)
+        xc, xtall, yc, ytall = prepare_task(task_dict)
+        if args.target_set_size_multiplier == 1 and not args.indep_eval:
+            xt, yt = xtall, ytall
+            x_eval, y_eval = None, None
+        else:
+            # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
+            assert args.target_set_size_multiplier * args.shot * args.num_classes <= xtall.shape[0]
+            xt, yt, x_eval, y_eval = split_target_set(xtall, ytall, args.target_set_size_multiplier, args.shot)
+
+        clean_images = xc
+        
+        adv_images, adv_indices, targeted_indices, targeted_labels = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
+        targeted_images = target_images[targeted_indices]
+        correct_targeted_labels = target_labels[targeted_indices] # As opposed to targeted_labels, which may be shifted
+        
+        with torch.no_grad():
+            _, acc_before = model.compute_objective(xc, yc, xt, yt, accuracy=True)
+            overall_before_acc.append(acc_before)
+            _, acc_after = model.compute_objective(adv_images, yc, xt, yt, accuracy=True)
+            overall_after_acc.append(acc_after)
+            
+            _, correct_before = model.compute_objective(xc, yc, targeted_images, correct_targeted_labels, accuracy=True)
+            accuracies_before.append(correct_before)
+            _, flipped = model.compute_objective(adv_images, yc, targeted_images, targeted_labels, accuracy=True)
+            perc_successfully_flipped.append(flipped)
+            _, correct_after = model.compute_objective(adv_images, yc, targeted_images, correct_targeted_labels, accuracy=True)
+            accuracies_after.append(correct_after)
+
+        if args.save_samples and task < 10:
+            for i in adv_indices:
+                save_image_pair(checkpoint_dir, adv_images[i], clean_images[i], task, i)
+
+
+    print_average_accuracy(overall_before_acc, "Before attack (overall)",)
+    print_average_accuracy(accuracies_before, "Before backdoor attack (specific)",)
+    print_average_accuracy(overall_after_acc, "After attack (overall)",)
+    print_average_accuracy(accuracies_after, "After backdoor attack (specific)",)
+    print_average_accuracy(perc_successfully_flipped, "Successfully flipped",)
+
 def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     # load the model
     if device.type == 'cpu':
@@ -560,6 +626,8 @@ parser.add_argument("--target_set_size_multiplier", type=int, default=1,
                     help="For swap attacks, the relative size of the target set used when generating the adv context set (eg. x times larger). Currently only implemented for swap attacks")
 parser.add_argument("--indep_eval", default=False,
                     help="Whether to use independent target sets for evaluation automagically")
+parser.add_argument("--backdoor", default=False,
+                    help="Whether this is a backdoor attack")
 args = parser.parse_args()
 
 # Create checkpoint directory (if required)
@@ -696,13 +764,18 @@ if args.mode == 'train_and_test':
     test(model, data, os.path.join(args.checkpoint_dir, 'best_validation.pt'))
 
 elif args.mode == 'attack':
-    if not args.swap_attack:
-        attack(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
-    else:
+    assert not args.swap_attack and args.backdoor
+    
+    if args.swap_attack:
         if args.dataset == 'from_file':
             vary_swap_attack(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
         else:
             attack_swap(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
+    elif args.backdoor:
+        backdoor(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
+    else:
+        attack(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
+    else:
 
 else:  # test only
     if args.test_by_example:

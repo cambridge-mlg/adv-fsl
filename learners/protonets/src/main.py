@@ -104,6 +104,8 @@ class Learner:
                             help="Whether to use independent target sets for evaluation automagically")
         parser.add_argument("--adversarial_training_interval", type=int, default=100000,
                             help="If True, train adversarially using 'attack_config'.")
+        parser.add_argument("--backdoor", default=False,
+                            help="Whether this is a backdoor attack")
 
         args = parser.parse_args()
 
@@ -159,16 +161,22 @@ class Learner:
             self.test(self.args.test_model_path)
 
         if self.args.mode == 'attack':
-            if self.args.swap_attack and self.args.dataset == 'from_file':
-                self.vary_swap_attack(self.args.test_model_path)
-            elif self.args.swap_attack and not self.args.bottleneck:
-                self.attack_swap(self.args.test_model_path)
-            elif not self.args.swap_attack and self.args.bottleneck:
+            # Only one of these can be specified at a time.
+            assert not (self.args.swap_attack and self.args.bottleneck)
+            assert not (self.args.swap_attack and self.args.backdoor)
+            assert not (self.args.bottleneck and self.args.backdoor)
+            
+            if self.args.swap_attack:
+                if self.args.dataset == 'from_file':
+                    self.vary_swap_attack(self.args.test_model_path)
+                else:
+                    self.attack_swap(self.args.test_model_path)
+            elif self.args.bottleneck:
                 self.plot_attacks(self.args.test_model_path)
-            elif not self.args.swap_attack and not self.args.bottleneck:
-                self.attack(self.args.test_model_path)
+            elif self.args.backdoor:
+                self.backdoor(self.args.test_model_path)
             else:
-                print("Invalid command line parameters for attack. Attack must be either a bottleneck, or a swap, or a normal attack.")
+                self.attack(self.args.test_model_path)
 
         self.logfile.close()
 
@@ -439,6 +447,74 @@ class Learner:
 
         if self.args.save_attack:
             save_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), saved_tasks)
+            
+    def backdoor(self, path):
+        print_and_log(self.logfile, "")  # add a blank line
+        print_and_log(self.logfile, 'Attacking model {0:}: '.format(path))
+        self.model = self.init_model()
+        self.model.load_state_dict(torch.load(path))
+        self.model.eval()
+
+        assert self.args.target_set_size_multiplier >= 1
+        assert not args.indep_eval
+        num_target_sets = self.args.target_set_size_multiplier
+
+        attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
+        assert attack.get_attack_mode() == 'context'
+
+        overall_before_acc = []
+        overall_after_acc = []
+        
+        accuracies_before = []
+        accuracies_after = []
+        perc_successfully_flipped = []
+
+        for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
+            # Create and split up dataset
+            task_dict = self.dataset.get_test_task(self.args.test_way, self.args.test_shot, self.args.query * num_target_sets)
+            context_images, all_target_images, context_labels, all_target_labels = self.prepare_task(task_dict, shuffle=False)
+
+            if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:
+                target_images, target_labels = all_target_images, all_target_labels
+                eval_images, eval_labels = None, None
+            else:
+                # Split the larger set of target images/labels up into smaller sets of appropriate shot and way
+                assert self.args.target_set_size_multiplier * self.args.test_shot * self.args.test_way <= all_target_images.shape[0]
+                target_images, target_labels, eval_images, eval_labels = split_target_set(
+                    all_target_images, all_target_labels, self.args.target_set_size_multiplier, self.args.test_shot)
+
+            clean_version = context_images
+
+            adv_images, adv_indices, targeted_indices, targeted_labels = attack.generate(context_images, context_labels, target_images,
+                                                                target_labels, self.model, self.model, self.device)
+            targeted_images = target_images[targeted_indices]
+            correct_targeted_labels = target_labels[targeted_indices] # As opposed to targeted_labels, which may be shifted
+
+            if self.args.save_samples and t < 10:
+                for index in adv_indices:
+                    self.save_image_pair(adv_images[index], clean_version[index], t, index)
+
+            # Evaluate attack
+            with torch.no_grad():
+                acc_before = self.calc_accuracy(context_images, context_labels, target_images, target_labels)
+                overall_before_acc.append(acc_before)
+                acc_after = self.calc_accuracy(adv_images, context_labels, target_images, target_labels)
+                overall_after_acc.append(acc_after)
+                
+                correct_before = self.calc_accuracy(context_images, context_labels, targeted_images, correct_targeted_labels)
+                accuracies_before.append(correct_before)
+                flipped = self.calc_accuracy(adv_images, context_labels, targeted_images, targeted_labels)
+                perc_successfully_flipped.append(flipped)
+                correct_after = self.calc_accuracy(adv_images, context_labels, targeted_images, correct_targeted_labels)
+                accuracies_after.append(correct_after)
+
+        self.print_average_accuracy(overall_before_acc, "Before attack (overall)")
+        self.print_average_accuracy(accuracies_before, "Before backdoor attack (specific)")
+        self.print_average_accuracy(overall_after_acc, "After attack (overall)")
+        self.print_average_accuracy(accuracies_after, "After backdoor attack (specific)")
+        self.print_average_accuracy(perc_successfully_flipped, "Successfully flipped")
+
+
 
     def attack(self, path):
         print_and_log(self.logfile, "")  # add a blank line
