@@ -456,7 +456,7 @@ class Learner:
         self.model.eval()
 
         assert self.args.target_set_size_multiplier >= 1
-        assert not args.indep_eval
+        assert not self.args.indep_eval
         num_target_sets = self.args.target_set_size_multiplier
 
         attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)

@@ -421,8 +421,8 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         clean_images = xc
         
         adv_images, adv_indices, targeted_indices, targeted_labels = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
-        targeted_images = target_images[targeted_indices]
-        correct_targeted_labels = target_labels[targeted_indices] # As opposed to targeted_labels, which may be shifted
+        targeted_images = xt[targeted_indices]
+        correct_targeted_labels = yt[targeted_indices] # As opposed to targeted_labels, which may be shifted
         
         with torch.no_grad():
             _, acc_before = model.compute_objective(xc, yc, xt, yt, accuracy=True)
@@ -775,7 +775,6 @@ elif args.mode == 'attack':
         backdoor(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
     else:
         attack(model, data, args.attack_model_path, args.attack_tasks, args.attack_config_path, args.checkpoint_dir)
-    else:
 
 else:  # test only
     if args.test_by_example:
