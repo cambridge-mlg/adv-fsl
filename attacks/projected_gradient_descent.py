@@ -47,7 +47,7 @@ class ProjectedGradientDescent:
             assert (targeted_labels == 'exact' or targeted_labels == 'random' or 
                 targeted_labels == 'shifted' or targeted_labels == 'match')
             if targeted_labels == 'match':
-                assert target_loss_mode == 'all_same_class' or target_loss_mode == 'all_other_class'
+                assert target_loss_mode == 'single_other_class' or target_loss_mode == 'all_other_class'
                 assert attack_mode == 'context'
         self.targeted_labels = targeted_labels
 
