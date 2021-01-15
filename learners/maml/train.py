@@ -424,18 +424,17 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         targeted_images = xt[targeted_indices]
         correct_targeted_labels = yt[targeted_indices] # As opposed to targeted_labels, which may be shifted
         
-        with torch.no_grad():
-            _, acc_before = model.compute_objective(xc, yc, xt, yt, accuracy=True)
-            overall_before_acc.append(acc_before)
-            _, acc_after = model.compute_objective(adv_images, yc, xt, yt, accuracy=True)
-            overall_after_acc.append(acc_after)
-            
-            _, correct_before = model.compute_objective(xc, yc, targeted_images, correct_targeted_labels, accuracy=True)
-            accuracies_before.append(correct_before)
-            _, flipped = model.compute_objective(adv_images, yc, targeted_images, targeted_labels, accuracy=True)
-            perc_successfully_flipped.append(flipped)
-            _, correct_after = model.compute_objective(adv_images, yc, targeted_images, correct_targeted_labels, accuracy=True)
-            accuracies_after.append(correct_after)
+        _, acc_before = model.compute_objective(xc, yc, xt, yt, accuracy=True)
+        overall_before_acc.append(acc_before)
+        _, acc_after = model.compute_objective(adv_images, yc, xt, yt, accuracy=True)
+        overall_after_acc.append(acc_after)
+        
+        _, correct_before = model.compute_objective(xc, yc, targeted_images, correct_targeted_labels, accuracy=True)
+        accuracies_before.append(correct_before)
+        _, flipped = model.compute_objective(adv_images, yc, targeted_images, targeted_labels, accuracy=True)
+        perc_successfully_flipped.append(flipped)
+        _, correct_after = model.compute_objective(adv_images, yc, targeted_images, correct_targeted_labels, accuracy=True)
+        accuracies_after.append(correct_after)
 
         if args.save_samples and task < 10:
             for i in adv_indices:
