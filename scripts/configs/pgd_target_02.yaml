@@ -1,0 +1,13 @@
+attack: projected_gradient_descent
+attack_mode: target
+class_fraction: 1.0
+epsilon: 0.02
+epsilon_step: 0.0006
+norm: inf
+num_iterations: 100
+project_step: true
+shot_fraction: 1.0
+target_loss_mode: all
+targeted: true
+targeted_labels: shifted
+use_true_target_labels: true
