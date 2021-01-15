@@ -44,13 +44,15 @@ class ProjectedGradientDescent:
         self.target_loss_mode = target_loss_mode
         self.targeted = targeted
         if self.targeted:
-            assert targeted_labels == 'exact' or targeted_labels == 'random' or targeted_labels == 'shifted'
+            assert (targeted_labels == 'exact' or targeted_labels == 'random' or 
+                targeted_labels == 'shifted' or targeted_labels == 'match')
+            if targeted_labels == 'match':
+                assert target_loss_mode == 'all_same_class' or target_loss_mode == 'all_other_class'
+                assert attack_mode == 'context'
         self.targeted_labels = targeted_labels
 
         self.loss = nn.CrossEntropyLoss()
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
-
-        self.verbose = False
 
     # Epsilon and epsilon_step are specified for inputs normalized to [0,1].
     # Use a sample of the images to recalculate the required perturbation size (for actual image normalization)
@@ -128,21 +130,12 @@ class ProjectedGradientDescent:
         for i, index in enumerate(adv_target_indices):
             adv_target_images[index] = torch.clamp(adv_target_images[index] + initial_perturb[i], clip_min, clip_max)
 
-        if self.verbose:
-            verbose_result = ProjectedGradientDescent.make_verbose_PGD_result()
-            verbose_result['adv_images'].append(adv_target_images.clone().detach())
-
         for i in range(self.num_iterations):
             adv_target_images.requires_grad = True
             logits = fix_logits(get_logits_fn(context_images, context_labels, adv_target_images))
-            if self.verbose:
-                verbose_result['target_logits'].append(logits.clone().detach())
             # compute loss
             loss = self.loss(logits, labels)
             model.zero_grad()
-
-            if self.verbose and i % 5 == 0 or i == self.num_iterations-1:
-                self.logger.print_and_log("Iter {}, loss = {:.5f}".format(i, loss))
 
             # compute gradient
             loss.backward()
@@ -163,22 +156,9 @@ class ProjectedGradientDescent:
                 new_perturbation = self.projection(diff, epsilon, self.norm, device)
                 adv_target_images[index] = target_images[index] + new_perturbation
 
-            if self.verbose:
-                verbose_result['adv_images'].append(adv_target_images.clone().detach())
             del logits
 
-        if self.verbose:
-            return adv_target_images, adv_target_indices, verbose_result
-
         return adv_target_images, adv_target_indices
-
-    @staticmethod
-    def make_verbose_PGD_result():
-        result = {
-                  'adv_images': [],
-                  'target_logits': [],
-                  }
-        return result
 
     def _generate_context(self, context_images, context_labels, target_images, target_labels, model, get_logits_fn, device, targeted_labels=None):
         clip_min = target_images.min().item()
@@ -219,6 +199,10 @@ class ProjectedGradientDescent:
             else:
                 labels = labels[targets_for_loss_indices]
                 target_labels = target_labels[targets_for_loss_indices]
+                
+            # On the match setting, we aim to make the targeted patterns match the class of the adv context point
+            if self.targeted_labels == 'match':
+                labels = torch.ones_like(labels) * adv_class
             
         # Initial projection step
         size = adv_context_images.size()
@@ -229,15 +213,9 @@ class ProjectedGradientDescent:
         for i, index in enumerate(adv_context_indices):
             adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], clip_min, clip_max)
 
-        if self.verbose:
-            verbose_result = ProjectedGradientDescent.make_verbose_PGD_result()
-            verbose_result['adv_images'].append(adv_context_images.clone().detach())
-
         for i in range(0, self.num_iterations):
             adv_context_images.requires_grad = True
             logits = fix_logits(get_logits_fn(adv_context_images, context_labels, target_images))
-            if self.verbose:
-                verbose_result['target_logits'].append(logits.clone().detach())
 
             # compute loss
             if self.target_loss_mode == 'round_robin':
@@ -248,10 +226,6 @@ class ProjectedGradientDescent:
             else:
                 loss = self.loss(logits, labels)
             model.zero_grad()
-
-            if self.verbose and i % 5 == 0 or i == self.num_iterations-1:
-                acc = torch.mean(torch.eq(target_labels.long(), torch.argmax(logits, dim=-1).long()).float()).item()
-                self.logger.print_and_log("Iter {}, loss = {:.5f}, acc = {:.5f}".format(i, loss, acc))
 
             # compute gradients
             loss.backward()
@@ -273,23 +247,12 @@ class ProjectedGradientDescent:
                     new_perturbation = self.projection(diff, epsilon, self.norm, device)
                     adv_context_images[index] = context_images[index] + new_perturbation
 
-                if self.verbose:
-                    verbose_result['adv_images'].append(adv_context_images.clone().detach())
                 del logits
-
-        if self.verbose:
-            return adv_context_images, adv_context_indices, verbose_result
 
         if targets_for_loss_indices is not None:
             return adv_context_images, adv_context_indices, targets_for_loss_indices, labels
             
         return adv_context_images, adv_context_indices
-
-    def get_verbose(self):
-        return self.verbose
-
-    def set_verbose(self, new_val):
-        self.verbose = new_val
 
     def get_attack_mode(self):
         return self.attack_mode
