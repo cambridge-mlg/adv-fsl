@@ -104,6 +104,8 @@ class Learner:
                             help="Whether to use independent target sets for evaluation automagically")
         parser.add_argument("--adversarial_training_interval", type=int, default=100000,
                             help="If True, train adversarially using 'attack_config'.")
+        parser.add_argument("--adversarial_training_mode", choices=["context", "target"], default="context",
+                            help="Whether to perturb the context or target images when training adversarially.")
 
         args = parser.parse_args()
 
@@ -176,9 +178,12 @@ class Learner:
         self.model.train()
         context_images, target_images, context_labels, target_labels = self.prepare_task(task_dict, shuffle=False)
         if iteration % self.args.adversarial_training_interval == 0:
-            adv_context_images = self._generate_adversarial_support_set(context_images, target_images,
+            adv_images = self._generate_training_attack(context_images, target_images,
                                                                         context_labels, target_labels)
-            logits = self.model(adv_context_images, context_labels, target_images)
+            if self.args.adversarial_training_mode == 'target':
+                logits = self.model(context_images, context_labels, adv_images)
+            else:
+                logits = self.model(adv_images, context_labels, target_images)
         else:
             logits = self.model(context_images, context_labels, target_images)
         task_loss = self.loss(logits, target_labels) / self.args.tasks_per_batch
@@ -228,7 +233,7 @@ class Learner:
 
             print_and_log(self.logfile, 'Test Accuracy: {0:3.1f}+/-{1:2.1f}'.format(accuracy, accuracy_confidence))
 
-    def _generate_adversarial_support_set(self, context_images, target_images, context_labels, target_labels):
+    def _generate_training_attack(self, context_images, target_images, context_labels, target_labels):
         attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
 
         adv_images, _ = attack.generate(context_images, context_labels, target_images, target_labels, self.model,
