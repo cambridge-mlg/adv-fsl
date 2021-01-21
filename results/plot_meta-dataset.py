@@ -12,8 +12,8 @@ def plot_curves(file_list, labels, colors, line_styles, markers, output_file, le
         plt.plot(data['Epsilon'], data['Accuracy'], color=color, label=label, linestyle=line_style, marker=marker)
 
     plt.xlabel('Fraction of Adversarial Instances', fontsize='x-large')
-    plt.ylabel('Accuracy (%)', fontsize='x-large')
-    plt.legend(loc=legend_location, fontsize='medium', bbox_to_anchor=(1.05, 1), )
+    plt.ylabel('Relative Decrease in Accuracy (%)', fontsize='x-large')
+    plt.legend(loc=legend_location, fontsize='small', bbox_to_anchor=(0.0, 1.32), ncol=3)
     plt.savefig(output_file, bbox_inches='tight')
     plt.close()
 

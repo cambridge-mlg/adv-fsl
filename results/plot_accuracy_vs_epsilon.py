@@ -15,7 +15,7 @@ def plot_curves(file_list, labels, colors, line_styles, markers, output_file, le
 
     plt.xlabel('Epsilon', fontsize='x-large')
     plt.ylabel('Accuracy (%)', fontsize='x-large')
-    plt.legend(loc=legend_location, fontsize='large')
+    plt.legend(loc=legend_location, fontsize='medium')
     plt.savefig(output_file, bbox_inches='tight')
     plt.close()
 
@@ -25,18 +25,24 @@ def main():
         './results/data/adv_train_natural_context_protonets_5_1.txt',
         './results/data/adv_train_natural_context_protonets_5_5.txt',
         './results/data/adv_train_support_context_protonets_5_1.txt',
-        './results/data/adv_train_support_context_protonets_5_5.txt'
+        './results/data/adv_train_support_context_protonets_5_5.txt',
+        './results/data/adv_train_query_context_protonets_5_1.txt',
+        './results/data/adv_train_query_context_protonets_5_5.txt'
     ]
 
     labels = [
 
         'Natural - 1 shot',
         'Natural - 5 shot',
-        'Adv Support - 1 shot',
-        'Adv Support - 5 shot'
+        'AS - 1 shot',
+        'AS - 5 shot',
+        'AQ - 1 shot',
+        'AQ - 5 shot'
     ]
 
     colors = [
+        'red',
+        'blue',
         'red',
         'blue',
         'red',
@@ -44,11 +50,11 @@ def main():
     ]
 
     line_styles = [
-        '-', '-', '--', '--'
+        '-', '-', '--', '--', ':', ':'
     ]
 
     markers = [
-        '.', '.', 's', 's'
+        '.', '.', 's', 's', '^', '^'
     ]
 
     plot_curves(file_list=file_list, labels=labels, colors=colors, line_styles=line_styles, markers=markers,
@@ -58,7 +64,9 @@ def main():
         './results/data/adv_train_natural_target_protonets_5_1.txt',
         './results/data/adv_train_natural_target_protonets_5_5.txt',
         './results/data/adv_train_support_target_protonets_5_1.txt',
-        './results/data/adv_train_support_target_protonets_5_5.txt'
+        './results/data/adv_train_support_target_protonets_5_5.txt',
+        './results/data/adv_train_query_target_protonets_5_1.txt',
+        './results/data/adv_train_query_target_protonets_5_5.txt'
     ]
 
     plot_curves(file_list=file_list, labels=labels, colors=colors, line_styles=line_styles, markers=markers,

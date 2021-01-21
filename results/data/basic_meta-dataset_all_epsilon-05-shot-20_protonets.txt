@@ -1,0 +1,4 @@
+Model,    ILSVRC, Omniglot, Aircraft, Birds, Textures, QuickDraw, Fungi, VggFlower, TrafficSign, MSCOCO, Mnist, Cifar10, Cifar100
+Specific, 97.1,   0.0,      100.0,    97.5,  0.0,      55.7,      0.0,   88.1,      0.00,        93.4,   34.9,  97.5,    95.5
+General,  71.7,   0.0,      90.8,     87.5,  0.0,      44.2,      0.0,   68.9,      0.00,        75.5,   23.7,  79.1,    85.6
+Swap,     18.0,   0.0,      16.8,     29.1,  0.0,      22.1,      0.0,   11.7,      0.00,        33.8,   5.0,   19.8,    53.3
