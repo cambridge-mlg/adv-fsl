@@ -20,7 +20,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_INDEP_EVAL_TASKS = 50
 
 
-def generate_adversarial_support_set(
+def generate_adversarial_data(
         context_images,
         target_images,
         context_labels,
@@ -52,12 +52,15 @@ def train(model, dataset, batch_size, iteration, attack_stuff):
         # Compute task loss
         if iteration % attack_stuff['adversarial_training_interval'] == 0:
             print(iteration)
-            adv_xc = generate_adversarial_support_set(xc, xt, yc, yt,
-                                                      attack_stuff['attack_config_path'],
-                                                      attack_stuff['checkpoint_dir'],
-                                                      attack_stuff['model'],
-                                                      attack_stuff['device'])
-            task_loss, task_accuracy = model.compute_objective(adv_xc, yc, xt, yt, accuracy=True)
+            adv = generate_adversarial_data(xc, xt, yc, yt,
+                                            attack_stuff['attack_config_path'],
+                                            attack_stuff['checkpoint_dir'],
+                                            attack_stuff['model'],
+                                            attack_stuff['device'])
+            if attack_stuff['adversarial_training_mode'] == 'target':
+                task_loss, task_accuracy = model.compute_objective(xc, yc, adv, yt, accuracy=True)
+            else:
+                task_loss, task_accuracy = model.compute_objective(adv, yc, xt, yt, accuracy=True)
         else:
             task_loss, task_accuracy = model.compute_objective(xc, yc, xt, yt, accuracy=True)
         loss += task_loss
@@ -588,6 +591,8 @@ parser.add_argument("--indep_eval", default=False,
                     help="Whether to use independent target sets for evaluation automagically")
 parser.add_argument("--adversarial_training_interval", type=int, default=100000,
                     help="If True, train adversarially using 'attack_config'.")
+parser.add_argument("--adversarial_training_mode", choices=["context", "target"], default="context",
+                    help="Whether to perturb the context or target images when training adversarially.")
 args = parser.parse_args()
 
 # Create checkpoint directory (if required)
@@ -678,7 +683,8 @@ if args.mode == 'train_and_test':
         'checkpoint_dir': args.checkpoint_dir,
         'model': model,
         'device': device,
-        'adversarial_training_interval': args.adversarial_training_interval
+        'adversarial_training_interval': args.adversarial_training_interval,
+        'adversarial_training_mode': args.adversarial_training_mode
     }
 
     # Training loop
