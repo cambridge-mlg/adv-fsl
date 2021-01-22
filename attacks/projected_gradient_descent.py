@@ -191,6 +191,9 @@ class ProjectedGradientDescent:
             # Safe becuase we know they're all the same class and we have at least one
             adv_class = context_labels[adv_context_indices[0]] 
             targets_for_loss_indices = generate_loss_indices(adv_class, target_labels, predicted_labels, self.target_loss_mode)
+            # If we couldn't find the required number of correct classes, retry
+            if len(targets_for_loss_indices) == 0:
+                return None, None, None, None
             target_images = target_images[targets_for_loss_indices]
             # Some magic to allow sub-indexing in this fashion
             if len(targets_for_loss_indices) > 1:

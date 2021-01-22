@@ -243,39 +243,42 @@ def calc_num_class_to_attack(class_labels, class_fraction):
     return num_classes_to_attack
 
 def generate_loss_indices(adv_class_label, target_class_labels, predicted_labels,  target_loss_mode):
-    if target_loss_mode == 'single_same_class' or target_loss_mode == 'all_same_class':
-        targeted_class = adv_class_label
-    elif target_loss_mode == 'single_other_class' or target_loss_mode == 'all_other_class':
-        classes = torch.unique(target_class_labels)
-        # Choose a random class label that isn't the adv_class_label
-        targeted_class = np.random.randint(0, len(classes)-1)
-        if targeted_class >= adv_class_label:
-            targeted_class = targeted_class +1
-            
-    # Now extract the required number of shots from the targeted class
-    shot_indices = extract_class_indices(target_class_labels, targeted_class)
-    attack_indices = None
-    if target_loss_mode == 'single_same_class' or target_loss_mode == 'single_other_class':
-        # Choose the first, best class member that the classifier currently gets right.
-        for index in shot_indices:
-            if predicted_labels[index] == target_class_labels[index]:
-                attack_indices = [index]
-                break
-        # We should be able to find at least one such point for shot > 1
-        if attack_indices is None:
-            print("WARNING: FAILED TO FIND CORRECTLY CLASSIFIED POINT")
-            attack_indices = shot_indices[0:1]
-            
-    elif target_loss_mode == 'all_same_class' or target_loss_mode == 'all_other_class':
-        attack_indices = shot_indices[0:len(shot_indices)]
-        
     indices = []
-    for index in attack_indices:
-        indices.append(index.item())
+    failure_count = 0
+    while len(indices) == 0 and failure_count < len(target_class_labels)*2:
+        if target_loss_mode == 'single_same_class' or target_loss_mode == 'all_same_class':
+            targeted_class = adv_class_label
+        elif target_loss_mode == 'single_other_class' or target_loss_mode == 'all_other_class':
+            classes = torch.unique(target_class_labels)
+            # Choose a random class label that isn't the adv_class_label
+            targeted_class = np.random.randint(0, len(classes)-1)
+            if targeted_class >= adv_class_label:
+                targeted_class = targeted_class +1
+            
+        # Now extract the required number of shots from the targeted class
+        shot_indices = extract_class_indices(target_class_labels, targeted_class)
+        attack_indices = None
+        if target_loss_mode == 'single_same_class' or target_loss_mode == 'single_other_class':
+            # Choose the first, best class member that the classifier currently gets right.
+            for index in shot_indices:
+                if predicted_labels[index] == target_class_labels[index]:
+                    attack_indices = [index]
+                    break
+            # We should be able to find at least one such point for shot > 1
+            if attack_indices is None:
+                failure_count = failure_count + 1
+                continue
+
+        elif target_loss_mode == 'all_same_class' or target_loss_mode == 'all_other_class':
+            attack_indices = shot_indices[0:len(shot_indices)]
+        
+        for index in attack_indices:
+            indices.append(index.item())
+
     return indices
 
 
-def generate_attack_indices(class_labels, class_fraction, shot_fraction):
+def generate_attack_indices(class_labels, class_fraction, shot_fraction, shuffle=False):
     '''
         Given the class labels, generate the indices of the patterns we want to attack.
         We choose patterns based on the specified fraction of classes and shots to attack.
@@ -284,8 +287,15 @@ def generate_attack_indices(class_labels, class_fraction, shot_fraction):
     '''
     indices = []
     num_classes_to_attack = calc_num_class_to_attack(class_labels, class_fraction)
-    for c in range(num_classes_to_attack):
+    if shuffle:
+        class_order = np.random.permutation(num_classes_to_attack)
+    else:
+        class_order = range(num_classes_to_attack)
+
+    for c in class_order:
         shot_indices = extract_class_indices(class_labels, c)
+        if shuffle:
+            shot_indices = np.random.permutation(shot_indices)
         num_shots_in_class = len(shot_indices)
         num_shots_to_attack = max(1, math.ceil(shot_fraction * num_shots_in_class))
         attack_indices = shot_indices[0:num_shots_to_attack]

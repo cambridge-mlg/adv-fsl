@@ -406,6 +406,8 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     accuracies_after = []
     perc_successfully_flipped = []
 
+    failure_count = 0
+
     for task in tqdm(range(tasks), dynamic_ncols=True):
         # when testing, target_shot is just shot
         task_dict = dataset.get_test_task(way=args.num_classes, shot=args.shot, target_shot=args.shot * num_target_sets)
@@ -419,22 +421,28 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
             xt, yt, x_eval, y_eval = split_target_set(xtall, ytall, args.target_set_size_multiplier, args.shot)
 
         clean_images = xc
-        
         adv_images, adv_indices, targeted_indices, targeted_labels = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
+        if adv_images == None:
+            print("Failed to find appropriate targets for task {}".format(t))
+            failure_count = failure_count + 1
+            continue
+
         targeted_images = xt[targeted_indices]
         correct_targeted_labels = yt[targeted_indices] # As opposed to targeted_labels, which may be shifted
         
         _, acc_before = model.compute_objective(xc, yc, xt, yt, accuracy=True)
-        overall_before_acc.append(acc_before)
+        overall_before_acc.append(acc_before.item())
         _, acc_after = model.compute_objective(adv_images, yc, xt, yt, accuracy=True)
-        overall_after_acc.append(acc_after)
-        
+        overall_after_acc.append(acc_after.item())
+        import pdb; pdb.set_trace()
         _, correct_before = model.compute_objective(xc, yc, targeted_images, correct_targeted_labels, accuracy=True)
-        accuracies_before.append(correct_before)
+        if correct_before.item() != 1.0:
+            import pdb;pdb.set_trace()
+        accuracies_before.append(correct_before.item())
         _, flipped = model.compute_objective(adv_images, yc, targeted_images, targeted_labels, accuracy=True)
-        perc_successfully_flipped.append(flipped)
+        perc_successfully_flipped.append(flipped.item())
         _, correct_after = model.compute_objective(adv_images, yc, targeted_images, correct_targeted_labels, accuracy=True)
-        accuracies_after.append(correct_after)
+        accuracies_after.append(correct_after.item())
 
         if args.save_samples and task < 10:
             for i in adv_indices:
@@ -446,6 +454,7 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     print_average_accuracy(overall_after_acc, "After attack (overall)",)
     print_average_accuracy(accuracies_after, "After backdoor attack (specific)",)
     print_average_accuracy(perc_successfully_flipped, "Successfully flipped",)
+    logger.print_and_log("Failed to find appropriate target {} times".format(failure_count))
 
 def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     # load the model

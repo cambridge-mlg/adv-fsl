@@ -468,6 +468,7 @@ class Learner:
         accuracies_before = []
         accuracies_after = []
         perc_successfully_flipped = []
+        failure_count = 0
 
         for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
             # Create and split up dataset
@@ -487,6 +488,10 @@ class Learner:
 
             adv_images, adv_indices, targeted_indices, targeted_labels = attack.generate(context_images, context_labels, target_images,
                                                                 target_labels, self.model, self.model, self.device)
+            if adv_images == None:
+                print("Failed to find appropriate targets for task {}".format(t))
+                failure_count = failure_count + 1
+                continue
             targeted_images = target_images[targeted_indices]
             correct_targeted_labels = target_labels[targeted_indices] # As opposed to targeted_labels, which may be shifted
 
@@ -513,6 +518,7 @@ class Learner:
         self.print_average_accuracy(overall_after_acc, "After attack (overall)")
         self.print_average_accuracy(accuracies_after, "After backdoor attack (specific)")
         self.print_average_accuracy(perc_successfully_flipped, "Successfully flipped")
+        print_and_log(self.logfile, "Failed to find appropriate target {} times".format(failure_count))
 
 
 
