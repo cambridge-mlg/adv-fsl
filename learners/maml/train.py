@@ -421,7 +421,6 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
             xt, yt, x_eval, y_eval = split_target_set(xtall, ytall, args.target_set_size_multiplier, args.shot)
 
         clean_images = xc
-        import pdb; pdb.set_trace()
         adv_images, adv_indices, targeted_indices, targeted_labels = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
         if adv_images is None:
             print("Failed to find appropriate targets for task {}".format(t))
