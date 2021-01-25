@@ -518,10 +518,10 @@ class Learner:
                 
                 # Eval with indep sets as well, if required:
                 if self.args.indep_eval:
+                    # Poisoned image and accompanying label
+                    adv_image = adv_images[adv_indices[0]]
+                    adv_label = context_labels[adv_indices[0]]
                     for k in range(len(eval_images)):
-                        # Poisoned image and accompanying label
-                        adv_image = adv_images[adv_indices[0]]
-                        adv_label = context_labels[adv_indices[0]]
                         # Replace a clean image from the eval_images set with the poisoned image (with matching label).
                         modified_context_set = replace_matching_instance(adv_image, adv_label, eval_images[k], eval_labels[k])
                         indep_eval_accuracies.append(self.calc_accuracy(modified_context_set, eval_labels[k], targeted_images, correct_targeted_labels))
@@ -531,8 +531,8 @@ class Learner:
         self.print_average_accuracy(overall_after_acc, "After attack (overall)")
         self.print_average_accuracy(accuracies_after, "After backdoor attack (specific)")
         self.print_average_accuracy(perc_successfully_flipped, "Successfully flipped")
-        print_and_log(self.logfile, "Failed to find appropriate target {} times".format(failure_count))
         self.print_average_accuracy(indep_eval_accuracies, "Indep eval")
+        print_and_log(self.logfile, "Failed to find appropriate target {} times".format(failure_count))
 
 
     def attack(self, path):

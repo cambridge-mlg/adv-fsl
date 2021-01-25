@@ -393,8 +393,9 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     model.set_gradient_steps(test_gradient_steps)
 
     assert args.target_set_size_multiplier >= 1
-    assert not args.indep_eval
     num_target_sets = args.target_set_size_multiplier
+    if args.indep_eval:
+        num_target_sets += NUM_INDEP_EVAL_TASKS
 
     attack = create_attack(config_path, checkpoint_dir)
     assert attack.get_attack_mode() == 'context'
@@ -405,6 +406,7 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     accuracies_before = []
     accuracies_after = []
     perc_successfully_flipped = []
+    indep_eval_accuracies = []
 
     failure_count = 0
 
@@ -453,12 +455,23 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
             for i in adv_indices:
                 save_image_pair(checkpoint_dir, adv_images[i], clean_images[i], task, i)
 
+        if args.indep_eval:
+            # Poisoned image and accompanying label
+            adv_image = adv_images[adv_indices[0]]
+            adv_label = xc[adv_indices[0]]
+            for k in range(len(x_eval)):
+                # Replace a clean image from the eval_images set with the poisoned image (with matching label).
+                modified_context_set = replace_matching_instance(adv_image, adv_label, x_eval[k], y_eval[k])
+                eval_preds, acc_indep = model.compute_objective(modified_context_set, yc, xt, yt, accuracy=True, predictions=True)
+                acc_eval = eval_preds[targeted_indices].type(torch.float).mean().item()
+                indep_eval_accuracies.append(acc_eval)
 
     print_average_accuracy(overall_before_acc, "Before attack (overall)",)
     print_average_accuracy(accuracies_before, "Before backdoor attack (specific)",)
     print_average_accuracy(overall_after_acc, "After attack (overall)",)
     print_average_accuracy(accuracies_after, "After backdoor attack (specific)",)
     print_average_accuracy(perc_successfully_flipped, "Successfully flipped",)
+    print_average_accuracy(indep_eval_accuracies, "Eval accuracy",)
     logger.print_and_log("Failed to find appropriate target {} times".format(failure_count))
 
 def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):
