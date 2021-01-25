@@ -8,7 +8,8 @@ from learners.protonets.src.utils import print_and_log, get_log_files, categoric
 from learners.protonets.src.model import ProtoNets
 from learners.protonets.src.data import MiniImageNetData, OmniglotData
 from attacks.attack_helpers import create_attack
-from attacks.attack_utils import save_image, split_target_set, extract_class_indices, make_adversarial_task_dict, make_swap_attack_task_dict
+from attacks.attack_utils import save_image, split_target_set, extract_class_indices, replace_matching_instance
+from attacks.attack_utils import make_adversarial_task_dict, make_swap_attack_task_dict
 from matplotlib import pyplot as plt
 from attacks.attack_utils import save_pickle
 import torch.nn.functional as F
@@ -456,7 +457,6 @@ class Learner:
         self.model.eval()
 
         assert self.args.target_set_size_multiplier >= 1
-        assert not self.args.indep_eval
         num_target_sets = self.args.target_set_size_multiplier
 
         attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
@@ -512,6 +512,17 @@ class Learner:
                 perc_successfully_flipped.append(flipped)
                 correct_after = self.calc_accuracy(adv_images, context_labels, targeted_images, correct_targeted_labels)
                 accuracies_after.append(correct_after)
+                
+                
+                # Eval with indep sets as well, if required:
+                if self.args.indep_eval:
+                    for k in range(len(eval_images)):
+                        # Poisoned image and accompanying label
+                        adv_image = adv_images[adv_indices[0]]
+                        adv_label = context_labels[adv_indices[0]]
+                        # Replace a clean image from the eval_images set with the poisoned image (with matching label).
+                        modified_context_set = replace_matching_instance(adv_image, adv_label, eval_images[k], eval_labels[k])
+                        indep_eval_accuracies.append(self.calc_accuracy(modified_context_set, eval_labels[k], targeted_images, correct_targeted_labels))
 
         self.print_average_accuracy(overall_before_acc, "Before attack (overall)")
         self.print_average_accuracy(accuracies_before, "Before backdoor attack (specific)")
