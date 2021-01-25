@@ -243,7 +243,6 @@ def calc_num_class_to_attack(class_labels, class_fraction):
     return num_classes_to_attack
 
 def generate_loss_indices(adv_class_label, target_class_labels, predicted_labels,  target_loss_mode):
-    import pdb; pdb.set_trace()
     indices = []
     failure_count = 0
     while len(indices) == 0 and failure_count < len(target_class_labels)*2:
@@ -276,7 +275,6 @@ def generate_loss_indices(adv_class_label, target_class_labels, predicted_labels
         
         for index in attack_indices:
             indices.append(index.item())
-    import pdb; pdb.set_trace()
     return indices
 
 
