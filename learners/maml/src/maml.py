@@ -104,7 +104,8 @@ class MAML(nn.Module):
                           y_context,
                           x_target,
                           y_target,
-                          accuracy=False):
+                          accuracy=False, 
+                          predictions=False):
         """Compute the MAML objective function, consisting of inner loop
         to update local parameters, and return loss on target set with updated
         model parameters.
@@ -128,10 +129,13 @@ class MAML(nn.Module):
         loss = F.cross_entropy(y_, y_target)
         
         # Compute target set accuracy
-        if accuracy:
+        if accuracy or predictions:
             correct_preds = torch.eq(y_.argmax(dim=-1), y_target)
             acc = correct_preds.type(torch.float).mean()
-            return loss, acc
+            if predictions:
+                return correct_preds, acc
+            else:
+                return loss, acc
         else:
             return loss
 

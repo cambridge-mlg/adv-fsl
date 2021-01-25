@@ -431,19 +431,24 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         targeted_images = xt[targeted_indices]
         correct_targeted_labels = yt[targeted_indices] # As opposed to targeted_labels, which may be shifted
         
-        _, acc_before = model.compute_objective(xc, yc, xt, yt, accuracy=True)
+        # Actual predictions for entire target set, and accuracy on entire target set
+        correct_preds_before, acc_before = model.compute_objective(xc, yc, xt, yt, accuracy=True, predictions=True)
         overall_before_acc.append(acc_before.item())
-        _, acc_after = model.compute_objective(adv_images, yc, xt, yt, accuracy=True)
+        
+        # Calculate accuracy for targeted point/s specifically
+        specific_before_acc = correct_preds_before[targeted_indices].type(torch.float).mean().item()
+        accuracies_before.append(specific_before_acc)
+        
+        correct_preds_after, acc_after = model.compute_objective(adv_images, yc, xt, yt, accuracy=True, predictions=True)
         overall_after_acc.append(acc_after.item())
-        import pdb; pdb.set_trace()
-        _, correct_before = model.compute_objective(xc, yc, targeted_images, correct_targeted_labels, accuracy=True)
-        if correct_before.item() != 1.0:
-            import pdb;pdb.set_trace()
-        accuracies_before.append(correct_before.item())
-        _, flipped = model.compute_objective(adv_images, yc, targeted_images, targeted_labels, accuracy=True)
-        perc_successfully_flipped.append(flipped.item())
-        _, correct_after = model.compute_objective(adv_images, yc, targeted_images, correct_targeted_labels, accuracy=True)
-        accuracies_after.append(correct_after.item())
+        
+        # Calculate accuracy for targeted point/s specifically
+        specific_after_acc = correct_preds_after[targeted_indices].type(torch.float).mean().item()
+        accuracies_after.append(specific_after_acc)
+        
+        flipped_preds_after, _ = model.compute_objective(adv_images, yc, xt, yt, accuracy=True, predictions=True)
+        flipped = flipped_preds_after[targeted_indices].type(torch.float).mean().item()
+        perc_successfully_flipped.append(flipped)
 
         if args.save_samples and task < 10:
             for i in adv_indices:
