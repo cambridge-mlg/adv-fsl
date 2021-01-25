@@ -243,6 +243,7 @@ def calc_num_class_to_attack(class_labels, class_fraction):
     return num_classes_to_attack
 
 def generate_loss_indices(adv_class_label, target_class_labels, predicted_labels,  target_loss_mode):
+    import pdb; pdb.set_trace()
     indices = []
     failure_count = 0
     while len(indices) == 0 and failure_count < len(target_class_labels)*2:
@@ -260,9 +261,10 @@ def generate_loss_indices(adv_class_label, target_class_labels, predicted_labels
         attack_indices = None
         if target_loss_mode == 'single_same_class' or target_loss_mode == 'single_other_class':
             # Choose the first, best class member that the classifier currently gets right.
-            for index in shot_indices:
-                if predicted_labels[index] == target_class_labels[index]:
-                    attack_indices = [index]
+            for index_t in shot_indices:
+                index = index_t.item()
+                if predicted_labels[index].item() == target_class_labels[index].item():
+                    attack_indices = [index_t] #We have to convert for 'all' cases anyway, so might as well add the tensor
                     break
             # We should be able to find at least one such point for shot > 1
             if attack_indices is None:
@@ -274,7 +276,7 @@ def generate_loss_indices(adv_class_label, target_class_labels, predicted_labels
         
         for index in attack_indices:
             indices.append(index.item())
-
+    import pdb; pdb.set_trace()
     return indices
 
 
