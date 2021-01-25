@@ -14,7 +14,7 @@ from learners.maml.src.shrinkage_maml import PredCPMAML as pMAML
 from learners.maml.src.utils import save_image
 from attacks.attack_helpers import create_attack
 from attacks.attack_utils import extract_class_indices, Logger, split_target_set, make_adversarial_task_dict, make_swap_attack_task_dict
-from attacks.attack_utils import AdversarialDataset
+from attacks.attack_utils import AdversarialDataset, replace_matching_instance
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_INDEP_EVAL_TASKS = 50
@@ -458,7 +458,7 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         if args.indep_eval:
             # Poisoned image and accompanying label
             adv_image = adv_images[adv_indices[0]]
-            adv_label = xc[adv_indices[0]]
+            adv_label = yc[adv_indices[0]]
             for k in range(len(x_eval)):
                 # Replace a clean image from the eval_images set with the poisoned image (with matching label).
                 modified_context_set = replace_matching_instance(adv_image, adv_label, x_eval[k], y_eval[k])
