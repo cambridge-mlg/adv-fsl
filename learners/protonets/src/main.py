@@ -488,7 +488,7 @@ class Learner:
 
             adv_images, adv_indices, targeted_indices, targeted_labels = attack.generate(context_images, context_labels, target_images,
                                                                 target_labels, self.model, self.model, self.device)
-            if adv_images == None:
+            if adv_images is None:
                 print("Failed to find appropriate targets for task {}".format(t))
                 failure_count = failure_count + 1
                 continue
