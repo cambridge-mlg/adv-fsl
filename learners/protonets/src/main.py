@@ -458,6 +458,8 @@ class Learner:
 
         assert self.args.target_set_size_multiplier >= 1
         num_target_sets = self.args.target_set_size_multiplier
+        if self.args.indep_eval:
+            num_target_sets += NUM_INDEP_EVAL_TASKS
 
         attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
         assert attack.get_attack_mode() == 'context'
@@ -469,12 +471,12 @@ class Learner:
         accuracies_after = []
         perc_successfully_flipped = []
         failure_count = 0
+        indep_eval_accuracies = []
 
         for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
             # Create and split up dataset
             task_dict = self.dataset.get_test_task(self.args.test_way, self.args.test_shot, self.args.query * num_target_sets)
             context_images, all_target_images, context_labels, all_target_labels = self.prepare_task(task_dict, shuffle=False)
-
             if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:
                 target_images, target_labels = all_target_images, all_target_labels
                 eval_images, eval_labels = None, None
@@ -530,7 +532,7 @@ class Learner:
         self.print_average_accuracy(accuracies_after, "After backdoor attack (specific)")
         self.print_average_accuracy(perc_successfully_flipped, "Successfully flipped")
         print_and_log(self.logfile, "Failed to find appropriate target {} times".format(failure_count))
-
+        self.print_average_accuracy(indep_eval_accuracies, "Indep eval")
 
 
     def attack(self, path):

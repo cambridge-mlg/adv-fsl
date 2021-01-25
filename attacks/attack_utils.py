@@ -245,7 +245,7 @@ def calc_num_class_to_attack(class_labels, class_fraction):
 def replace_matching_instance(adv_instance, adv_class_label, clean_set, clean_set_labels):
     # We need to find an instance in the clean set with the same label as the adv_class_label
     shot_indices = extract_class_indices(clean_set_labels, adv_class_label)
-    chosen_index = shot_indices[np.random.randint(0, len(shot_indices)]
+    chosen_index = shot_indices[np.random.randint(0, len(shot_indices))]
     modified_set = clean_set.clone()
     modified_set[chosen_index] = adv_instance.clone()
     return modified_set
