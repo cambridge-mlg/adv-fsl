@@ -249,6 +249,14 @@ def replace_matching_instance(adv_instance, adv_class_label, clean_set, clean_se
     modified_set = clean_set.clone()
     modified_set[chosen_index] = adv_instance.clone()
     return modified_set
+    
+
+def subindex(x, indices):
+    if len(indices) > 1:
+        subx = (x.unsqueeze(1)[indices]).squeeze()
+    else:
+        subx = x[indices]
+    return subx
 
 def generate_loss_indices(adv_class_label, target_class_labels, predicted_labels,  target_loss_mode):
     indices = []

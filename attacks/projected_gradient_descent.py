@@ -5,7 +5,7 @@ import torch.distributions.uniform as uniform
 import numpy as np
 from matplotlib import pyplot as plt
 import os.path as path
-from attacks.attack_utils import convert_labels, generate_attack_indices, fix_logits, Logger
+from attacks.attack_utils import convert_labels, generate_attack_indices, fix_logits, Logger, subindex
 from attacks.attack_utils import get_shifted_targeted_labels, get_random_targeted_labels, calc_num_class_to_attack, generate_loss_indices
 
 
@@ -194,18 +194,12 @@ class ProjectedGradientDescent:
             # If we couldn't find the required number of correct classes, retry
             if len(targets_for_loss_indices) == 0:
                 return None, None, None, None
-            target_images = target_images[targets_for_loss_indices]
-            # Some magic to allow sub-indexing in this fashion
-            if len(targets_for_loss_indices) > 1:
-                labels = (labels.unsqueeze(1)[targets_for_loss_indices]).squeeze()
-                target_labels = (target_labels.unsqueeze(1)[targets_for_loss_indices]).squeeze()
-            else:
-                labels = labels[targets_for_loss_indices]
-                target_labels = target_labels[targets_for_loss_indices]
+                
+            labels_for_loss = subindex(labels, targets_for_loss_indices)
                 
             # On the match setting, we aim to make the targeted patterns match the class of the adv context point
             if self.targeted_labels == 'match':
-                labels = torch.ones_like(labels) * adv_class
+                labels_for_loss = torch.ones_like(labels_for_loss) * adv_class
             
         # Initial projection step
         size = adv_context_images.size()
@@ -221,13 +215,16 @@ class ProjectedGradientDescent:
             logits = fix_logits(get_logits_fn(adv_context_images, context_labels, target_images))
 
             # compute loss
-            if self.target_loss_mode == 'round_robin':
+            if self.target_loss_mode == 'all'
+                loss = self.loss(logits, labels)
+            elif self.target_loss_mode == 'round_robin':
                 loss = self.loss(logits[i % len(target_images)].unsqueeze(0), labels[i % len(target_images)].unsqueeze(0))
             elif self.target_loss_mode == 'random':
                 index = np.random.randint(0, len(target_images))
                 loss = self.loss(logits[index].unsqueeze(0), labels[index].unsqueeze(0))
             else:
-                loss = self.loss(logits, labels)
+                logits_for_loss = subindex(logits, targets_for_loss_indices)
+                loss = self.loss(logits_for_loss, labels_for_loss)
             model.zero_grad()
 
             # compute gradients
@@ -285,7 +282,7 @@ class ProjectedGradientDescent:
             plt.imshow(grad_signs[c].cpu(), cmap='hot', interpolation='nearest')
             plt.savefig(path.join(checkpoint_dir, "{}_{}_grad_signs_chan_{}_iter_{:02d}.png".format(self.attack_mode, img_index, c, iter)))
             plt.close()
-
+        
     @staticmethod
     def projection(values, eps, norm_p, device):
         """
