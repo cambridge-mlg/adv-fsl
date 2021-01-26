@@ -215,7 +215,7 @@ class ProjectedGradientDescent:
             logits = fix_logits(get_logits_fn(adv_context_images, context_labels, target_images))
 
             # compute loss
-            if self.target_loss_mode == 'all'
+            if self.target_loss_mode == 'all':
                 loss = self.loss(logits, labels)
             elif self.target_loss_mode == 'round_robin':
                 loss = self.loss(logits[i % len(target_images)].unsqueeze(0), labels[i % len(target_images)].unsqueeze(0))
@@ -223,7 +223,7 @@ class ProjectedGradientDescent:
                 index = np.random.randint(0, len(target_images))
                 loss = self.loss(logits[index].unsqueeze(0), labels[index].unsqueeze(0))
             else:
-                logits_for_loss = subindex(logits, targets_for_loss_indices)
+                logits_for_loss = logits[targets_for_loss_indices]
                 loss = self.loss(logits_for_loss, labels_for_loss)
             model.zero_grad()
 
