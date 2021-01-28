@@ -425,7 +425,7 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         clean_images = xc
         adv_images, adv_indices, targeted_indices, targeted_labels = attack.generate(xc, yc, xt, yt, model, model.compute_logits, device)
         if adv_images is None:
-            print("Failed to find appropriate targets for task {}".format(t))
+            print("Failed to find appropriate targets for task {}".format(task))
             failure_count = failure_count + 1
             continue
 
