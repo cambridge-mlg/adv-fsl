@@ -407,6 +407,7 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     accuracies_after = []
     perc_successfully_flipped = []
     indep_eval_accuracies = []
+    flipped_indep_eval = []
 
     failure_count = 0
 
@@ -447,7 +448,7 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
         specific_after_acc = correct_preds_after[targeted_indices].type(torch.float).mean().item()
         accuracies_after.append(specific_after_acc)
         
-        flipped_preds_after, _ = model.compute_objective(adv_images, yc, xt, yt, accuracy=True, predictions=True)
+        flipped_preds_after, _ = model.compute_objective(adv_images, yc, xt, targeted_labels, accuracy=True, predictions=True)
         flipped = flipped_preds_after[targeted_indices].type(torch.float).mean().item()
         perc_successfully_flipped.append(flipped)
 
@@ -465,6 +466,9 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
                 eval_preds, acc_indep = model.compute_objective(modified_context_set, yc, xt, yt, accuracy=True, predictions=True)
                 acc_eval = eval_preds[targeted_indices].type(torch.float).mean().item()
                 indep_eval_accuracies.append(acc_eval)
+                flipped_preds, _ = model.compute_objective(modified_context_set, yc, xt, targeted_labels, accuracy=True, predictions=True)
+                flipped_eval = flipped_preds[targeted_indices].type(torch.float).mean().item()
+                flipped_indep_eval.append(flipped_eval)
 
     print_average_accuracy(overall_before_acc, "Before attack (overall)",)
     print_average_accuracy(accuracies_before, "Before backdoor attack (specific)",)
@@ -472,6 +476,7 @@ def backdoor(model, dataset, model_path, tasks, config_path, checkpoint_dir):
     print_average_accuracy(accuracies_after, "After backdoor attack (specific)",)
     print_average_accuracy(perc_successfully_flipped, "Successfully flipped",)
     print_average_accuracy(indep_eval_accuracies, "Eval accuracy",)
+    print_average_accuracy(flipped_indep_eval, "Succesfully flipped eval",)
     logger.print_and_log("Failed to find appropriate target {} times".format(failure_count))
 
 def attack(model, dataset, model_path, tasks, config_path, checkpoint_dir):

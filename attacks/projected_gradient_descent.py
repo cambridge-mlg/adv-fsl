@@ -200,6 +200,9 @@ class ProjectedGradientDescent:
             # On the match setting, we aim to make the targeted patterns match the class of the adv context point
             if self.targeted_labels == 'match':
                 labels_for_loss = torch.ones_like(labels_for_loss) * adv_class
+                # Update the targeted labels vector to match where appropriate
+                for target_index in targets_for_loss_indices:
+                    labels[target_index] = adv_class
             
         # Initial projection step
         size = adv_context_images.size()

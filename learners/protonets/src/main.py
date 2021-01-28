@@ -472,6 +472,7 @@ class Learner:
         perc_successfully_flipped = []
         failure_count = 0
         indep_eval_accuracies = []
+        flipped_indep_eval = []
 
         for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
             # Create and split up dataset
@@ -488,13 +489,14 @@ class Learner:
 
             clean_version = context_images
 
-            adv_images, adv_indices, targeted_indices, targeted_labels = attack.generate(context_images, context_labels, target_images,
+            adv_images, adv_indices, targeted_indices, targeted_labels_all = attack.generate(context_images, context_labels, target_images,
                                                                 target_labels, self.model, self.model, self.device)
             if adv_images is None:
                 print("Failed to find appropriate targets for task {}".format(t))
                 failure_count = failure_count + 1
                 continue
             targeted_images = target_images[targeted_indices]
+            targeted_labels = targeted_labels_all[targeted_indices]
             correct_targeted_labels = target_labels[targeted_indices] # As opposed to targeted_labels, which may be shifted
 
             if self.args.save_samples and t < 10:
@@ -525,6 +527,7 @@ class Learner:
                         # Replace a clean image from the eval_images set with the poisoned image (with matching label).
                         modified_context_set = replace_matching_instance(adv_image, adv_label, eval_images[k], eval_labels[k])
                         indep_eval_accuracies.append(self.calc_accuracy(modified_context_set, eval_labels[k], targeted_images, correct_targeted_labels))
+                        flipped_indep_eval.append(self.calc_accuracy(modified_context_set, eval_labels[k], targeted_images, targeted_labels))
 
         self.print_average_accuracy(overall_before_acc, "Before attack (overall)")
         self.print_average_accuracy(accuracies_before, "Before backdoor attack (specific)")
@@ -532,6 +535,7 @@ class Learner:
         self.print_average_accuracy(accuracies_after, "After backdoor attack (specific)")
         self.print_average_accuracy(perc_successfully_flipped, "Successfully flipped")
         self.print_average_accuracy(indep_eval_accuracies, "Indep eval")
+        self.print_average_accuracy(flipped_indep_eval, "Successfully flipped eval")
         print_and_log(self.logfile, "Failed to find appropriate target {} times".format(failure_count))
 
 
