@@ -24,7 +24,7 @@ def main():
     labels = [
 
         'Natural',
-        'AS',
+        'ASP',
         'AQ'
     ]
 
@@ -48,17 +48,11 @@ def main():
         './results/data/adv_train_query_context_protonets_5_1.txt'
     ]
 
-    # plot_curves(file_list=file_list_AS_1, labels=labels, colors=colors, line_styles=line_styles, markers=markers,
-    #             output_file='./results/plots/accuracy_vs_epsilon_adv_support-1-shot.pdf', legend_location='upper right')
-
     file_list_AQ_1 = [
         './results/data/adv_train_natural_target_protonets_5_1.txt',
         './results/data/adv_train_support_target_protonets_5_1.txt',
         './results/data/adv_train_query_target_protonets_5_1.txt',
     ]
-
-    # plot_curves(file_list=file_list_AQ_1, labels=labels, colors=colors, line_styles=line_styles, markers=markers,
-    #             output_file='./results/plots/accuracy_vs_epsilon_adv_query-1-shot.pdf', legend_location='upper right')
 
     file_list_AS_5 = [
         './results/data/adv_train_natural_context_protonets_5_5.txt',
@@ -66,17 +60,11 @@ def main():
         './results/data/adv_train_query_context_protonets_5_5.txt'
     ]
 
-    # plot_curves(file_list=file_list_AS_5, labels=labels, colors=colors, line_styles=line_styles, markers=markers,
-    #             output_file='./results/plots/accuracy_vs_epsilon_adv_support-5-shot.pdf', legend_location='upper right')
-
     file_list_AQ_5 = [
         './results/data/adv_train_natural_target_protonets_5_5.txt',
         './results/data/adv_train_support_target_protonets_5_5.txt',
         './results/data/adv_train_query_target_protonets_5_5.txt'
     ]
-
-    # plot_curves(file_list=file_list_AQ_5, labels=labels, colors=colors, line_styles=line_styles, markers=markers,
-    #             output_file='./results/plots/accuracy_vs_epsilon_adv_query-5-shot.pdf', legend_location='upper right')
 
     file_lists = [
         file_list_AS_1,
@@ -98,8 +86,6 @@ def main():
         for file, label, color, line_style, marker in zip(file_list, labels, colors, line_styles, markers):
             data = np.genfromtxt(file, delimiter=',', names=['Epsilon', 'Accuracy', "Error"])
             ax.plot(data['Epsilon'], data['Accuracy'], color=color, label=label, linestyle=line_style, marker=marker)
-            # ax.fill_between(data['Epsilon'], data['Accuracy'] - data['Error'],
-            #                  data['Accuracy'] + data['Error'], color=color, alpha=0.2)
             ax.set_title(title)
             ax.legend(loc='upper right', fontsize='small')
 

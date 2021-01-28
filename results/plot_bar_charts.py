@@ -1,8 +1,11 @@
+import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-legend_labels = ['Support Specific', 'Support General (10x)', 'Support General (1x)', 'Noise', 'Swap', 'Label Shift']
+legend_labels = ['ASP Specific', 'ASP General (10x)', 'ASP General (1x)', 'Noise', 'Swap', 'Label Shift']
 colors = ['#5BB381', '#FFD700', '#DE3163', '#64C3EB', 'orange', 'purple']
 
 

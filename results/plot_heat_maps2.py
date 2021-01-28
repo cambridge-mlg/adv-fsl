@@ -1,4 +1,7 @@
 import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -136,7 +139,7 @@ def main():
     ]
 
     titles = [
-        'Support',
+        'ASP',
         'Swap',
         'Subselected'
     ]
