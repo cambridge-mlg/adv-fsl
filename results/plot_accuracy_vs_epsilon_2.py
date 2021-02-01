@@ -24,7 +24,7 @@ def main():
     labels = [
 
         'Natural',
-        'ASP',
+        'AS',
         'AQ'
     ]
 
@@ -74,9 +74,9 @@ def main():
     ]
 
     titles = [
-        'Support Attack - 1-shot',
+        'ASP Attack - 1-shot',
         'Query Attack - 1-shot',
-        'Support Attack - 5-shot',
+        'ASP Attack - 5-shot',
         'Query Attack - 5-shot'
     ]
 
