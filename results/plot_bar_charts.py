@@ -30,8 +30,8 @@ def plot(ax, file, title, x_labels):
     rects2 = ax.bar(x - width * 3 / 2, data[3], width, label=legend_labels[3], color=colors[0])
     rects3 = ax.bar(x - width / 2 , data[0], width, label=legend_labels[0], color=colors[2])
     rects4 = ax.bar(x + width / 2, data[2], width, label=legend_labels[2], color=colors[1])
-    rects5 = ax.bar(x + width * 3 / 2, data[1], width, label=legend_labels[1], color=colors[3])
-    rects6 = ax.bar(x + width * 5 / 2, data[4], width, label=legend_labels[4], color=colors[4])
+    rects5 = ax.bar(x + width * 3 / 2, data[1], width, label=legend_labels[1], color=colors[4])
+    rects6 = ax.bar(x + width * 5 / 2, data[4], width, label=legend_labels[4], color=colors[3])
 
     right_side = ax.spines["right"]
     right_side.set_visible(False)

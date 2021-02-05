@@ -6,7 +6,7 @@ import numpy as np
 
 x_labels = ['ILSVRC', 'Aircraft', 'Birds', 'Quick Draw', 'VGG Flower', 'MSCOCO', 'MNIST', 'CIFAR10', 'CIFAR100']
 legend_labels = ['ASP Specific', 'ASP General', 'Swap']
-colors = ['#DE3163', '#64C3EB', 'orange']
+colors = ['#DE3163', 'orange', '#64C3EB']
 
 
 def autolabel(ax, rects):
