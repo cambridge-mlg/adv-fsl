@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2020 The Meta-Dataset Authors.
+# Copyright 2021 The Meta-Dataset Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -70,6 +70,9 @@ def set_episode_descr_config_defaults():
   gin.bind_parameter('EpisodeDescriptionConfig.max_log_weight', MAX_LOG_WEIGHT)
   gin.bind_parameter('EpisodeDescriptionConfig.ignore_dag_ontology', False)
   gin.bind_parameter('EpisodeDescriptionConfig.ignore_bilevel_ontology', False)
+  gin.bind_parameter('EpisodeDescriptionConfig.ignore_hierarchy_probability',
+                     0.)
+  gin.bind_parameter('EpisodeDescriptionConfig.simclr_episode_fraction', 0.)
 
   # Following is set in a different scope.
   gin.bind_parameter('none/EpisodeDescriptionConfig.min_ways', None)
@@ -89,8 +92,12 @@ def write_feature_records(features, label, output_path):
     features: An [n, m] numpy array of features.
     label: An integer, the label common to all records.
     output_path: A string specifying the location of the record.
+
+  Returns:
+    serialized_examples: list tf.Example protos written by the writer.
   """
   writer = tf.python_io.TFRecordWriter(output_path)
+  serialized_examples = []
   for feat in list(features):
     # Write the example.
     serialized_example = dataset_to_records.make_example([
@@ -98,4 +105,7 @@ def write_feature_records(features, label, output_path):
         ('image/class/label', 'int64', [label])
     ])
     writer.write(serialized_example)
+    serialized_examples.append(serialized_example)
+
   writer.close()
+  return serialized_examples

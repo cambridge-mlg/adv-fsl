@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2020 The Meta-Dataset Authors.
+# Copyright 2021 The Meta-Dataset Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
-import itertools
+import functools
 
 import gin.tf
 from meta_dataset.data import config
@@ -56,22 +56,27 @@ MAX_SUPPORT_SIZE_CONTRIB_PER_CLASS = 100
 MIN_LOG_WEIGHT = np.log(0.5)
 MAX_LOG_WEIGHT = np.log(2)
 
-gin.bind_parameter('EpisodeDescriptionConfig.num_ways', None)
-gin.bind_parameter('EpisodeDescriptionConfig.num_support', None)
-gin.bind_parameter('EpisodeDescriptionConfig.num_query', None)
-gin.bind_parameter('EpisodeDescriptionConfig.min_ways', MIN_WAYS)
-gin.bind_parameter('EpisodeDescriptionConfig.max_ways_upper_bound',
-                   MAX_WAYS_UPPER_BOUND)
-gin.bind_parameter('EpisodeDescriptionConfig.max_num_query', MAX_NUM_QUERY)
-gin.bind_parameter('EpisodeDescriptionConfig.max_support_set_size',
-                   MAX_SUPPORT_SET_SIZE)
-gin.bind_parameter(
-    'EpisodeDescriptionConfig.max_support_size_contrib_per_class',
-    MAX_SUPPORT_SIZE_CONTRIB_PER_CLASS)
-gin.bind_parameter('EpisodeDescriptionConfig.min_log_weight', MIN_LOG_WEIGHT)
-gin.bind_parameter('EpisodeDescriptionConfig.max_log_weight', MAX_LOG_WEIGHT)
-gin.bind_parameter('EpisodeDescriptionConfig.ignore_dag_ontology', False)
-gin.bind_parameter('EpisodeDescriptionConfig.ignore_bilevel_ontology', False)
+
+def bind_gin_parameters():
+  gin.bind_parameter('EpisodeDescriptionConfig.num_ways', None)
+  gin.bind_parameter('EpisodeDescriptionConfig.num_support', None)
+  gin.bind_parameter('EpisodeDescriptionConfig.num_query', None)
+  gin.bind_parameter('EpisodeDescriptionConfig.min_ways', MIN_WAYS)
+  gin.bind_parameter('EpisodeDescriptionConfig.max_ways_upper_bound',
+                     MAX_WAYS_UPPER_BOUND)
+  gin.bind_parameter('EpisodeDescriptionConfig.max_num_query', MAX_NUM_QUERY)
+  gin.bind_parameter('EpisodeDescriptionConfig.max_support_set_size',
+                     MAX_SUPPORT_SET_SIZE)
+  gin.bind_parameter(
+      'EpisodeDescriptionConfig.max_support_size_contrib_per_class',
+      MAX_SUPPORT_SIZE_CONTRIB_PER_CLASS)
+  gin.bind_parameter('EpisodeDescriptionConfig.min_log_weight', MIN_LOG_WEIGHT)
+  gin.bind_parameter('EpisodeDescriptionConfig.max_log_weight', MAX_LOG_WEIGHT)
+  gin.bind_parameter('EpisodeDescriptionConfig.ignore_dag_ontology', False)
+  gin.bind_parameter('EpisodeDescriptionConfig.ignore_bilevel_ontology', False)
+  gin.bind_parameter('EpisodeDescriptionConfig.ignore_hierarchy_probability',
+                     0.)
+  gin.bind_parameter('EpisodeDescriptionConfig.simclr_episode_fraction', 0.)
 
 
 def split_into_chunks(batch, chunk_sizes):
@@ -102,37 +107,55 @@ class DatasetIDGenTest(tf.test.TestCase):
     super(DatasetIDGenTest, self).setUp()
     self.dataset_spec = DATASET_SPEC
     self.split = Split.TRAIN
+    bind_gin_parameters()
+
+  def tearDown(self):
+    # Gin settings should not persist between tests.
+    gin.clear_config()
+    super().tearDown()
 
   def check_expected_structure(self, sampler):
-    """Checks the stream of dataset indices is as expected."""
+    """Checks the stream of episode descriptions is as expected."""
     chunk_sizes = sampler.compute_chunk_sizes()
     batch_size = sum(chunk_sizes)
-    dummy_id = len(self.dataset_spec.get_classes(self.split))
+    placeholder_id = len(self.dataset_spec.get_classes(self.split))
 
-    generator = reader.dataset_id_generator(self.dataset_spec, self.split, None,
-                                            sampler)
+    # We need to go through TF and back because
+    # `reader.decompress_episode_representation` operates on TF tensors.
+    generator = functools.partial(
+        reader.episode_representation_generator,
+        dataset_spec=self.dataset_spec,
+        split=self.split,
+        pool=None,
+        sampler=sampler)
+    tf_generator = tf.data.Dataset.from_generator(
+        generator, tf.int64,
+        tf.TensorShape([None, 2])).map(reader.decompress_episode_representation)
+    iterator = tf_generator.make_one_shot_iterator()
+    next_item = iterator.get_next()
+
     for _ in range(3):
-      # Re-assemble batch.
-      # TODO(lamblinp): update if we change dataset_id_generator to return
-      # the whole batch at once
-      batch = list(itertools.islice(generator, batch_size))
+      with self.cached_session() as sess:
+        batch = sess.run(next_item)
 
       self.assertEqual(len(batch), batch_size)
+
       flush_chunk, support_chunk, query_chunk = split_into_chunks(
           batch, chunk_sizes)
 
       # flush_chunk is slightly oversized: if we actually had support_chunk_size
       # + query_chunk_size examples remaining, we could have used them.
       # Therefore, the last element of flush_chunk should be padding.
-      self.assertEqual(flush_chunk[-1], dummy_id)
+      self.assertEqual(flush_chunk[-1], placeholder_id)
       # TODO(lamblinp): check more about the content of flush_chunk
 
       # The padding should be at the end of each chunk.
       for chunk in (flush_chunk, support_chunk, query_chunk):
-        num_actual_examples = sum(class_id != dummy_id for class_id in chunk)
-        self.assertNotIn(dummy_id, chunk[:num_actual_examples])
+        num_actual_examples = sum(
+            class_id != placeholder_id for class_id in chunk)
+        self.assertNotIn(placeholder_id, chunk[:num_actual_examples])
         self.assertTrue(
-            all(dummy_id == class_id
+            all(placeholder_id == class_id
                 for class_id in chunk[num_actual_examples:]))
 
   def test_default(self):
@@ -180,12 +203,12 @@ class DatasetIDGenTest(tf.test.TestCase):
     self.check_expected_structure(sampler)
 
 
-def construct_dummy_datasets(class_ids,
-                             examples_per_class,
-                             repeat=True,
-                             shuffle=True,
-                             shuffle_seed=None):
-  """Construct a list of in-memory dummy datasets.
+def construct_fake_datasets(class_ids,
+                            examples_per_class,
+                            repeat=True,
+                            shuffle=True,
+                            shuffle_seed=None):
+  """Construct a list of in-memory fake datasets.
 
   Args:
     class_ids: A list of ints, one for each dataset to build.
@@ -221,7 +244,7 @@ def construct_dummy_datasets(class_ids,
   return datasets
 
 
-class DummyEpisodeReader(reader.EpisodeReader):
+class FakeEpisodeReader(reader.EpisodeReader):
   """Subclass of EpisodeReader that builds class datasets in-memory."""
 
   def construct_class_datasets(self,
@@ -237,15 +260,15 @@ class DummyEpisodeReader(reader.EpisodeReader):
         for class_id in class_ids
     ]
     shuffle = self.shuffle_buffer_size > 0
-    return construct_dummy_datasets(class_ids, examples_per_class, repeat,
-                                    shuffle, shuffle_seed)
+    return construct_fake_datasets(class_ids, examples_per_class, repeat,
+                                   shuffle, shuffle_seed)
 
 
 class EpisodeReaderTest(tf.test.TestCase):
   """Tests behaviour of Reader.
 
   To avoid reading from the filesystem, we actually test a subclass,
-  DummyEpisodeReader, that overrides Reader.construct_class_datasets,
+  FakeEpisodeReader, that overrides Reader.construct_class_datasets,
   replacing it with a method building small, in-memory datasets instead.
   """
 
@@ -256,6 +279,12 @@ class EpisodeReaderTest(tf.test.TestCase):
     self.shuffle_buffer_size = 30
     self.read_buffer_size_bytes = None
     self.num_prefetch = 0
+    bind_gin_parameters()
+
+  def tearDown(self):
+    # Gin settings should not persist between tests.
+    gin.clear_config()
+    super().tearDown()
 
   def generate_episodes(self,
                         sampler,
@@ -269,10 +298,9 @@ class EpisodeReaderTest(tf.test.TestCase):
     else:
       shuffle_buffer_size = 0
 
-    episode_reader = DummyEpisodeReader(dataset_spec, split,
-                                        shuffle_buffer_size,
-                                        self.read_buffer_size_bytes,
-                                        self.num_prefetch)
+    episode_reader = FakeEpisodeReader(dataset_spec, split, shuffle_buffer_size,
+                                       self.read_buffer_size_bytes,
+                                       self.num_prefetch)
     input_pipeline = episode_reader.create_dataset_input_pipeline(
         sampler, shuffle_seed=shuffle_seed)
     iterator = input_pipeline.make_one_shot_iterator()
@@ -311,8 +339,8 @@ class EpisodeReaderTest(tf.test.TestCase):
   def check_consistent_class(self, examples, targets):
     """Checks that the content of examples corresponds to the target.
 
-    This assumes the datasets were generated from `construct_dummy_datasets`,
-    with a dummy class of DUMMY_CLASS_ID with empty string examples.
+    This assumes the datasets were generated from `construct_fake_datasets`,
+    with a placeholder class of PLACEHOLDER_CLASS_ID with empty string examples.
 
     Args:
       examples: A 1D array of strings.
@@ -324,7 +352,7 @@ class EpisodeReaderTest(tf.test.TestCase):
         expected_target, _ = example.decode().split('.')
         self.assertEqual(int(expected_target), target)
       else:
-        self.assertEqual(target, reader.DUMMY_CLASS_ID)
+        self.assertEqual(target, reader.PLACEHOLDER_CLASS_ID)
 
   def check_end_padding(self, examples_chunk, targets_chunk):
     """Checks the padding is at the end of each chunk.
@@ -334,11 +362,11 @@ class EpisodeReaderTest(tf.test.TestCase):
       targets_chunk: A 1D array of ints.
     """
     num_actual = sum(
-        class_id != reader.DUMMY_CLASS_ID for class_id in targets_chunk)
-    self.assertNotIn(reader.DUMMY_CLASS_ID, targets_chunk[:num_actual])
+        class_id != reader.PLACEHOLDER_CLASS_ID for class_id in targets_chunk)
+    self.assertNotIn(reader.PLACEHOLDER_CLASS_ID, targets_chunk[:num_actual])
     self.assertNotIn(b'', examples_chunk[:num_actual])
     self.assertTrue(
-        all(reader.DUMMY_CLASS_ID == target
+        all(reader.PLACEHOLDER_CLASS_ID == target
             for target in targets_chunk[num_actual:]))
     self.assertAllInSet(examples_chunk[num_actual:], [b''])
 
@@ -514,12 +542,13 @@ class EpisodeReaderTest(tf.test.TestCase):
       self.assertAllEqual(examples1, examples2)
       self.assertAllEqual(targets1, targets2)
 
-  def check_description_vs_target_chunks(
-      self, description, target_support_chunk, target_query_chunk, offset):
+  def check_description_vs_target_chunks(self, description,
+                                         target_support_chunk,
+                                         target_query_chunk, offset):
     """Checks that target chunks are consistent with the description.
 
     The number of support and query exampes should correspond to the
-    description, and no other class ID (except DUMMY_CLASS_ID) should be
+    description, and no other class ID (except PLACEHOLDER_CLASS_ID) should be
     present.
 
     Args:
@@ -543,9 +572,10 @@ class EpisodeReaderTest(tf.test.TestCase):
       query_cursor += num_query
 
     self.assertTrue(
-        all(target_support_chunk[support_cursor:] == reader.DUMMY_CLASS_ID))
+        all(target_support_chunk[support_cursor:] ==
+            reader.PLACEHOLDER_CLASS_ID))
     self.assertTrue(
-        all(target_query_chunk[query_cursor:] == reader.DUMMY_CLASS_ID))
+        all(target_query_chunk[query_cursor:] == reader.PLACEHOLDER_CLASS_ID))
 
   def check_same_as_generator(self, split, offset):
     """Tests that the targets are the one requested by the generator.
@@ -582,8 +612,9 @@ class EpisodeReaderTest(tf.test.TestCase):
         self.check_episode_consistency(examples, targets, chunk_sizes)
         _, targets_support_chunk, targets_query_chunk = split_into_chunks(
             targets, chunk_sizes)
-        self.check_description_vs_target_chunks(
-            description, targets_support_chunk, targets_query_chunk, offset)
+        self.check_description_vs_target_chunks(description,
+                                                targets_support_chunk,
+                                                targets_query_chunk, offset)
     finally:
       sampling.RNG = init_rng
 
