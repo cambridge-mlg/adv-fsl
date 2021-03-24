@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2020 The Meta-Dataset Authors.
+# Copyright 2021 The Meta-Dataset Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -99,7 +99,10 @@ class EpisodeDescriptionConfig(object):
                max_log_weight,
                ignore_dag_ontology,
                ignore_bilevel_ontology,
-               min_examples_in_class=0):
+               ignore_hierarchy_probability,
+               simclr_episode_fraction,
+               min_examples_in_class=0,
+               num_unique_descriptions=0):
     """Initialize a EpisodeDescriptionConfig.
 
     This is used in sampling.py in Trainer and in EpisodeDescriptionSampler to
@@ -108,8 +111,13 @@ class EpisodeDescriptionConfig(object):
     Args:
       num_ways: Integer, fixes the number of classes ("ways") to be used in each
         episode. None leads to variable way.
-      num_support: Integer, fixes the number of examples for each class in the
-        support set.
+      num_support: An integer, a tuple of two integers, or None. In the first
+        case, the number of examples per class in the support set. In the
+        second case, the range from which to sample the number of examples per
+        class in the support set. Both of these cases would yield class-balanced
+        episodes, i.e. all classes have the same number of support examples.
+        Finally, if None, the number of support examples will vary both within
+        each episode (introducing class imbalance) and across episodes.
       num_query: Integer, fixes the number of examples for each class in the
         query set.
       min_ways: Integer, the minimum value when sampling ways.
@@ -129,12 +137,26 @@ class EpisodeDescriptionConfig(object):
       ignore_bilevel_ontology: Whether to ignore Omniglot's DAG ontology when
         sampling classes from it. This has no effect if Omniglot is not part of
         the benchmark.
+      ignore_hierarchy_probability: Float, if using a hierarchy, this flag makes
+        the sampler ignore the hierarchy for this proportion of episodes and
+        instead sample categories uniformly.
+      simclr_episode_fraction: Float, fraction of episodes that will be
+        converted to SimCLR Episodes as described in the CrossTransformers
+        paper.
       min_examples_in_class: An integer, the minimum number of examples that a
         class has to contain to be considered. All classes with fewer examples
         will be ignored. 0 means no classes are ignored, so having classes with
         no examples may trigger errors later. For variable shots, a value of 2
         makes it sure that there are at least one support and one query samples.
         For fixed shots, you could set it to `num_support + num_query`.
+      num_unique_descriptions: An integer, the number of unique episode
+        descriptions to use. If set to x > 0, x episode descriptions are
+        pre-generated, and repeatedly iterated over. This is especially helpful
+        when running on TPUs as it avoids the use of
+        tf.data.Dataset.from_generator. If set to x = 0, no such upper bound on
+        number of unique episode descriptions is set. Note that this is the
+        number of unique episode descriptions _for each source dataset_,
+        not total unique episode descriptions.
 
     Raises:
       RuntimeError: if incompatible arguments are passed.
@@ -179,7 +201,10 @@ class EpisodeDescriptionConfig(object):
     self.max_log_weight = max_log_weight
     self.ignore_dag_ontology = ignore_dag_ontology
     self.ignore_bilevel_ontology = ignore_bilevel_ontology
+    self.ignore_hierarchy_probability = ignore_hierarchy_probability
+    self.simclr_episode_fraction = simclr_episode_fraction
     self.min_examples_in_class = min_examples_in_class
+    self.num_unique_descriptions = num_unique_descriptions
 
   @property
   def max_ways(self):
