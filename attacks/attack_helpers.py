@@ -31,9 +31,9 @@ def create_attack(attack_config_path, checkpoint_dir):
             # create the attack
             if randomize_attack_params:
                 epsilon = np.random.uniform(0.025, 0.055)
-                num_iterations = np.random.randint(low=5, high=101)
+                num_iterations = np.random.randint(low=5, high=51)
                 epsilon_step = epsilon * 3.0 / float(num_iterations)
-                print("eps={}, iters={}, step={}".format(epsilon, num_iterations, epsilon_step))
+                # print("eps={}, iters={}, step={}".format(epsilon, num_iterations, epsilon_step))
             else:
                 epsilon = attack_params['epsilon']
                 num_iterations = attack_params['num_iterations']
