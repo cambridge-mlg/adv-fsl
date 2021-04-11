@@ -223,7 +223,7 @@ class ProjectedGradientDescent:
 
             if self.verbose and i % 5 == 0 or i == self.num_iterations-1:
                 acc = torch.mean(torch.eq(target_labels.long(), torch.argmax(logits, dim=-1).long()).float()).item()
-                self.logger.print_and_log("Iter {}, loss = {:.5f}, acc = {:.5f}".format(i, loss, acc))
+                self.logger.log("Iter {}, loss = {:.5f}, acc = {:.5f}".format(i, loss, acc))
 
             # compute gradients
             loss.backward()
