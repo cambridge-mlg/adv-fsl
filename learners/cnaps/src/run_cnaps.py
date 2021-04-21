@@ -511,11 +511,16 @@ class Learner:
                 if self.args.continue_from_task != 0:
                     #Skip the first one, which is deterministic
                     task_dict = self.dataset.get_test_task(item, session)
-                # Retry until the task is small enough to load into debugging machine's memory
-                # while len(task_dict['context_images']) > 200:
-                #    task_dict = self.dataset.get_test_task(item, session)
                 context_images, target_images, context_labels, target_labels, (
                 target_images_small, target_labels_small, eval_images, eval_labels) = self.prepare_task(task_dict,shuffle=False)
+                
+                # We failed to draw enough data to construct the right number of eval sets
+                # Try again
+                while context_images is None and target_images is None:
+                    task_dict = self.dataset.get_test_task(item, session)
+                    context_images, target_images, context_labels, target_labels, (
+                    target_images_small, target_labels_small, eval_images, eval_labels) = self.prepare_task(task_dict,shuffle=False)
+                
 
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels, target_images, target_labels, self.model, self.model, self.model.device)
                 adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels, target_images_small, target_labels_small, self.model, self.model, self.model.device)
@@ -800,6 +805,7 @@ class Learner:
                     assert target_set_shot != -1
                     num_target_sets = all_target_images.shape[0] / (task_way * target_set_shot)
                     print_and_log(self.logfile, "Task had insufficient data for requested number of eval sets. Using what's available: {}".format(num_target_sets))
+                    return None, None, None, None, None
             else:
                 target_set_shot = self.args.shot
                 task_way = self.args.way
