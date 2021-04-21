@@ -505,6 +505,7 @@ class Learner:
             clean_target_as_context_accuracies = []
             adv_context_accuracies = []
             adv_target_as_context_accuracies = []
+            ave_num_eval_sets = 0.0
 
             for t in tqdm(range(self.args.attack_tasks - self.args.continue_from_task), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
@@ -512,17 +513,11 @@ class Learner:
                     #Skip the first one, which is deterministic
                     task_dict = self.dataset.get_test_task(item, session)
                 context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
-                
-                # We failed to draw enough data to construct the right number of eval sets
-                # Try again
-                fail_count = 0
-                while context_images is None and target_images is None:
-                    fail_count = fail_count + 1
-                    task_dict = self.dataset.get_test_task(item, session)
-                    context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
-                    import pdb; pdb.set_trace()
-
                 target_images_small, target_labels_small, eval_images, eval_labels = extra_datasets
+                # Track how many full eval sets we actually got
+                ave_num_eval_sets = ave_num_eval_sets + len(eval_labels)
+                import pdb; pdb.set_trace()
+
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels, target_images, target_labels, self.model, self.model, self.model.device)
                 adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels, target_images_small, target_labels_small, self.model, self.model, self.model.device)
 
@@ -592,7 +587,6 @@ class Learner:
                     save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t+self.args.continue_from_task, adv_task_dict)
 
                 del adv_context_images, adv_target_images
-
             self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", item)
             self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy", item)
             self.print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy", item)
@@ -601,6 +595,7 @@ class Learner:
             self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy", item)
             self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", item)
             self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", item)
+            print_and_log(self.logfile,'Average number of eval tests over all tasks {0:3.1f}'.format(ave_num_eval_sets/float(self.args.attack_tasks)))
 
 
     def attack_swap(self, path, session):
@@ -806,7 +801,6 @@ class Learner:
                     assert target_set_shot != -1
                     num_target_sets = all_target_images.shape[0] / (task_way * target_set_shot)
                     print_and_log(self.logfile, "Task had insufficient data for requested number of eval sets. Using what's available: {}".format(num_target_sets))
-                    return None, None, None, None, None
             else:
                 target_set_shot = self.args.shot
                 task_way = self.args.way
