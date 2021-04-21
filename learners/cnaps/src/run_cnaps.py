@@ -67,8 +67,6 @@ from attacks.attack_utils import AdversarialDataset
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
 PRINT_FREQUENCY = 1000
-NUM_INDEP_EVAL_TASKS = 50
-
 
 def save_image(image_array, save_path):
     image_array = image_array.squeeze()
@@ -117,7 +115,7 @@ class Learner:
         assert self.args.target_set_size_multiplier >= 1
         num_target_sets = self.args.target_set_size_multiplier
         if self.args.indep_eval or self.args.swap_attack:
-            num_target_sets += NUM_INDEP_EVAL_TASKS
+            num_target_sets += self.args.num_indep_eval_sets
         if self.args.dataset == "meta-dataset":
             if self.args.query_test * self.args.target_set_size_multiplier > 50:
                 print_and_log(self.logfile, "WARNING: Very high number of query points requested. Query points = query_test * target_set_size_multiplier = {} * {} = {}".format(self.args.query_test, self.args.target_set_size_multiplier, self.args.query_test * self.args.target_set_size_multiplier))
@@ -236,6 +234,8 @@ class Learner:
                             action="store_true", help="If True, don't freeze the feature extractor.")
         parser.add_argument("--adversarial_training_interval", type=int, default=100000,
                             help="If True, train adversarially using 'attack_config'.")
+        parser.add_argument("--num_indep_eval_sets", type=int, default=50,
+                            help="Number of independent datasets to use for evaluation")
         args = parser.parse_args()
 
         return args
