@@ -511,17 +511,18 @@ class Learner:
                 if self.args.continue_from_task != 0:
                     #Skip the first one, which is deterministic
                     task_dict = self.dataset.get_test_task(item, session)
-                context_images, target_images, context_labels, target_labels, (
-                target_images_small, target_labels_small, eval_images, eval_labels) = self.prepare_task(task_dict,shuffle=False)
+                context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
                 
                 # We failed to draw enough data to construct the right number of eval sets
                 # Try again
+                fail_count = 0
                 while context_images is None and target_images is None:
+                    fail_count = fail_count + 1
                     task_dict = self.dataset.get_test_task(item, session)
-                    context_images, target_images, context_labels, target_labels, (
-                    target_images_small, target_labels_small, eval_images, eval_labels) = self.prepare_task(task_dict,shuffle=False)
-                
+                    context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
+                    import pdb; pdb.set_trace()
 
+                target_images_small, target_labels_small, eval_images, eval_labels = extra_datasets
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels, target_images, target_labels, self.model, self.model, self.model.device)
                 adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels, target_images_small, target_labels_small, self.model, self.model, self.model.device)
 
