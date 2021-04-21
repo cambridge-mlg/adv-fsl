@@ -272,6 +272,11 @@ class Learner:
 
         shot = self.dataset.shot
         way = self.dataset.way
+        '''
+        shot_fracs = [1.0]
+        class_fracs = [1.0]
+        '''
+
         if shot == 1:
             class_fracs = [(k+1)/way for k in range(0,way)]
             shot_fracs = [1.0]
@@ -284,7 +289,7 @@ class Learner:
         else:
             print("ERROR - Unsupported shot/way for vary swap attack")
             return
-
+        
         gen_clean_accuracies = []
         clean_accuracies = []
         clean_target_as_context_accuracies = []
@@ -293,6 +298,8 @@ class Learner:
         for task in tqdm(range(num_tasks), dynamic_ncols=True):
             with torch.no_grad():
                 context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
+                cntx_indices = sorted(range(len(context_labels)), key=context_labels.__getitem__)
+                context_images, context_labels = context_images[cntx_indices], context_labels[cntx_indices]
                 gen_clean_accuracies.append(self.calc_accuracy(context_images, context_labels, target_images, target_labels))
 
                 eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
@@ -321,7 +328,8 @@ class Learner:
                     with torch.no_grad():
                         adv_target_images, target_labels = self.dataset.get_frac_adversarial_set(task, self.device, class_frac, shot_frac, set_type="target")
                         adv_context_images, context_labels = self.dataset.get_frac_adversarial_set(task, self.device, class_frac, shot_frac, set_type="context")
-
+                        cntx_indices = sorted(range(len(context_labels)), key=context_labels.__getitem__)
+                        adv_context_images, context_labels = adv_context_images[cntx_indices], context_labels[cntx_indices]
                         eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
 
                         # Evaluate on independent target sets

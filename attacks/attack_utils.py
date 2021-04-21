@@ -90,11 +90,10 @@ class AdversarialDataset:
 
             swap_indices_context = []
             swap_indices_adv = []
-            target_labels_int = target_labels.type(torch.IntTensor)
             failed_to_swap = 0
 
             for index in adv_target_indices:
-                c = target_labels_int[index]
+                c = target_labels[index]
                 # Replace the first best instance of class c with the adv query point (assuming we haven't already swapped it)
                 shot_indices = extract_class_indices(context_labels.cpu(), c)
                 k = 0
