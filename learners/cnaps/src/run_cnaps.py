@@ -67,8 +67,6 @@ from attacks.attack_utils import AdversarialDataset
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
 PRINT_FREQUENCY = 1000
-NUM_INDEP_EVAL_TASKS = 50
-
 
 def save_image(image_array, save_path):
     image_array = image_array.squeeze()
@@ -117,7 +115,7 @@ class Learner:
         assert self.args.target_set_size_multiplier >= 1
         num_target_sets = self.args.target_set_size_multiplier
         if self.args.indep_eval or self.args.swap_attack:
-            num_target_sets += NUM_INDEP_EVAL_TASKS
+            num_target_sets += self.args.num_indep_eval_sets
         if self.args.dataset == "meta-dataset":
             if self.args.query_test * self.args.target_set_size_multiplier > 50:
                 print_and_log(self.logfile, "WARNING: Very high number of query points requested. Query points = query_test * target_set_size_multiplier = {} * {} = {}".format(self.args.query_test, self.args.target_set_size_multiplier, self.args.query_test * self.args.target_set_size_multiplier))
@@ -236,6 +234,8 @@ class Learner:
                             action="store_true", help="If True, don't freeze the feature extractor.")
         parser.add_argument("--adversarial_training_interval", type=int, default=100000,
                             help="If True, train adversarially using 'attack_config'.")
+        parser.add_argument("--num_indep_eval_sets", type=int, default=50,
+                            help="Number of independent datasets to use for evaluation")
         args = parser.parse_args()
 
         return args
@@ -505,17 +505,18 @@ class Learner:
             clean_target_as_context_accuracies = []
             adv_context_accuracies = []
             adv_target_as_context_accuracies = []
+            ave_num_eval_sets = 0.0
 
             for t in tqdm(range(self.args.attack_tasks - self.args.continue_from_task), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
                 if self.args.continue_from_task != 0:
                     #Skip the first one, which is deterministic
                     task_dict = self.dataset.get_test_task(item, session)
-                # Retry until the task is small enough to load into debugging machine's memory
-                # while len(task_dict['context_images']) > 200:
-                #    task_dict = self.dataset.get_test_task(item, session)
-                context_images, target_images, context_labels, target_labels, (
-                target_images_small, target_labels_small, eval_images, eval_labels) = self.prepare_task(task_dict,shuffle=False)
+                context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
+                target_images_small, target_labels_small, eval_images, eval_labels = extra_datasets
+                # Track how many full eval sets we actually got
+                ave_num_eval_sets = ave_num_eval_sets + len(eval_labels)
+                import pdb; pdb.set_trace()
 
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels, target_images, target_labels, self.model, self.model, self.model.device)
                 adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels, target_images_small, target_labels_small, self.model, self.model, self.model.device)
@@ -586,7 +587,6 @@ class Learner:
                     save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t+self.args.continue_from_task, adv_task_dict)
 
                 del adv_context_images, adv_target_images
-
             self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", item)
             self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy", item)
             self.print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy", item)
@@ -595,6 +595,7 @@ class Learner:
             self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy", item)
             self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", item)
             self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", item)
+            print_and_log(self.logfile,'Average number of eval tests over all tasks {0:3.1f}'.format(ave_num_eval_sets/float(self.args.attack_tasks)))
 
 
     def attack_swap(self, path, session):
