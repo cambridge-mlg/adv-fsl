@@ -234,8 +234,11 @@ class Learner:
                             action="store_true", help="If True, don't freeze the feature extractor.")
         parser.add_argument("--adversarial_training_interval", type=int, default=100000,
                             help="If True, train adversarially using 'attack_config'.")
+        parser.add_argument("--adversarial_training_mode", choices=["context", "target"], default="context",
+                            help="Whether to perturb the context or target images when training adversarially.")
         parser.add_argument("--num_indep_eval_sets", type=int, default=50,
                             help="Number of independent datasets to use for evaluation")
+
         args = parser.parse_args()
 
         return args
@@ -257,6 +260,9 @@ class Learner:
                 if ((iteration + 1) % self.args.tasks_per_batch == 0) or (iteration == (total_iterations - 1)):
                     self.optimizer.step()
                     self.optimizer.zero_grad()
+
+                if (iteration + 1) % 100 == 0:
+                    print(iteration)
 
                 if (iteration + 1) % PRINT_FREQUENCY == 0:
                     # print training stats
@@ -303,9 +309,12 @@ class Learner:
     def train_task(self, task_dict, iteration):
         context_images, target_images, context_labels, target_labels, _ = self.prepare_task(task_dict)
         if iteration % self.args.adversarial_training_interval == 0:
-            adv_context_images = self._generate_adversarial_support_set(context_images, target_images,
-                                                                        context_labels, target_labels)
-            target_logits = self.model(adv_context_images, context_labels, target_images)
+            adv_images = self._generate_adversarial_support_set(context_images, target_images,
+                                                                context_labels, target_labels)
+            if self.args.adversarial_training_mode == 'target':
+                target_logits = self.model(context_images, context_labels, adv_images)
+            else:
+                target_logits = self.model(adv_images, context_labels, target_images)
         else:
             target_logits = self.model(context_images, context_labels, target_images)
         task_loss = self.loss(target_logits, target_labels, self.device) / self.args.tasks_per_batch

@@ -104,7 +104,7 @@ class ProjectedGradientDescent:
             epsilon, epsilon_step = self.normalize_epsilon(clip_min, clip_max)
         else:
             epsilon, epsilon_step = self.epsilon, self.epsilon_step
-        self.logger.print_and_log("Normalized perturbation sizes: eps={}, eps_step={}".format(epsilon, epsilon_step))
+        self.logger.log("Normalized perturbation sizes: eps={}, eps_step={}".format(epsilon, epsilon_step))
 
         if self.targeted:
             labels = targeted_labels # As in the labels we want the target set to be classified as, to be used as "targets"
@@ -138,7 +138,7 @@ class ProjectedGradientDescent:
             model.zero_grad()
 
             if self.verbose and i % 5 == 0 or i == self.num_iterations-1:
-                self.logger.print_and_log("Iter {}, loss = {:.5f}".format(i, loss))
+                self.logger.log("Iter {}, loss = {:.5f}".format(i, loss))
 
             # compute gradient
             loss.backward()

@@ -131,6 +131,9 @@ class Learner:
                     self.optimizer.step()
                     self.optimizer.zero_grad()
 
+                if (iteration + 1) % 100 == 0:
+                    print(iteration)
+
                 if (iteration + 1) % PRINT_FREQUENCY == 0:
                     # print training stats
                     print_and_log(self.logfile,'Task [{}/{}], Train Loss: {:.7f}, Train Accuracy: {:.7f}, lr: {:.7f}'
