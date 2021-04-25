@@ -86,7 +86,7 @@ def train(train_queue, model, criterion, optimizer, grad_clip, report_freq):
         top1.update(prec1, n)
 
         if (step + 1) % report_freq == 0:
-            print('train: step %03d of %03d loss: %f acc: %f' % (step, total_step, objs.avg, top1.avg))
+            print('train: step %03d of %03d loss: %f acc: %f' % (step + 1, total_step, objs.avg, top1.avg))
 
     return top1.avg, objs.avg
 
@@ -111,7 +111,7 @@ def infer(valid_queue, model, criterion, report_freq):
             top1.update(prec1, n)
 
             if (step + 1) % report_freq == 0:
-                print('valid step %03d of %03d loss: %f acc; %f' % (step, total_step, objs.avg, top1.avg))
+                print('valid step %03d of %03d loss: %f acc: %f' % (step + 1, total_step, objs.avg, top1.avg))
 
     return top1.avg, objs.avg
 
@@ -142,6 +142,9 @@ def parse_command_line():
 
 def main():
     args = parse_command_line()
+
+    if not os.path.exists(args.save_path):
+        os.makedirs(args.save_path)
 
     # Define dataset and
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
