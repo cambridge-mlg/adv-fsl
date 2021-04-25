@@ -234,8 +234,11 @@ class Learner:
                             action="store_true", help="If True, don't freeze the feature extractor.")
         parser.add_argument("--adversarial_training_interval", type=int, default=100000,
                             help="If True, train adversarially using 'attack_config'.")
+        parser.add_argument("--adversarial_training_mode", choices=["context", "target"], default="context",
+                            help="Whether to perturb the context or target images when training adversarially.")
         parser.add_argument("--num_indep_eval_sets", type=int, default=50,
                             help="Number of independent datasets to use for evaluation")
+
         args = parser.parse_args()
 
         return args
@@ -257,6 +260,9 @@ class Learner:
                 if ((iteration + 1) % self.args.tasks_per_batch == 0) or (iteration == (total_iterations - 1)):
                     self.optimizer.step()
                     self.optimizer.zero_grad()
+
+                if (iteration + 1) % 100 == 0:
+                    print(iteration)
 
                 if (iteration + 1) % PRINT_FREQUENCY == 0:
                     # print training stats
@@ -303,9 +309,12 @@ class Learner:
     def train_task(self, task_dict, iteration):
         context_images, target_images, context_labels, target_labels, _ = self.prepare_task(task_dict)
         if iteration % self.args.adversarial_training_interval == 0:
-            adv_context_images = self._generate_adversarial_support_set(context_images, target_images,
-                                                                        context_labels, target_labels)
-            target_logits = self.model(adv_context_images, context_labels, target_images)
+            adv_images = self._generate_adversarial_support_set(context_images, target_images,
+                                                                context_labels, target_labels)
+            if self.args.adversarial_training_mode == 'target':
+                target_logits = self.model(context_images, context_labels, adv_images)
+            else:
+                target_logits = self.model(adv_images, context_labels, target_images)
         else:
             target_logits = self.model(context_images, context_labels, target_images)
         task_loss = self.loss(target_logits, target_labels, self.device) / self.args.tasks_per_batch
@@ -505,18 +514,26 @@ class Learner:
             clean_target_as_context_accuracies = []
             adv_context_accuracies = []
             adv_target_as_context_accuracies = []
-            ave_num_eval_sets = 0.0
+            #ave_num_eval_sets = 0.0
 
             for t in tqdm(range(self.args.attack_tasks - self.args.continue_from_task), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
                 if self.args.continue_from_task != 0:
                     #Skip the first one, which is deterministic
                     task_dict = self.dataset.get_test_task(item, session)
+
                 context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
                 target_images_small, target_labels_small, eval_images, eval_labels = extra_datasets
+                '''
+                fail_count = 0
+                while len(eval_labels) == 0 and fail_count < 1000:
+                    fail_count = fail_count + 1
+                    context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
+                    target_images_small, target_labels_small, eval_images, eval_labels = extra_datasets
+                print("Fail count : {}".format(fail_count))
                 # Track how many full eval sets we actually got
                 ave_num_eval_sets = ave_num_eval_sets + len(eval_labels)
-                import pdb; pdb.set_trace()
+                '''
 
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels, target_images, target_labels, self.model, self.model, self.model.device)
                 adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels, target_images_small, target_labels_small, self.model, self.model, self.model.device)
@@ -595,7 +612,7 @@ class Learner:
             self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy", item)
             self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", item)
             self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", item)
-            print_and_log(self.logfile,'Average number of eval tests over all tasks {0:3.1f}'.format(ave_num_eval_sets/float(self.args.attack_tasks)))
+            #print_and_log(self.logfile,'Average number of eval tests over all tasks {0:3.1f}'.format(ave_num_eval_sets/float(self.args.attack_tasks)))
 
 
     def attack_swap(self, path, session):
