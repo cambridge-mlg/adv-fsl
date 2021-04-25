@@ -18,6 +18,10 @@ class FineTuner:
         self.loss = loss_fn
         self.accuracy = accuracy
 
+    def forward(self, context_images, context_labels, target_images):
+        self.fine_tune(context_images, context_labels)
+        return self.test_linear(target_images, logits=True)
+
     def fine_tune(self, context_images, context_labels):
         self.classifier = FilmClassifier(
             num_classes=len(torch.unique(context_labels)),
@@ -55,20 +59,26 @@ class FineTuner:
             batch_end_index = last_element
         return batch_start_index, batch_end_index
 
-    def test_linear(self, images, labels):
+    def test_linear(self, images, labels=None, logits=False):
         self.classifier.feature_extractor.eval()
-        test_set_size = len(labels)
-        num_batches = int(np.ceil(float(test_set_size) / float(self.args.batch_size)))
+        test_set_size = len(images)
+        
         with torch.no_grad():
-            accuracies = []
-            for batch in range(num_batches):
-                batch_start_index, batch_end_index = self._get_batch_indices(batch, test_set_size)
-                logits = self.classifier(images[batch_start_index : batch_end_index])
-                accuracy = self.accuracy(logits, labels[batch_start_index : batch_end_index])
-                del logits
-                accuracies.append(accuracy.item())
-        return np.array(accuracies).mean()
-
+            if not logits:
+                assert label is not None
+                num_batches = int(np.ceil(float(test_set_size) / float(self.args.batch_size)))
+                accuracies = []
+                for batch in range(num_batches):
+                    batch_start_index, batch_end_index = self._get_batch_indices(batch, test_set_size)
+                    logits = self.classifier(images[batch_start_index : batch_end_index])
+                    accuracy = self.accuracy(logits, labels[batch_start_index : batch_end_index])
+                    del logits
+                    accuracies.append(accuracy.item())
+                return np.array(accuracies).mean()
+            else:
+                return self.classifier(images)
+                        
+                    
     def adjust_learning_rate(self, iteration):
         if iteration > 66:
             lr = 0.01
