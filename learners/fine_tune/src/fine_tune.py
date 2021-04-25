@@ -78,6 +78,10 @@ class Learner:
                                                   "dtd", "quickdraw", "fungi", "vgg_flower", "traffic_sign", "mscoco",
                                                   "mnist", "cifar10", "cifar100", "from_file"], default="meta-dataset",
                             help="Dataset to use.")
+
+        parser.add_argument('--test_datasets', nargs='+', help='Datasets to use for testing',
+                            default=["quickdraw", "ilsvrc_2012", "omniglot", "aircraft", "cu_birds", "dtd",     "fungi",
+                                     "vgg_flower", "traffic_sign", "mscoco", "mnist", "cifar10", "cifar100"])
         parser.add_argument("--feature_extractor", choices=["mnasnet", "resnet", "maml_convnet", "protonets_convnet"], default="mnasnet",
                             help="Dataset to use.")
         parser.add_argument("--pretrained_feature_extractor_path", default="./learners/fine_tune/models/pretrained_mnasnet.pth",
@@ -127,7 +131,11 @@ class Learner:
         config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
         with tf.compat.v1.Session(config=config) as session:
-            self.finetune(session)
+            import pdb; pdb.set_trace()
+            if self.dataset == 'from_file':
+                self.finetune(session)
+            else:
+                self.attack(session)
 
     def eval(self, task_index):
         eval_acc = []
@@ -143,7 +151,6 @@ class Learner:
         self.logger.print_and_log('{0:} {1:3.1f}+/-{2:2.1f}'.format(descriptor, accuracy, accuracy_confidence))
 
     def attack(self, session):
-        self.logger.print_and_log('Attacking model {0:}: '.format(path))
         self.logger.print_and_log("Finetuning on data found in {} ({})".format(self.args.data_path, self.args.dataset))
         self.logger.print_and_log("using feature extractor from {}".format(self.args.pretrained_feature_extractor_path))
         # Swap attacks only make sense if doing evaluation with independent target sets
@@ -151,11 +158,11 @@ class Learner:
         #self.model = self.init_model()
         #self.model.load_state_dict(torch.load(path), strict=False)
 
-        context_attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
+        context_attack = create_attack(self.args.attack_config_path, self.args.checkpoint_dir)
         context_attack.set_attack_mode('context')
         assert self.args.indep_eval
 
-        target_attack = create_attack(self.args.attack_config_path, self.checkpoint_dir)
+        target_attack = create_attack(self.args.attack_config_path, self.args.checkpoint_dir)
         target_attack.set_attack_mode('target')
 
         for item in self.test_set:
@@ -176,9 +183,9 @@ class Learner:
                 if self.args.continue_from_task != 0:
                     #Skip the first one, which is deterministic
                     task_dict = self.dataset.get_test_task(item, session)
-                context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
+                context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict)
                 target_images_small, target_labels_small, eval_images, eval_labels = extra_datasets
-
+                self.model.fine_tune(context_images, context_labels)
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels, target_images, target_labels, self.model, self.model, self.model.device)
                 adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels, target_images_small, target_labels_small, self.model, self.model, self.model.device)
 
@@ -363,7 +370,7 @@ class Learner:
                 assert self.args.target_set_size_multiplier * target_set_shot * task_way <= all_target_images.shape[0]
 
             # If this is a swap attack, then we need slightly different results from the target set splitter
-            if self.args.mode != 'swap':
+            if self.args.attack_mode != 'swap':
                 target_images, target_labels, eval_images, eval_labels, target_images_np = split_target_set(
                     all_target_images, all_target_labels, self.args.target_set_size_multiplier, target_set_shot,
                     all_target_images_np=all_target_images_np)
