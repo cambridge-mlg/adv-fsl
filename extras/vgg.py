@@ -45,7 +45,7 @@ class VGG(nn.Module):
         if init_weights:
             self._initialize_weights()
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, param_dict=None) -> torch.Tensor:
         x = self.features(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
@@ -95,14 +95,18 @@ cfgs: Dict[str, List[Union[str, int]]] = {
 }
 
 
-def _vgg(arch: str, cfg: str, batch_norm: bool, pretrained: bool, progress: bool, **kwargs: Any) -> VGG:
+def _vgg(arch: str, cfg: str, batch_norm: bool, pretrained: bool, progress: bool, pretrained_model_path=None,
+         **kwargs: Any) -> VGG:
     if pretrained:
         kwargs['init_weights'] = False
     model = VGG(make_layers(cfgs[cfg], batch_norm=batch_norm), **kwargs)
     if pretrained:
-        state_dict = load_state_dict_from_url(model_urls[arch],
-                                              progress=progress)
-        model.load_state_dict(state_dict)
+        if pretrained_model_path is not None:
+            model.load_state_dict(torch.load(pretrained_model_path))
+        else:
+            state_dict = load_state_dict_from_url(model_urls[arch],
+                                                  progress=progress)
+            model.load_state_dict(state_dict)
     return model
 
 
@@ -117,7 +121,7 @@ def vgg11(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> VGG
     return _vgg('vgg11', 'A', False, pretrained, progress, **kwargs)
 
 
-def vgg11_bn(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> VGG:
+def vgg11_bn(pretrained: bool = False, progress: bool = True, pretrained_model_path=None, **kwargs: Any) -> VGG:
     r"""VGG 11-layer model (configuration "A") with batch normalization
     `"Very Deep Convolutional Networks For Large-Scale Image Recognition" <https://arxiv.org/pdf/1409.1556.pdf>`_.
 
@@ -125,7 +129,7 @@ def vgg11_bn(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> 
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _vgg('vgg11_bn', 'A', True, pretrained, progress, **kwargs)
+    return _vgg('vgg11_bn', 'A', True, pretrained, progress, pretrained_model_path, **kwargs)
 
 
 def vgg13(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> VGG:
