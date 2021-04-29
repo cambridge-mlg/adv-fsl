@@ -182,6 +182,8 @@ class Learner:
         parser.add_argument("--data_path", default="../datasets", help="Path to dataset records.")
         parser.add_argument("--classifier", choices=["versa", "proto-nets", "mahalanobis", "mlpip"],
                             default="versa", help="Which classifier method to use.")
+        parser.add_argument("--feature_extractor", choices=["resnet", "vgg11", "resnet18", "resnet34"],
+                            default="resnet", help="Dataset to use.")
         parser.add_argument("--pretrained_resnet_path", default="learners/cnaps/models/pretrained_resnet.pt.tar",
                             help="Path to pretrained feature extractor model.")
         parser.add_argument("--attack_config_path", help="Path to attack config file in yaml format.")

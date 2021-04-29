@@ -48,7 +48,7 @@ class Learner:
             num_target_sets += self.args.num_indep_eval_sets
         if self.args.dataset == "meta-dataset":
             if self.args.query_test * self.args.target_set_size_multiplier > 50:
-                print_and_log(self.logfile, "WARNING: Very high number of query points requested. Query points = query_test * target_set_size_multiplier = {} * {} = {}".format(self.args.query_test, self.args.target_set_size_multiplier, self.args.query_test * self.args.target_set_size_multiplier))
+                self.logger.print_and_log("WARNING: Very high number of query points requested. Query points = query_test * target_set_size_multiplier = {} * {} = {}".format(self.args.query_test, self.args.target_set_size_multiplier, self.args.query_test * self.args.target_set_size_multiplier))
 
             self.dataset = MetaDatasetReader(self.args.data_path, "attack", self.train_set, self.validation_set,
                                              self.test_set, self.args.max_way_train, self.args.max_way_test,
@@ -93,7 +93,8 @@ class Learner:
         parser.add_argument('--test_datasets', nargs='+', help='Datasets to use for testing',
                             default=["quickdraw", "ilsvrc_2012", "omniglot", "aircraft", "cu_birds", "dtd",     "fungi",
                                      "vgg_flower", "traffic_sign", "mscoco", "mnist", "cifar10", "cifar100"])
-        parser.add_argument("--feature_extractor", choices=["mnasnet", "resnet", "maml_convnet", "protonets_convnet"], default="mnasnet",
+        parser.add_argument("--feature_extractor", choices=["mnasnet", "resnet", "vgg11", "resnet18", "resnet34",
+                                                            "maml_convnet", "protonets_convnet"], default="mnasnet",
                             help="Dataset to use.")
         parser.add_argument("--pretrained_feature_extractor_path", default="./learners/fine_tune/models/pretrained_mnasnet.pth",
                             help="Path to pretrained feature extractor model.")

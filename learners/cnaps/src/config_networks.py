@@ -4,13 +4,15 @@ from adaptation_networks import NullFeatureAdaptationNetwork, FilmAdaptationNetw
     PrototypicalNetworksAdaptationNetwork
 from set_encoder import SetEncoder
 from utils import linear_classifier, mlpip_classifier
-
+from extras.vgg import vgg11_bn
+from extras.resnet import resnet34
+from extras.resnet import resnet18_alt
 
 class ConfigureNetworks:
     """ Creates the set encoder, feature extractor, feature adaptation, classifier, and classifier adaptation networks.
     """
     def __init__(self, pretrained_resnet_path, feature_adaptation, batch_normalization, classifier,
-                 do_not_freeze_feature_extractor):
+                 do_not_freeze_feature_extractor, feature_extractor):
         self.classifier = linear_classifier
 
         self.encoder = SetEncoder(batch_normalization)
@@ -22,11 +24,28 @@ class ConfigureNetworks:
         num_initial_conv_maps = 64
 
         if feature_adaptation == "no_adaptation":
-            self.feature_extractor = resnet18(
-                pretrained=True,
-                pretrained_model_path=pretrained_resnet_path,
-                batch_normalization=batch_normalization
-            )
+            if feature_extractor == "resnet":
+                self.feature_extractor = resnet18(
+                    pretrained=True,
+                    pretrained_model_path=pretrained_resnet_path,
+                    batch_normalization=batch_normalization
+                )
+            elif feature_extractor == "resnet18":
+                self.feature_extractor = resnet18_alt(
+                    pretrained=True,
+                    pretrained_model_path=pretrained_resnet_path
+                )
+            elif feature_extractor == "resnet34":
+                self.feature_extractor = resnet34(
+                    pretrained=True,
+                    pretrained_model_path=pretrained_resnet_path
+                )
+            elif feature_extractor == "vgg":
+                self.feature_extractor = vgg11_bn(
+                    pretrained=True,
+                    pretrained_model_path=pretrained_resnet_path
+                )
+
             self.feature_adaptation_network = NullFeatureAdaptationNetwork()
 
         elif feature_adaptation == "film":
