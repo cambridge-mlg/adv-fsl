@@ -881,6 +881,9 @@ class Learner:
                     self.args.batch_normalization == "task_norm-i":
                 use_two_gpus = True  # These models do not fit on one GPU, so use model parallelism.
 
+        if self.args.classifier == "proto-nets" and self.args.feature_adaptation == "no_adaptation":
+            use_two_gpus = False
+
         return use_two_gpus
 
     def save_checkpoint(self, iteration):
