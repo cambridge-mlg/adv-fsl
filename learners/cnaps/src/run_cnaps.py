@@ -234,7 +234,7 @@ class Learner:
                             help="Whether to use independent target sets for evaluation automagically")
         parser.add_argument("--do_not_freeze_feature_extractor", dest="do_not_freeze_feature_extractor", default=False,
                             action="store_true", help="If True, don't freeze the feature extractor.")
-        parser.add_argument("--adversarial_training_interval", type=int, default=100000,
+        parser.add_argument("--adversarial_training_interval", type=int, default=1000000,
                             help="If True, train adversarially using 'attack_config'.")
         parser.add_argument("--adversarial_training_mode", choices=["context", "target"], default="context",
                             help="Whether to perturb the context or target images when training adversarially.")
@@ -310,7 +310,7 @@ class Learner:
 
     def train_task(self, task_dict, iteration):
         context_images, target_images, context_labels, target_labels, _ = self.prepare_task(task_dict)
-        if iteration % self.args.adversarial_training_interval == 0:
+        if (iteration + 1) % self.args.adversarial_training_interval == 0:
             adv_images = self._generate_adversarial_support_set(context_images, target_images,
                                                                 context_labels, target_labels)
             if self.args.adversarial_training_mode == 'target':
