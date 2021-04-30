@@ -803,6 +803,13 @@ class Learner:
         all_target_labels = torch.from_numpy(all_target_labels_np)
         all_target_labels = all_target_labels.type(torch.LongTensor)
 
+        if self.args.mode == "train" or self.args.mode == "train_test":
+            context_images = context_images.to(self.device)
+            target_images = all_target_images.to(self.device)
+            context_labels = context_labels.to(self.device)
+            target_labels = all_target_labels.to(self.device)
+            return context_images, target_images, context_labels, target_labels, None
+
         # Target set size == context set size, no extra pattern requested for eval, no worries.
         if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:
             target_images, target_labels = all_target_images, all_target_labels
