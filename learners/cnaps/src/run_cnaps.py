@@ -63,6 +63,7 @@ from attacks.attack_helpers import create_attack
 from attacks.attack_utils import split_target_set, make_adversarial_task_dict, make_swap_attack_task_dict, infer_num_shots
 from attacks.attack_utils import AdversarialDataset, save_partial_pickle
 from attacks.attack_utils import AdversarialDataset
+import learners.cnaps.src.utils as utils
 
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
@@ -309,6 +310,7 @@ class Learner:
         self.logfile.close()
 
     def train_task(self, task_dict, iteration):
+        utils.training = True
         context_images, target_images, context_labels, target_labels, _ = self.prepare_task(task_dict)
         if (iteration + 1) % self.args.adversarial_training_interval == 0:
             adv_images = self._generate_adversarial_support_set(context_images, target_images,
@@ -330,6 +332,8 @@ class Learner:
         task_accuracy = self.accuracy_fn(target_logits, target_labels)
 
         task_loss.backward(retain_graph=False)
+
+        training = False
 
         return task_loss, task_accuracy
 
@@ -881,9 +885,6 @@ class Learner:
                     self.args.batch_normalization == "task_norm-i":
                 use_two_gpus = True  # These models do not fit on one GPU, so use model parallelism.
 
-        if self.args.classifier == "proto-nets" and self.args.feature_adaptation == "no_adaptation":
-            use_two_gpus = False
-
         return use_two_gpus
 
     def save_checkpoint(self, iteration):
@@ -908,4 +909,5 @@ class Learner:
 
 
 if __name__ == "__main__":
+    utils.training = False
     main()
