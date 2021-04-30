@@ -18,6 +18,11 @@ class FineTuner:
         self.loss = loss_fn
         self.accuracy = accuracy
 
+    
+    def zero_grad(self):
+        #Not entirely sure what to do here. For now do nothing?
+        return
+
     def forward(self, context_images, context_labels, target_images):
         self.fine_tune(context_images, context_labels)
         return self.test_linear(target_images, logits=True)
@@ -63,20 +68,20 @@ class FineTuner:
         self.classifier.feature_extractor.eval()
         test_set_size = len(images)
         
-        with torch.no_grad():
-            if not logits:
-                assert label is not None
-                num_batches = int(np.ceil(float(test_set_size) / float(self.args.batch_size)))
-                accuracies = []
-                for batch in range(num_batches):
-                    batch_start_index, batch_end_index = self._get_batch_indices(batch, test_set_size)
-                    logits = self.classifier(images[batch_start_index : batch_end_index])
-                    accuracy = self.accuracy(logits, labels[batch_start_index : batch_end_index])
-                    del logits
-                    accuracies.append(accuracy.item())
-                return np.array(accuracies).mean()
-            else:
-                return self.classifier(images)
+        # with torch.no_grad():
+        if not logits:
+            assert labels is not None
+            num_batches = int(np.ceil(float(test_set_size) / float(self.args.batch_size)))
+            accuracies = []
+            for batch in range(num_batches):
+                batch_start_index, batch_end_index = self._get_batch_indices(batch, test_set_size)
+                logits = self.classifier(images[batch_start_index : batch_end_index])
+                accuracy = self.accuracy(logits, labels[batch_start_index : batch_end_index])
+                del logits
+                accuracies.append(accuracy.item())
+            return np.array(accuracies).mean()
+        else:
+            return self.classifier(images)
                         
                     
     def adjust_learning_rate(self, iteration):
