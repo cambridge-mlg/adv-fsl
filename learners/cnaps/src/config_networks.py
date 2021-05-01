@@ -40,7 +40,7 @@ class ConfigureNetworks:
                     pretrained=True,
                     pretrained_model_path=pretrained_resnet_path
                 )
-            elif feature_extractor == "vgg":
+            elif feature_extractor == "vgg11":
                 self.feature_extractor = vgg11_bn(
                     pretrained=True,
                     pretrained_model_path=pretrained_resnet_path
