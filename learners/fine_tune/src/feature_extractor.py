@@ -52,7 +52,7 @@ def create_feature_extractor(feature_extractor_family, feature_adaptation, pretr
                 pretrained_model_path=pretrained_path
             )
 
-        elif feature_extractor_family == "vgg":
+        elif feature_extractor_family == "vgg11":
             feature_extractor = vgg11_bn(
                 pretrained=True,
                 pretrained_model_path=pretrained_path
