@@ -143,7 +143,7 @@ class Learner:
         config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
         with tf.compat.v1.Session(config=config) as session:
-            if self.dataset == 'from_file':
+            if self.args.dataset == 'from_file':
                 self.finetune(session)
             else:
                 self.attack(session)

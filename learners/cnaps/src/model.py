@@ -4,6 +4,7 @@ from collections import OrderedDict
 from utils import split_first_dim_linear
 from config_networks import ConfigureNetworks
 from set_encoder import mean_pooling
+import learners.cnaps.src.utils as utils
 
 NUM_SAMPLES=1
 
@@ -202,6 +203,10 @@ class Cnaps(nn.Module):
                 self.feature_extractor.train()  # use train when processing the context set
             else:
                 self.feature_extractor.eval()  # use eval when processing the target set
+
+        # special case hack
+        if self.args.classifier == "proto-nets" and self.args.feature_adaptation == "no_adaptation" and utils.training:
+            self.feature_extractor.train()
 
     def _build_class_reps_and_covariance_estimates(self, context_features, context_labels):
         """
