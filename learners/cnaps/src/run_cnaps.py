@@ -391,6 +391,7 @@ class Learner:
 
     def print_average_accuracy(self, accuracies, descriptor, item):
         write_to_log(self.logfile, '{}, {}'.format(descriptor, item))
+        write_to_log(self.debugfile, '{}, {}'.format(descriptor, item))
         write_to_log(self.debugfile,'{}'.format(accuracies))
         accuracy = np.array(accuracies).mean() * 100.0
         accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
