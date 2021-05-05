@@ -2,8 +2,10 @@ import torch
 import torch.nn.functional as F
 import os
 import math
-from enum import Enum
 import sys
+
+
+global training
 
 
 class ValidationAccuracies:
@@ -228,6 +230,5 @@ def extract_class_indices(labels, which_class):
     class_mask = torch.eq(labels, which_class)  # binary mask of labels equal to which_class
     class_mask_indices = torch.nonzero(class_mask)  # indices of labels equal to which class
     return torch.reshape(class_mask_indices, (-1,))  # reshape to be a 1D vector
-
 
 

@@ -18,6 +18,17 @@ def main():
     learner.run()
 
 
+def extract_class_indices(labels, which_class):
+    """
+    Helper method to extract the indices of elements which have the specified label.
+    :param labels: (torch.tensor) Labels of the context set.
+    :param which_class: Label for which indices are extracted.
+    :return: (torch.tensor) Indices in the form of a mask that indicate the locations of the specified label.
+    """
+    class_mask = torch.eq(labels, which_class)  # binary mask of labels equal to which_class
+    class_mask_indices = torch.nonzero(class_mask)  # indices of labels equal to which class
+    return torch.reshape(class_mask_indices, (-1,))  # reshape to be a 1D vector
+
 class Learner:
     def __init__(self):
         self.args = self.parse_command_line()
@@ -37,7 +48,7 @@ class Learner:
             num_target_sets += self.args.num_indep_eval_sets
         if self.args.dataset == "meta-dataset":
             if self.args.query_test * self.args.target_set_size_multiplier > 50:
-                print_and_log(self.logfile, "WARNING: Very high number of query points requested. Query points = query_test * target_set_size_multiplier = {} * {} = {}".format(self.args.query_test, self.args.target_set_size_multiplier, self.args.query_test * self.args.target_set_size_multiplier))
+                self.logger.print_and_log("WARNING: Very high number of query points requested. Query points = query_test * target_set_size_multiplier = {} * {} = {}".format(self.args.query_test, self.args.target_set_size_multiplier, self.args.query_test * self.args.target_set_size_multiplier))
 
             self.dataset = MetaDatasetReader(self.args.data_path, "attack", self.train_set, self.validation_set,
                                              self.test_set, self.args.max_way_train, self.args.max_way_test,
@@ -82,7 +93,8 @@ class Learner:
         parser.add_argument('--test_datasets', nargs='+', help='Datasets to use for testing',
                             default=["quickdraw", "ilsvrc_2012", "omniglot", "aircraft", "cu_birds", "dtd",     "fungi",
                                      "vgg_flower", "traffic_sign", "mscoco", "mnist", "cifar10", "cifar100"])
-        parser.add_argument("--feature_extractor", choices=["mnasnet", "resnet", "maml_convnet", "protonets_convnet"], default="mnasnet",
+        parser.add_argument("--feature_extractor", choices=["mnasnet", "resnet", "vgg11", "resnet18", "resnet34",
+                                                            "maml_convnet", "protonets_convnet"], default="mnasnet",
                             help="Dataset to use.")
         parser.add_argument("--pretrained_feature_extractor_path", default="./learners/fine_tune/models/pretrained_mnasnet.pth",
                             help="Path to pretrained feature extractor model.")
@@ -131,8 +143,7 @@ class Learner:
         config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
         with tf.compat.v1.Session(config=config) as session:
-            import pdb; pdb.set_trace()
-            if self.dataset == 'from_file':
+            if self.args.dataset == 'from_file':
                 self.finetune(session)
             else:
                 self.attack(session)
@@ -144,6 +155,11 @@ class Learner:
             accuracy = self.model.test_linear(target_image_sets[s], target_label_sets[s])
             eval_acc.append(accuracy)
         return np.array(eval_acc).mean()
+
+    def calc_accuracy(self, context_images, context_labels, target_images, target_labels):
+        self.model.fine_tune(context_images, context_labels)
+        accuracy = self.model.test_linear(target_images, target_labels)
+        return accuracy
 
     def print_average_accuracy(self, accuracies, descriptor):
         accuracy = np.array(accuracies).mean() * 100.0
@@ -185,9 +201,9 @@ class Learner:
                     task_dict = self.dataset.get_test_task(item, session)
                 context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict)
                 target_images_small, target_labels_small, eval_images, eval_labels = extra_datasets
-                self.model.fine_tune(context_images, context_labels)
-                adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels, target_images, target_labels, self.model, self.model, self.model.device)
-                adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels, target_images_small, target_labels_small, self.model, self.model, self.model.device)
+
+                adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels, target_images, target_labels, self.model, self.model.forward, self.model.device)
+                adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels, target_images_small, target_labels_small, self.model, self.model.forward, self.model.device)
 
                 adv_target_as_context = context_images.clone()
                 # Parallel array to keep track of where we actually put the adv_target_images
@@ -264,7 +280,7 @@ class Learner:
             self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy")
             self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy")
             self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy")
-            self.logger.print_and_log('Average number of eval tests over all tasks {0:3.1f}'.format(ave_num_eval_sets/float(self.args.attack_tasks)))
+            #self.logger.print_and_log('Average number of eval tests over all tasks {0:3.1f}'.format(ave_num_eval_sets/float(self.args.attack_tasks)))
 
 
     def finetune(self, session):
@@ -341,11 +357,13 @@ class Learner:
         context_images_np, context_labels_np = self.shuffle(context_images_np, context_labels_np)
         context_images = torch.from_numpy(context_images_np)
         context_labels = torch.from_numpy(context_labels_np)
+        context_labels = context_labels.type(torch.LongTensor)
 
         all_target_images_np = target_images_np.transpose([0, 3, 1, 2])
         all_target_images_np, target_labels_np = self.shuffle(all_target_images_np, target_labels_np)
         all_target_images = torch.from_numpy(all_target_images_np)
         all_target_labels = torch.from_numpy(target_labels_np)
+        all_target_labels = all_target_labels.type(torch.LongTensor)
 
         # Target set size == context set size, no extra pattern requested for eval, no worries.
         if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:

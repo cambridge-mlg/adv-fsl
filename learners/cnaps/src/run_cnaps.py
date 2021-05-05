@@ -63,6 +63,7 @@ from attacks.attack_helpers import create_attack
 from attacks.attack_utils import split_target_set, make_adversarial_task_dict, make_swap_attack_task_dict, infer_num_shots
 from attacks.attack_utils import AdversarialDataset, save_partial_pickle
 from attacks.attack_utils import AdversarialDataset
+import learners.cnaps.src.utils as utils
 
 NUM_VALIDATION_TASKS = 200
 NUM_TEST_TASKS = 600
@@ -182,6 +183,8 @@ class Learner:
         parser.add_argument("--data_path", default="../datasets", help="Path to dataset records.")
         parser.add_argument("--classifier", choices=["versa", "proto-nets", "mahalanobis", "mlpip"],
                             default="versa", help="Which classifier method to use.")
+        parser.add_argument("--feature_extractor", choices=["resnet", "vgg11", "resnet18", "resnet34"],
+                            default="resnet", help="Dataset to use.")
         parser.add_argument("--pretrained_resnet_path", default="learners/cnaps/models/pretrained_resnet.pt.tar",
                             help="Path to pretrained feature extractor model.")
         parser.add_argument("--attack_config_path", help="Path to attack config file in yaml format.")
@@ -232,7 +235,7 @@ class Learner:
                             help="Whether to use independent target sets for evaluation automagically")
         parser.add_argument("--do_not_freeze_feature_extractor", dest="do_not_freeze_feature_extractor", default=False,
                             action="store_true", help="If True, don't freeze the feature extractor.")
-        parser.add_argument("--adversarial_training_interval", type=int, default=100000,
+        parser.add_argument("--adversarial_training_interval", type=int, default=1000000,
                             help="If True, train adversarially using 'attack_config'.")
         parser.add_argument("--adversarial_training_mode", choices=["context", "target"], default="context",
                             help="Whether to perturb the context or target images when training adversarially.")
@@ -307,8 +310,9 @@ class Learner:
         self.logfile.close()
 
     def train_task(self, task_dict, iteration):
+        utils.training = True
         context_images, target_images, context_labels, target_labels, _ = self.prepare_task(task_dict)
-        if iteration % self.args.adversarial_training_interval == 0:
+        if (iteration + 1) % self.args.adversarial_training_interval == 0:
             adv_images = self._generate_adversarial_support_set(context_images, target_images,
                                                                 context_labels, target_labels)
             if self.args.adversarial_training_mode == 'target':
@@ -328,6 +332,8 @@ class Learner:
         task_accuracy = self.accuracy_fn(target_logits, target_labels)
 
         task_loss.backward(retain_graph=False)
+
+        training = False
 
         return task_loss, task_accuracy
 
@@ -389,6 +395,7 @@ class Learner:
 
     def print_average_accuracy(self, accuracies, descriptor, item):
         write_to_log(self.logfile, '{}, {}'.format(descriptor, item))
+        write_to_log(self.debugfile, '{}, {}'.format(descriptor, item))
         write_to_log(self.debugfile,'{}'.format(accuracies))
         accuracy = np.array(accuracies).mean() * 100.0
         accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
@@ -801,6 +808,13 @@ class Learner:
         all_target_labels = torch.from_numpy(all_target_labels_np)
         all_target_labels = all_target_labels.type(torch.LongTensor)
 
+        if self.args.mode == "train" or self.args.mode == "train_test":
+            context_images = context_images.to(self.device)
+            target_images = all_target_images.to(self.device)
+            context_labels = context_labels.to(self.device)
+            target_labels = all_target_labels.to(self.device)
+            return context_images, target_images, context_labels, target_labels, None
+
         # Target set size == context set size, no extra pattern requested for eval, no worries.
         if self.args.target_set_size_multiplier == 1 and not self.args.indep_eval:
             target_images, target_labels = all_target_images, all_target_labels
@@ -896,4 +910,5 @@ class Learner:
 
 
 if __name__ == "__main__":
+    utils.training = False
     main()
