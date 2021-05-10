@@ -6,10 +6,10 @@ script = script + "ulimit -n 50000\n"
 script = script + "export PYTHONPATH=.\n"
 
 
-checkpoint_dir = "./DATASET/TASKNUM" #/home/etv21/rds/hpc-work/large_eps_0.2_protonets_AQ
-dataset = "aircraft"
+checkpoint_dir = "/home/etv21/rds/hpc-work/0.2_protonets_AQ/DATASET/TASKNUM" #/home/etv21/rds/hpc-work/large_eps_0.2_protonets_AQ
+dataset = "mnist"
 model_dir = "learners/cnaps/models/meta-trained_meta-dataset_protonets_film_AQ.pt"
-config_path = "/home/etv21/rds/hpc-work/large_eps_0.2_protonets_AQ/pgd_1.0_ac_0.2_as.yaml"
+config_path = "/home/etv21/rds/hpc-work/0.2_protonets_AQ/pgd_1.0_ac_0.2_as.yaml"
 
 checkpoint_dir = checkpoint_dir.replace("DATASET", dataset)
 
@@ -43,7 +43,10 @@ for i in range(0, 5):
     if not os.path.exists(task_checkpoint_dir):
         os.makedirs(task_checkpoint_dir)
     script_name = "run{}.sh".format(i)
-    output_file = open(os.path.join(task_checkpoint_dir, script_name), 'w')
+    script_loc = os.path.join(task_checkpoint_dir, script_name)
+    output_file = open(script_loc, 'w')
     output_file.write(script + "\n")
     output_file.write(task_cmd)
     output_file.close()
+    print("chmod +x {}".format(script_loc))
+    print("sbatch /home/etv21/rds/hpc-work/job_runner.sh {}".format(script_loc))
