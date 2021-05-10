@@ -38,7 +38,6 @@ from meta_dataset.data import decoder
 from meta_dataset.data import learning_spec
 from meta_dataset.data import reader
 from meta_dataset.data import sampling
-from simclr import data_util
 from six.moves import zip
 import tensorflow.compat.v1 as tf
 
@@ -233,6 +232,8 @@ def add_simclr_episodes(simclr_episode_fraction, *episode):
 
 def simclr_augment(image_batch, blur=False):
   """Apply simclr-style augmentations to a single set of images."""
+  from simclr import data_util
+
   (h, w) = image_batch.shape.as_list()[1:3]
   image_batch = (image_batch + 1.0) / 2.0
   image_batch = tf.map_fn(
