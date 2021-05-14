@@ -43,6 +43,7 @@ class FineTuner:
         torch.set_grad_enabled(True)
         context_set_size = len(context_labels)
         num_batches = int(np.ceil(float(context_set_size) / float(self.args.batch_size)))
+        self.optimizer.zero_grad()
         for iteration in range(self.args.iterations):
             self.adjust_learning_rate(iteration)
             for batch in range(num_batches):
@@ -51,11 +52,11 @@ class FineTuner:
                 loss = self.loss(logits, context_labels[batch_start_index : batch_end_index])
                 regularization_term = self.classifier.film_adapter.regularization_term()
                 loss += self.args.regularizer_scaling * regularization_term
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()
+                #self.optimizer.zero_grad()
+                loss.backward(retain_graph=True)
                 del logits
                 # print("i={}, loss={}".format(iteration, loss))
+        self.optimizer.step()
 
     def _get_batch_indices(self, index, last_element):
         batch_start_index = index * self.args.batch_size
