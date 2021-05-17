@@ -2,9 +2,6 @@ import torch
 from learners.fine_tune.src.mnasnet import film_mnasnet1_0, mnasnet1_0
 from learners.fine_tune.src.resnet import film_resnet18, resnet18
 from learners.fine_tune.src.convnet import ConvnetFeatureExtractor
-from extras.vgg import vgg11_bn
-from extras.resnet import resnet34
-from extras.resnet import resnet18_alt
 
 
 def create_feature_extractor(feature_extractor_family, feature_adaptation, pretrained_path):
@@ -41,18 +38,21 @@ def create_feature_extractor(feature_extractor_family, feature_adaptation, pretr
             )
 
         elif feature_extractor_family == "resnet18":
+            from extras.resnet import resnet18_alt
             feature_extractor = resnet18_alt(
                 pretrained=True,
                 pretrained_model_path=pretrained_path
             )
 
         elif feature_extractor_family == "resnet34":
+            from extras.resnet import resnet34
             feature_extractor = resnet34(
                 pretrained=True,
                 pretrained_model_path=pretrained_path
             )
 
         elif feature_extractor_family == "vgg11":
+            from extras.vgg import vgg11_bn
             feature_extractor = vgg11_bn(
                 pretrained=True,
                 pretrained_model_path=pretrained_path
