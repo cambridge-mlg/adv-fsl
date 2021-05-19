@@ -792,13 +792,15 @@ class Learner:
 
             for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
-                context_images, target_images, context_labels, target_labels, (context_images_np, target_images_np, eval_images, eval_labels) = self.prepare_task(task_dict, shuffle=False)
+                context_images, target_images, context_labels, target_labels, (_, _, eval_images, eval_labels) = self.prepare_task(task_dict, shuffle=False)
+                #print("Num context: {}, num target: {}, num eval: {}".format(len(context_images), len(target_images), len(eval_images)))
 
                 assert attack.get_attack_mode() == 'context'
-                clean_version = context_images_np
-                adv_images, adv_indices, targeted_indices, targeted_labels = attack.generate(context_images, context_labels, target_images, target_labels,
+                adv_images, adv_indices, targeted_indices, targeted_labels_all = attack.generate(context_images, context_labels, target_images, target_labels,
                                                           self.model, self.model, self.model.device)
                 targeted_images = target_images[targeted_indices]
+
+                targeted_labels = targeted_labels_all[targeted_indices]
                 correct_targeted_labels = target_labels[targeted_indices] # As opposed to targeted_labels, which may be shifted
                 
                 with torch.no_grad():
@@ -821,13 +823,12 @@ class Learner:
                         adv_label = context_labels[adv_indices[0]]
                         for k in range(len(eval_images)):
                             # Replace a clean image from the eval_images set with the poisoned image (with matching label).
-                            modified_context_set = replace_matching_instance(adv_image, adv_label, eval_images[k], eval_labels[k])
-                            indep_eval_accuracies.append(self.calc_accuracy(modified_context_set, eval_labels[k], targeted_images, correct_targeted_labels))
-                            flipped_indep_eval.append(self.calc_accuracy(modified_context_set, eval_labels[k], targeted_images, targeted_labels))
+                            eval_images_k = eval_images[k].to(self.device)
+                            eval_labels_k = eval_labels[k].to(self.device)
+                            modified_context_set = replace_matching_instance(adv_image, adv_label, eval_images_k, eval_labels_k).to(self.device)
+                            indep_eval_accuracies.append(self.calc_accuracy(modified_context_set, eval_labels_k, targeted_images, correct_targeted_labels))
+                            flipped_indep_eval.append(self.calc_accuracy(modified_context_set, eval_labels_k, targeted_images, targeted_labels))
                 
-                if self.args.save_samples and t < 10:
-                    for index in adv_indices:
-                        self.save_image_pair(adv_images[index], clean_version[index], t, index)
                 del adv_images
 
             self.print_average_accuracy(overall_before_acc, "Before attack (overall)", item)
