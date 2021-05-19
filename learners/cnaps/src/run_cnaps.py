@@ -46,7 +46,7 @@ from normalization_layers import TaskNormI
 from utils import print_and_log, write_to_log, get_log_files, ValidationAccuracies, loss, aggregate_accuracy, verify_checkpoint_dir
 from model import Cnaps
 from meta_dataset_reader import MetaDatasetReader, SingleDatasetReader
-from attacks.attack_utils import save_pickle
+from attacks.attack_utils import save_pickle, replace_matching_instance
 
 from tqdm import tqdm
 
@@ -787,6 +787,8 @@ class Learner:
             accuracies_before = []
             accuracies_after = []
             perc_successfully_flipped = []
+            indep_eval_accuracies = []
+            flipped_indep_eval = []
 
             for t in tqdm(range(self.args.attack_tasks), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
@@ -811,6 +813,17 @@ class Learner:
                     perc_successfully_flipped.append(flipped)
                     correct_after = self.calc_accuracy(adv_images, context_labels, targeted_images, correct_targeted_labels)
                     accuracies_after.append(correct_after)
+                    
+                    # Eval with indep sets as well, if required:
+                    if self.args.indep_eval:
+                        # Poisoned image and accompanying label
+                        adv_image = adv_images[adv_indices[0]]
+                        adv_label = context_labels[adv_indices[0]]
+                        for k in range(len(eval_images)):
+                            # Replace a clean image from the eval_images set with the poisoned image (with matching label).
+                            modified_context_set = replace_matching_instance(adv_image, adv_label, eval_images[k], eval_labels[k])
+                            indep_eval_accuracies.append(self.calc_accuracy(modified_context_set, eval_labels[k], targeted_images, correct_targeted_labels))
+                            flipped_indep_eval.append(self.calc_accuracy(modified_context_set, eval_labels[k], targeted_images, targeted_labels))
                 
                 if self.args.save_samples and t < 10:
                     for index in adv_indices:
@@ -822,6 +835,8 @@ class Learner:
             self.print_average_accuracy(overall_after_acc, "After attack (overall)", item)
             self.print_average_accuracy(accuracies_after, "After backdoor attack (specific)", item)
             self.print_average_accuracy(perc_successfully_flipped, "Successfully flipped", item)
+            self.print_average_accuracy(indep_eval_accuracies, "Indep eval", item)
+            self.print_average_accuracy(flipped_indep_eval, "Successfully flipped eval", item)
 
 
     def prepare_task(self, task_dict, shuffle=True):
