@@ -85,9 +85,9 @@ def get_log_files(checkpoint_dir, resume, test_mode):
     Function that takes a path to a checkpoint directory and returns a reference to a logfile and paths to the
     fully trained model and the model with the best validation score.
     """
-    verify_checkpoint_dir(checkpoint_dir, resume, test_mode)
-    if not test_mode and not resume:
-        os.makedirs(checkpoint_dir)
+    #verify_checkpoint_dir(checkpoint_dir, resume, test_mode)
+    #if not test_mode and not resume:
+    #os.makedirs(checkpoint_dir)
     checkpoint_path_validation = os.path.join(checkpoint_dir, 'best_validation.pt')
     checkpoint_path_final = os.path.join(checkpoint_dir, 'fully_trained.pt')
     logfile_path = os.path.join(checkpoint_dir, 'log.txt')
