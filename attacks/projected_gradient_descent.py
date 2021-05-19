@@ -185,8 +185,10 @@ class ProjectedGradientDescent:
         if (self.target_loss_mode == 'single_same_class' or self.target_loss_mode == 'single_other_class' or 
             self.target_loss_mode == 'all_same_class' or self.target_loss_mode == 'all_other_class'):
             # get the predicted target labels
-            logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
-            predicted_labels = convert_labels(logits)
+            with torch.no_grad():
+                logits = fix_logits(get_logits_fn(context_images, context_labels, target_images))
+                predicted_labels = convert_labels(logits)
+                del logits
             # Class to which the poisoned context image belongs
             # Safe becuase we know they're all the same class and we have at least one
             adv_class = context_labels[adv_context_indices[0]] 
