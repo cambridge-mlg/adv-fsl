@@ -32,13 +32,13 @@ vgg11 = {
 gen_setting = resnet
 gen_film_adaptation = "film"
 transfer_settings = [resnet18, resnet34, vgg11]
-dataset = "mnist"
+dataset = "cifar10"
 
 root_dir = "/home/etv21/rds/hpc-work/protonets_{}_gen_transfers".format(gen_setting["name"]) 
 checkpoint_dir = os.path.join(root_dir, dataset)
 model_dir = gen_setting["model_dir"]
 config_path = root_dir + "/pgd_1.0_ac_0.2_as.yaml"
-num_tasks = 50
+num_tasks = 100
 
 if not os.path.exists(checkpoint_dir):
     os.makedirs(checkpoint_dir)
@@ -110,4 +110,4 @@ for t_set in transfer_settings:
     output_file.write(task_cmd)
     output_file.close()
     print("chmod +x {}".format(script_loc))
-    print("sbatch --dependency=after:SOMETHING /home/etv21/rds/hpc-work/job_runner.sh {}".format(script_loc))
+    print("sbatch --dependency=after:SOMETHING /home/etv21/rds/hpc-work/torch_job_runner.sh {}".format(script_loc))
