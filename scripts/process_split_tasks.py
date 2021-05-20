@@ -3,6 +3,7 @@ import numpy as np
 
 root_dir = "/home/etv21/rds/hpc-work/0.2_protonets_AQ_real"
 datasets = ["aircraft", "cifar10", "cifar100", "cu_birds", "mnist", "mscoco", "quickdraw", "traffic_sign", "vgg_flower"]
+sorted_keys = ["Gen setting: Clean accuracy", "Gen setting: Context attack accuracy", "Gen setting: Target attack accuracy", "Clean accuracy", "Clean Target as Context accuracy", "Context attack accuracy", "Adv Target as Context accuracy"]
 num_dirs = 5
 num_expected_tasks = 500
 logfile_name = "combined_log.txt"
@@ -10,7 +11,7 @@ logfile_name = "combined_log.txt"
 def print_average_accuracy(logfile, accuracies, descriptor, item):
     accuracy = np.array(accuracies).mean() * 100.0
     accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
-    logfile.write('{0:} {1:}: {2:3.1f}+/-{3:2.1f}\n\n'.format(descriptor, item, accuracy, accuracy_confidence))
+    logfile.write('{0:} {1:}: {2:3.1f}+/-{3:2.1f}\n'.format(descriptor, item, accuracy, accuracy_confidence))
 
 
 logfile_path = os.path.join(root_dir, logfile_name)
@@ -22,7 +23,7 @@ for dataset in datasets:
         file_path = os.path.join(root_dir, dataset, str(dir_index), "dump.txt")
         acc_file = open(file_path, "r")
         while True:
-            key_line = acc_file.readline().replace("\n", "")
+            key_line = acc_file.readline().split(",")[0]
             if not key_line:
                 break
             accs_line = acc_file.readline().replace("\n", "")
@@ -34,10 +35,13 @@ for dataset in datasets:
                 accuracies[key_line] = accuracies[key_line] + accs
             else:
                 accuracies[key_line] = accs  
-    for key in accuracies:
+    # Check the sorted_keys are valid
+    assert len(set(sorted_keys).symmetric_difference(set(accuracies.keys()))) == 0
+    for key in sorted_keys:
         print("{} {} {} {}".format(dataset, key, len(accuracies[key]), num_expected_tasks))
         assert len(accuracies[key]) >= num_expected_tasks
         print_average_accuracy(logfile, accuracies[key], key, dataset)
+    logfile.write("\n")
 logfile.close()
             
             
