@@ -195,7 +195,7 @@ class Learner:
                             help="Number of tasks between parameter optimizations.")
         parser.add_argument("--checkpoint_dir", "-c", default='../checkpoints', help="Directory to save checkpoint to.")
         parser.add_argument("--test_model_path", "-m", default=None, help="Path to model to load and test.")
-        parser.add_argument("--feature_adaptation", choices=["no_adaptation", "film", "film+ar"], default="film",
+        parser.add_argument("--feature_adaptation", choices=["no_adaptation", "film", "film+ar", "random"], default="film",
                             help="Method to adapt feature extractor parameters.")
         parser.add_argument("--batch_normalization", choices=["basic", "task_norm-i"],
                             default="basic", help="Normalization layer to use.")

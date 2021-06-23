@@ -64,6 +64,36 @@ class DenseResidualBlock(nn.Module):
         return out
 
 
+class RandomAdaptationNetwork(nn.Module):
+    def __init__(self, layer, num_maps_per_layer, num_blocks_per_layer, z_g_dim, prob_no_film):
+        super().__init__()
+        self.null_adaptation = NullFeatureAdaptationNetwork()
+        self.film_adaptation = FilmAdaptationNetwork(layer, num_maps_per_layer, num_blocks_per_layer, z_g_dim)
+        self.prob_no_film = prob_no_film
+    
+    def get_layers(self):
+        return self.film_adaptation.get_layers()
+        
+    def forward(self, x):
+        """
+        Forward pass through adaptation network to create list of adaptation parameters.
+        :param x: (torch.tensor) (z -- task level representation for generating adaptation).
+        :return: (list::adaptation_params) Returns a list of adaptation dictionaries, one for each layer in base net.
+        """
+        if torch.rand() < prob_no_film:
+            return self.null_adaptation.forward(x)
+        else:
+            return self.film_adaptation.forward(x)
+
+    def regularization_term(self):
+        """
+        Simple function to aggregate the regularization terms from each of the layers in the adaptation network.
+        :return: (torch.scalar) A order-0 torch tensor with the regularization term for the adaptation net params.
+        """
+        # Null adaptation network's regularization term is zero
+        return self.film_adaptation.regularization_term()
+        
+
 class FilmAdaptationNetwork(nn.Module):
     """
     FiLM adaptation network (outputs FiLM adaptation parameters for all layers in a base feature extractor).
