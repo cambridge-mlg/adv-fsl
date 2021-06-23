@@ -300,13 +300,13 @@ class Learner:
             self.test(self.args.test_model_path, session)
 
         if self.args.mode == 'attack':
-            if not self.args.swap_attack:
-                self.attack_homebrew(self.args.test_model_path, session)
-            elif self.args.dataset == "from_file":
+            if self.args.dataset == "from_file":
                 if self.args.vary_swap_attack:
                     self.vary_swap_attack(self.args.test_model_path, session)
                 else:
                     self.attack_from_file(self.args.test_model_path, session)
+            elif not self.args.swap_attack:
+                self.attack_homebrew(self.args.test_model_path, session)
             elif self.args.dataset == "meta-dataset":
                 self.meta_dataset_attack_swap(self.args.test_model_path, session)
             else:
