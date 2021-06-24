@@ -195,7 +195,7 @@ class Learner:
                             help="Number of tasks between parameter optimizations.")
         parser.add_argument("--checkpoint_dir", "-c", default='../checkpoints', help="Directory to save checkpoint to.")
         parser.add_argument("--test_model_path", "-m", default=None, help="Path to model to load and test.")
-        parser.add_argument("--feature_adaptation", choices=["no_adaptation", "film", "film+ar"], default="film",
+        parser.add_argument("--feature_adaptation", choices=["no_adaptation", "film", "film+ar", "random"], default="film",
                             help="Method to adapt feature extractor parameters.")
         parser.add_argument("--batch_normalization", choices=["basic", "task_norm-i"],
                             default="basic", help="Normalization layer to use.")
@@ -224,7 +224,9 @@ class Learner:
         # Currently, target_set_size_multiplier only applies to swap attacks
         parser.add_argument("--target_set_size_multiplier", type=int, default=1,
                             help="For swap attacks, the relative size of the target set used when generating the adv context set (eg. x times larger). Currently only implemented for swap attacks")
-        # Currently only implemented for non-swap attacks
+        parser.add_argument("--vary_swap_attack", default=False,
+                            help="If this is true and the dataset is 'from_file', then it will run an attack from the specified saved attack with varying adversarial fractions. If this is not specified and the dataset is 'from_file', we will simply apply the saved attack to the specified model. If the dataset is not 'from_file', this will have no effect.")
+        # Currently only implemented for non-swap attacks 
         parser.add_argument("--save_attack", default=False,
                             help="Save all the tasks and adversarial images to a pickle file. Currently only applicable to non-swap attacks.")
         parser.add_argument("--continue_from_task", type=int, default=0,
@@ -298,10 +300,13 @@ class Learner:
             self.test(self.args.test_model_path, session)
 
         if self.args.mode == 'attack':
-            if not self.args.swap_attack:
+            if self.args.dataset == "from_file":
+                if self.args.vary_swap_attack:
+                    self.vary_swap_attack(self.args.test_model_path, session)
+                else:
+                    self.attack_from_file(self.args.test_model_path, session)
+            elif not self.args.swap_attack:
                 self.attack_homebrew(self.args.test_model_path, session)
-            elif self.args.dataset == "from_file":
-                self.vary_swap_attack(self.args.test_model_path, session)
             elif self.args.dataset == "meta-dataset":
                 self.meta_dataset_attack_swap(self.args.test_model_path, session)
             else:
@@ -494,6 +499,110 @@ class Learner:
                 self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", frac_descrip)
                 self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", frac_descrip)
                 self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", frac_descrip)
+
+    def attack_from_file(self, path, session):
+        write_to_log(self.logfile, 'Attacking model {0:}: '.format(path))
+        self.model = self.init_model()
+        self.model.load_state_dict(torch.load(path), strict=False)
+
+        if not self.args.swap_attack:
+            if self.dataset.mode != "target" and self.dataset.mode != "context":
+                print("Error: The saved attack is a swap attack, but it is not being used as such. Unclear how to proceed")
+            clean_accuracies = []
+            adv_accuracies = []
+            indep_adv_acuracies = []
+            num_tasks = min(self.dataset.get_num_tasks(), self.args.attack_tasks)
+            for task in tqdm(range(num_tasks), dynamic_ncols=True):
+                with torch.no_grad():
+                    context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
+                    clean_accuracies.append(self.calc_accuracy(context_images, context_labels, target_images, target_labels))
+                    # Either the context images or the target images will be adversarial here, depending on the dataset
+                    adv_context_images, context_labels, adv_target_images, target_labels = self.dataset.get_adversarial_task(task, self.device)
+                    adv_accuracies.append(self.calc_accuracy(adv_context_images, context_labels, adv_target_images, target_labels))
+
+                    eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
+            
+                    # Evaluate on independent target sets
+                    for k in range(len(eval_images)):
+                        eval_imgs_k = eval_images[k].to(self.device)
+                        eval_labels_k = eval_labels[k].to(self.device)
+
+                        if self.dataset.mode == "target":
+                            indep_adv_acuracies.append(self.calc_accuracy(eval_imgs_k, eval_labels_k, adv_target_images, target_labels))
+                        elif self.dataset.mode == "context":
+                            indep_adv_acuracies.append(self.calc_accuracy(adv_context_images, context_labels, eval_imgs_k, eval_labels_k))
+                            
+            self.print_average_accuracy(clean_accuracies, "Clean accuracy", "")
+            self.print_average_accuracy(adv_accuracies, "{} attack accuracy".format(self.dataset.mode), "from_file")
+            self.print_average_accuracy(indep_adv_acuracies, "Indep {} attack accuracy".format(self.dataset.mode), "from_file")
+            
+            return
+            
+        else:
+            gen_clean_accuracies = []
+            clean_accuracies = []
+            clean_target_as_context_accuracies = []
+            # num_tasks = min(2, self.dataset.get_num_tasks())
+            num_tasks = min(self.dataset.get_num_tasks(), self.args.attack_tasks)
+            for task in tqdm(range(num_tasks), dynamic_ncols=True):
+                with torch.no_grad():
+                    context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
+                    gen_clean_accuracies.append(self.calc_accuracy(context_images, context_labels, target_images, target_labels))
+
+
+                    eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
+                    # Evaluate on independent target sets
+                    for k in range(len(eval_images)):
+                        eval_imgs_k = eval_images[k].to(self.device)
+                        eval_labels_k = eval_labels[k].to(self.device)
+                        clean_accuracies.append(self.calc_accuracy(context_images, context_labels, eval_imgs_k, eval_labels_k))
+                        clean_target_as_context_accuracies.append(self.calc_accuracy(target_images, target_labels, eval_imgs_k, eval_labels_k))
+
+            self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", "")
+            self.print_average_accuracy(clean_accuracies, "Clean accuracy", "")
+            self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy", "")
+
+            # Accuracies for evaluation setting
+            adv_context_accuracies = []
+            adv_target_accuracies = []
+            adv_target_as_context_accuracies = []
+            adv_context_as_target_accuracies = []
+
+            gen_adv_context_accuracies = []
+            gen_adv_target_accuracies = []
+
+            for task in tqdm(range(num_tasks), dynamic_ncols=True):
+                with torch.no_grad():
+                    context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
+                    _, _, adv_target_images, target_labels = self.dataset.get_adversarial_task(task, self.device, swap_mode="target")
+                    adv_context_images, context_labels, _, _ = self.dataset.get_adversarial_task(task, self.device, swap_mode="context")
+
+                    # Evaluate in normal/generation setting
+                    # Doesn't account for collusion
+                    gen_adv_context_accuracies.append(self.calc_accuracy(adv_context_images, context_labels, target_images, target_labels))
+                    gen_adv_target_accuracies.append(self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels))
+
+                    eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
+
+                    # Evaluate on independent target sets
+                    for k in range(len(eval_images)):
+                        eval_imgs_k = eval_images[k].to(self.device)
+                        eval_labels_k = eval_labels[k].to(self.device)
+
+                        adv_context_accuracies.append(self.calc_accuracy(adv_context_images, context_labels, eval_imgs_k, eval_labels_k))
+                        adv_target_accuracies.append(self.calc_accuracy(eval_imgs_k, eval_labels_k, adv_target_images, target_labels))
+
+                        adv_target_as_context_accuracies.append(self.calc_accuracy(adv_target_images, target_labels, eval_imgs_k, eval_labels_k))
+                        adv_context_as_target_accuracies.append(self.calc_accuracy(eval_imgs_k, eval_labels_k, adv_context_images, context_labels))
+
+            self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy", "from_file")
+            self.print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy", "from_file")
+
+            self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", "from_file")
+            self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", "from_file")
+            self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", "from_file")
+            self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", "from_file")
+        
 
     def meta_dataset_attack_swap(self, path, session):
         write_to_log(self.logfile, 'Attacking model {0:}: '.format(path))
