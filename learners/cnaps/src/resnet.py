@@ -241,25 +241,25 @@ class FilmResNet(ResNet):
         x = self.relu(x)
         if self.initial_pool:
             x = self.maxpool(x)
-		
-		if param_dict is None:
-			x = self.layer1(x)
-			x = self.layer2(x)
-			x = self.layer3(x)
-			x = self.layer4(x)
-		else:
-			for block in range(self.layers[0]):
-				x = self.layer1[block](x, param_dict[0][block]['gamma1'], param_dict[0][block]['beta1'],
-									   param_dict[0][block]['gamma2'], param_dict[0][block]['beta2'])
-			for block in range(self.layers[1]):
-				x = self.layer2[block](x, param_dict[1][block]['gamma1'], param_dict[1][block]['beta1'],
-									   param_dict[1][block]['gamma2'], param_dict[1][block]['beta2'])
-			for block in range(self.layers[2]):
-				x = self.layer3[block](x, param_dict[2][block]['gamma1'], param_dict[2][block]['beta1'],
-									   param_dict[2][block]['gamma2'], param_dict[2][block]['beta2'])
-			for block in range(self.layers[3]):
-				x = self.layer4[block](x, param_dict[3][block]['gamma1'], param_dict[3][block]['beta1'],
-									   param_dict[3][block]['gamma2'], param_dict[3][block]['beta2'])
+        
+        if param_dict is None:
+            x = self.layer1(x)
+            x = self.layer2(x)
+            x = self.layer3(x)
+            x = self.layer4(x)
+        else:
+            for block in range(self.layers[0]):
+                x = self.layer1[block](x, param_dict[0][block]['gamma1'], param_dict[0][block]['beta1'],
+                                       param_dict[0][block]['gamma2'], param_dict[0][block]['beta2'])
+            for block in range(self.layers[1]):
+                x = self.layer2[block](x, param_dict[1][block]['gamma1'], param_dict[1][block]['beta1'],
+                                       param_dict[1][block]['gamma2'], param_dict[1][block]['beta2'])
+            for block in range(self.layers[2]):
+                x = self.layer3[block](x, param_dict[2][block]['gamma1'], param_dict[2][block]['beta1'],
+                                       param_dict[2][block]['gamma2'], param_dict[2][block]['beta2'])
+            for block in range(self.layers[3]):
+                x = self.layer4[block](x, param_dict[3][block]['gamma1'], param_dict[3][block]['beta1'],
+                                       param_dict[3][block]['gamma2'], param_dict[3][block]['beta2'])
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
