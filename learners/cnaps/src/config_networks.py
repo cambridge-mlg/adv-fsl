@@ -1,7 +1,7 @@
 from resnet import film_resnet18, resnet18
 from adaptation_networks import NullFeatureAdaptationNetwork, FilmAdaptationNetwork, \
     LinearClassifierAdaptationNetwork, FilmLayerNetwork, FilmArAdaptationNetwork, MLPIPClassifierHyperNetwork, \
-    PrototypicalNetworksAdaptationNetwork
+    PrototypicalNetworksAdaptationNetwork, RandomAdaptationNetwork
 from set_encoder import SetEncoder
 from utils import linear_classifier, mlpip_classifier
 

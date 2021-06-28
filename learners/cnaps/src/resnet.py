@@ -136,8 +136,9 @@ class BasicBlockFilm(nn.Module):
         return out
 
     def _film(self, x, gamma, beta):
-        gamma = gamma[None, :, None, None]
-        beta = beta[None, :, None, None]
+        if not isinstance(gamma, float):
+            gamma = gamma[None, :, None, None]
+            beta = beta[None, :, None, None]
         return gamma * x + beta
 
 
@@ -242,11 +243,16 @@ class FilmResNet(ResNet):
         if self.initial_pool:
             x = self.maxpool(x)
         
-        if param_dict is None:
-            x = self.layer1(x)
-            x = self.layer2(x)
-            x = self.layer3(x)
-            x = self.layer4(x)
+        if len(param_dict) == 0:
+
+            for block in range(self.layers[0]):
+                x = self.layer1[block](x, 1.0, 0.0, 1.0, 0.0)
+            for block in range(self.layers[1]):
+                x = self.layer2[block](x, 1.0, 0.0, 1.0, 0.0)
+            for block in range(self.layers[2]):
+                x = self.layer3[block](x, 1.0, 0.0, 1.0, 0.0)
+            for block in range(self.layers[3]):
+                x = self.layer4[block](x, 1.0, 0.0, 1.0, 0.0)
         else:
             for block in range(self.layers[0]):
                 x = self.layer1[block](x, param_dict[0][block]['gamma1'], param_dict[0][block]['beta1'],

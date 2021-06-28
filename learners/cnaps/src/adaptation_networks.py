@@ -67,7 +67,6 @@ class DenseResidualBlock(nn.Module):
 class RandomAdaptationNetwork(nn.Module):
     def __init__(self, layer, num_maps_per_layer, num_blocks_per_layer, z_g_dim, prob_no_film):
         super().__init__()
-        self.null_adaptation = NullFeatureAdaptationNetwork()
         self.film_adaptation = FilmAdaptationNetwork(layer, num_maps_per_layer, num_blocks_per_layer, z_g_dim)
         self.prob_no_film = prob_no_film
     
@@ -80,8 +79,8 @@ class RandomAdaptationNetwork(nn.Module):
         :param x: (torch.tensor) (z -- task level representation for generating adaptation).
         :return: (list::adaptation_params) Returns a list of adaptation dictionaries, one for each layer in base net.
         """
-        if torch.rand() < prob_no_film:
-            return self.null_adaptation.forward(x)
+        if True: #torch.rand(1).item() < self.prob_no_film:
+            return []
         else:
             return self.film_adaptation.forward(x)
 
