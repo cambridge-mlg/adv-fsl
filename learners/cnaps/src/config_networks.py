@@ -76,17 +76,18 @@ class ConfigureNetworks:
             )
             
         elif feature_adaptation == 'random':
-            self.feature_extractor = film_resnet18(
+            import pdb; pdb.set_trace()
+            self.feature_extractor = dropout_film_resnet18(
                 pretrained=True,
                 pretrained_model_path=pretrained_resnet_path,
                 batch_normalization=batch_normalization
             )
-            self.feature_adaptation_network = RandomAdaptationNetwork(
+            #    prob_no_film=0.5
+            self.feature_adaptation_network = FilmAdaptationNetwork(
                 layer=FilmLayerNetwork,
                 num_maps_per_layer=num_maps_per_layer,
                 num_blocks_per_layer=num_blocks_per_layer,
-                z_g_dim=z_g_dim,
-                prob_no_film=0.5
+                z_g_dim=z_g_dim
             )
 			
 
