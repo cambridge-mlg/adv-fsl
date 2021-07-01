@@ -85,30 +85,6 @@ class BasicBlock(nn.Module):
         return out
 
 
-
-class RandomBlockFilm(BasicBlockFilm):
-    """
-    Extension to standard ResNet block (https://arxiv.org/abs/1512.03385) with FiLM layer adaptation. After every batch
-    normalization layer, we add a FiLM layer (which applies an affine transformation to each channel in the hidden
-    representation). As we are adapting the feature extractor with an external adaptation network, we expect parameters
-    to be passed as an argument of the forward pass.
-    """
-    expansion = 1
-
-    def __init__(self, dropout_prob=0.9, *args, **kwargs):
-        super(RandomBlockFilm, self).__init__(*args, **kwargs)
-        print(dropout_prob)
-        self.dropout_prob = dropout_prob
-
-    def _film(self, x, gamma, beta):
-        if not isinstance(gamma, float):
-            gamma = gamma[None, :, None, None]
-            beta = beta[None, :, None, None]
-        gamma_mask, beta_mask = torch.randint(0, 2, gamma.shape), torch.randint(0, 2, beta.shape)
-        return (gamma * gamma_mask) * x + (beta * beta_mask)
-
-
-
 class BasicBlockFilm(nn.Module):
     """
     Extension to standard ResNet block (https://arxiv.org/abs/1512.03385) with FiLM layer adaptation. After every batch
@@ -164,6 +140,29 @@ class BasicBlockFilm(nn.Module):
             gamma = gamma[None, :, None, None]
             beta = beta[None, :, None, None]
         return gamma * x + beta
+
+
+class RandomBlockFilm(BasicBlockFilm):
+    """
+    Extension to standard ResNet block (https://arxiv.org/abs/1512.03385) with FiLM layer adaptation. After every batch
+    normalization layer, we add a FiLM layer (which applies an affine transformation to each channel in the hidden
+    representation). As we are adapting the feature extractor with an external adaptation network, we expect parameters
+    to be passed as an argument of the forward pass.
+    """
+    expansion = 1
+
+    def __init__(self, *args,  dropout_prob=0.05, **kwargs):
+        super(RandomBlockFilm, self).__init__(*args, **kwargs)
+        self.dropout_prob = dropout_prob 
+
+    def _film(self, x, gamma, beta):
+        if not isinstance(gamma, float):
+            gamma = gamma[None, :, None, None]
+            beta = beta[None, :, None, None]
+        #dropout_mask = torch.ones_like(gamma).to(x.device) 
+        dropout_mask = (torch.rand(gamma.shape) > self.dropout_prob).float().to(x.device)
+        return (gamma * dropout_mask) * x + (beta * dropout_mask)
+
 
 
 class ResNet(nn.Module):
@@ -334,13 +333,13 @@ def film_resnet18(pretrained=False, pretrained_model_path=None, batch_normalizat
 
     return model
 
-def dropout_film_resnet18(pretrained=False, pretrained_model_path=None, batch_normalization="eval", **kwargs):
+def dropout_film_resnet18(pretrained=False, pretrained_model_path=None, batch_normalization="eval", dropout_prob=0.1, **kwargs):
     """
         Constructs a FiLM adapted ResNet-18 model.
     """
     nl = get_normalization_layer(batch_normalization)
 
-    model = FilmResNet(RandomBlockFilm, [2, 2, 2, 2], nl, dropout_prob=0.2, **kwargs)
+    model = FilmResNet(RandomBlockFilm, [2, 2, 2, 2], nl, dropout_prob=dropout_prob, **kwargs)
 
     if pretrained:
         ckpt_dict = torch.load(pretrained_model_path)

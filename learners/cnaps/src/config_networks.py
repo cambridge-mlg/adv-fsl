@@ -1,4 +1,4 @@
-from resnet import film_resnet18, resnet18
+from resnet import film_resnet18, resnet18, dropout_film_resnet18
 from adaptation_networks import NullFeatureAdaptationNetwork, FilmAdaptationNetwork, \
     LinearClassifierAdaptationNetwork, FilmLayerNetwork, FilmArAdaptationNetwork, MLPIPClassifierHyperNetwork, \
     PrototypicalNetworksAdaptationNetwork, RandomAdaptationNetwork
@@ -76,13 +76,13 @@ class ConfigureNetworks:
             )
             
         elif feature_adaptation == 'random':
-            import pdb; pdb.set_trace()
             self.feature_extractor = dropout_film_resnet18(
                 pretrained=True,
                 pretrained_model_path=pretrained_resnet_path,
-                batch_normalization=batch_normalization
+                batch_normalization=batch_normalization,
+                dropout_prob=0.05
+
             )
-            #    prob_no_film=0.5
             self.feature_adaptation_network = FilmAdaptationNetwork(
                 layer=FilmLayerNetwork,
                 num_maps_per_layer=num_maps_per_layer,
