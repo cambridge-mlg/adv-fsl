@@ -243,6 +243,9 @@ class Learner:
                             help="Whether to perturb the context or target images when training adversarially.")
         parser.add_argument("--num_indep_eval_sets", type=int, default=50,
                             help="Number of independent datasets to use for evaluation")
+        parser.add_argument("--dropout_prob", type=float, default=0.01,
+                            help="Probability of dropping out a feature")
+
 
         args = parser.parse_args()
 
