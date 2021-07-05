@@ -142,8 +142,31 @@ class BasicBlockFilm(nn.Module):
         return gamma * x + beta
 
 
+class RandomBlockFilm(BasicBlockFilm):
+    """
+    Extension to standard ResNet block (https://arxiv.org/abs/1512.03385) with FiLM layer adaptation. After every batch
+    normalization layer, we add a FiLM layer (which applies an affine transformation to each channel in the hidden
+    representation). As we are adapting the feature extractor with an external adaptation network, we expect parameters
+    to be passed as an argument of the forward pass.
+    """
+    expansion = 1
+
+    def __init__(self, *args,  dropout_prob=0.05, **kwargs):
+        super(RandomBlockFilm, self).__init__(*args, **kwargs)
+        self.dropout_prob = dropout_prob 
+
+    def _film(self, x, gamma, beta):
+        if not isinstance(gamma, float):
+            gamma = gamma[None, :, None, None]
+            beta = beta[None, :, None, None]
+        #dropout_mask = torch.ones_like(gamma).to(x.device) 
+        dropout_mask = (torch.rand(gamma.shape) > self.dropout_prob).float().to(x.device)
+        return (gamma * dropout_mask) * x + (beta * dropout_mask)
+
+
+
 class ResNet(nn.Module):
-    def __init__(self, block, layers, bn_fn):
+    def __init__(self, block, layers, bn_fn, *args, **kwargs):
         super(ResNet, self).__init__()
         self.initial_pool = False
         inplanes = self.inplanes = 64
@@ -151,10 +174,10 @@ class ResNet(nn.Module):
         self.bn1 = bn_fn(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, inplanes, layers[0], bn_fn)
-        self.layer2 = self._make_layer(block, inplanes * 2, layers[1], bn_fn, stride=2)
-        self.layer3 = self._make_layer(block, inplanes * 4, layers[2], bn_fn, stride=2)
-        self.layer4 = self._make_layer(block, inplanes * 8, layers[3], bn_fn, stride=2)
+        self.layer1 = self._make_layer(block, inplanes, layers[0], bn_fn, **kwargs)
+        self.layer2 = self._make_layer(block, inplanes * 2, layers[1], bn_fn, stride=2, **kwargs)
+        self.layer3 = self._make_layer(block, inplanes * 4, layers[2], bn_fn, stride=2, **kwargs)
+        self.layer4 = self._make_layer(block, inplanes * 8, layers[3], bn_fn, stride=2, **kwargs)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         for m in self.modules():
@@ -164,7 +187,7 @@ class ResNet(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def _make_layer(self, block, planes, blocks, bn_fn, stride=1):
+    def _make_layer(self, block, planes, blocks, bn_fn, stride=1, **kwargs):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
@@ -173,10 +196,10 @@ class ResNet(nn.Module):
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, bn_fn, stride, downsample))
+        layers.append(block(self.inplanes, planes, bn_fn, stride, downsample, **kwargs))
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, bn_fn))
+            layers.append(block(self.inplanes, planes, bn_fn, **kwargs))
 
         return nn.Sequential(*layers)
 
@@ -224,8 +247,8 @@ class FilmResNet(ResNet):
     ResNet object, and works with identical logic.
     """
 
-    def __init__(self, block, layers, bn_fn):
-        ResNet.__init__(self, block, layers, bn_fn)
+    def __init__(self, block, layers, bn_fn, *args, **kwargs):
+        ResNet.__init__(self, block, layers, bn_fn, *args, **kwargs)
         self.layers = layers
 
     def forward(self, x, param_dict=None):
@@ -310,3 +333,16 @@ def film_resnet18(pretrained=False, pretrained_model_path=None, batch_normalizat
 
     return model
 
+def dropout_film_resnet18(pretrained=False, pretrained_model_path=None, batch_normalization="eval", dropout_prob=0.1, **kwargs):
+    """
+        Constructs a FiLM adapted ResNet-18 model.
+    """
+    nl = get_normalization_layer(batch_normalization)
+
+    model = FilmResNet(RandomBlockFilm, [2, 2, 2, 2], nl, dropout_prob=dropout_prob, **kwargs)
+
+    if pretrained:
+        ckpt_dict = torch.load(pretrained_model_path)
+        model.load_state_dict(ckpt_dict['state_dict'])
+
+    return model
