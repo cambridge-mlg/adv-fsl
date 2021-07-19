@@ -46,7 +46,7 @@ class ProjectedGradientDescent:
         if self.targeted:
             assert targeted_labels == 'exact' or targeted_labels == 'random' or targeted_labels == 'shifted'
         self.targeted_labels = targeted_labels
-		self.shuffle_context_mode = shuffle_context_mode
+        self.shuffle_context_mode = shuffle_context_mode
 
         self.loss = nn.CrossEntropyLoss()
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
@@ -186,8 +186,8 @@ class ProjectedGradientDescent:
             epsilon, epsilon_step = self.normalize_epsilon(clip_min, clip_max)
         else:
             epsilon, epsilon_step = self.epsilon, self.epsilon_step
-		
-		
+        
+        
         context_set_manager = ContextSetManager(self.class_fraction, self.shot_fraction, self.shuffle_context, self.shuffle_context_mode)
 
         context_set_manager.initialize_task(full_context_images, full_context_labels)
@@ -214,7 +214,7 @@ class ProjectedGradientDescent:
         if self.verbose:
             verbose_result = ProjectedGradientDescent.make_verbose_PGD_result()
             verbose_result['adv_images'].append(poisoned_context.clone().detach())
-	
+    
         for i in range(0, self.num_iterations):
             poisoned_images.requires_grad = True
             poisoned_context = torch.cat([poisoned_images, context_set])
@@ -247,9 +247,9 @@ class ProjectedGradientDescent:
             # apply norm bound
             if self.norm == 'inf':
                 perturbation = torch.sign(grad)
-			
-			# Poison images are always first in the context set, so this should be fine
-			#TODO: Double check that our classifier is, in fact, unbothered by ordering
+            
+            # Poison images are always first in the context set, so this should be fine
+            #TODO: Double check that our classifier is, in fact, unbothered by ordering
             for index, poison_images in enumerate(poison_images):
                 poison_image = torch.clamp(poison_image + epsilon_step * perturbation[index],
                                                         clip_min, clip_max)
@@ -259,14 +259,14 @@ class ProjectedGradientDescent:
                 poison_image = clean_images[index] + new_perturbation
                 
             # Get a new context set for the next PGD iteration
-			context_images, context_labels = context_set_manager.get_context_set()
+            context_images, context_labels = context_set_manager.get_context_set()
 
             if self.verbose:
                 verbose_result['adv_images'].append(poison_images.clone().detach())
             del logits
 
-		# TODO: Check that context set manager's reference to poison images are in fact poisoned
-		full_poisoned_context, adv_context_indices = context_set_manager.construct_full_poisoned_context()
+        # TODO: Check that context set manager's reference to poison images are in fact poisoned
+        full_poisoned_context, adv_context_indices = context_set_manager.construct_full_poisoned_context()
         if self.verbose:
             return full_poisoned_context, adv_context_indices, verbose_result
 
@@ -374,7 +374,7 @@ class ProjectedGradientDescent:
             s_2 = np.sum(a_tmp ** 2, axis=1)
             base = gammainc(nb_dims / 2.0, s_2 / 2.0) ** (1 / nb_dims) * radius / np.sqrt(s_2)
             res = a_tmp * (np.tile(base, (nb_dims, 1))).T
-		'''
+        '''
         if norm == 'inf':
             distr = uniform.Uniform(torch.Tensor([-radius]), torch.Tensor([radius]))
             res = distr.sample((nb_points, nb_dims))
