@@ -245,6 +245,9 @@ class Learner:
                             help="Number of independent datasets to use for evaluation")
         parser.add_argument("--dropout_prob", type=float, default=0.01,
                             help="Probability of dropping out a feature")
+        parser.add_argument("--gaussian_dropout", default=False,
+                            help="Whether to use gaussian dropout (if feature adaptation is random)")
+
 
 
         args = parser.parse_args()

@@ -9,7 +9,7 @@ class ConfigureNetworks:
     """ Creates the set encoder, feature extractor, feature adaptation, classifier, and classifier adaptation networks.
     """
     def __init__(self, pretrained_resnet_path, feature_adaptation, batch_normalization, classifier,
-                 do_not_freeze_feature_extractor, feature_extractor, dropout_prob):
+                 do_not_freeze_feature_extractor, feature_extractor, dropout_prob, gaussian_dropout):
         self.classifier = linear_classifier
 
         self.encoder = SetEncoder(batch_normalization)
@@ -80,7 +80,8 @@ class ConfigureNetworks:
                 pretrained=True,
                 pretrained_model_path=pretrained_resnet_path,
                 batch_normalization=batch_normalization,
-                dropout_prob=dropout_prob
+                dropout_prob=dropout_prob,
+                gaussian_dropout=gaussian_dropout
 
             )
             self.feature_adaptation_network = FilmAdaptationNetwork(

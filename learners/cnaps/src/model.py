@@ -28,7 +28,8 @@ class Cnaps(nn.Module):
                                      classifier=args.classifier,
                                      do_not_freeze_feature_extractor=args.do_not_freeze_feature_extractor,
                                      feature_extractor=self.args.feature_extractor,
-                                     dropout_prob=self.args.dropout_prob)
+                                     dropout_prob=self.args.dropout_prob,
+                                     gaussian_dropout=self.args.gaussian_dropout)
         self.set_encoder = networks.get_encoder()
         self.classifier_adaptation_network = networks.get_classifier_adaptation()
         self.classifier = networks.get_classifier()

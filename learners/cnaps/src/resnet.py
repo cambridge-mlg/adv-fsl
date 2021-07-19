@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import torch
 import torch.nn as nn
+import math
 from normalization_layers import TaskNormI
 
 __all__ = ['ResNet', 'resnet18']
@@ -151,16 +152,22 @@ class RandomBlockFilm(BasicBlockFilm):
     """
     expansion = 1
 
-    def __init__(self, *args,  dropout_prob=0.05, **kwargs):
+    def __init__(self, *args,  dropout_prob=0.05, gaussian_dropout=False, **kwargs):
         super(RandomBlockFilm, self).__init__(*args, **kwargs)
         self.dropout_prob = dropout_prob 
+        self.gaussian_dropout = True
+        if self.gaussian_dropout:
+            self.std_dev = math.sqrt(dropout_prob/(1 - dropout_prob))
 
     def _film(self, x, gamma, beta):
         if not isinstance(gamma, float):
             gamma = gamma[None, :, None, None]
             beta = beta[None, :, None, None]
-        #dropout_mask = torch.ones_like(gamma).to(x.device) 
-        dropout_mask = (torch.rand(gamma.shape) > self.dropout_prob).float().to(x.device)
+        if not self.gaussian_dropout:
+            dropout_mask = (torch.rand(gamma.shape) > self.dropout_prob).float()
+        else:
+            dropout_mask = torch.randn(gamma.shape)*self.std_dev + 1
+        dropout_mask = dropout_mask.to(x.device)
         return (gamma * dropout_mask) * x + (beta * dropout_mask)
 
 
@@ -333,13 +340,13 @@ def film_resnet18(pretrained=False, pretrained_model_path=None, batch_normalizat
 
     return model
 
-def dropout_film_resnet18(pretrained=False, pretrained_model_path=None, batch_normalization="eval", dropout_prob=0.1, **kwargs):
+def dropout_film_resnet18(pretrained=False, pretrained_model_path=None, batch_normalization="eval", dropout_prob=0.1, gaussian_dropout=False, **kwargs):
     """
         Constructs a FiLM adapted ResNet-18 model.
     """
     nl = get_normalization_layer(batch_normalization)
 
-    model = FilmResNet(RandomBlockFilm, [2, 2, 2, 2], nl, dropout_prob=dropout_prob, **kwargs)
+    model = FilmResNet(RandomBlockFilm, [2, 2, 2, 2], nl, dropout_prob=dropout_prob, gaussian_dropout=gaussian_dropout, **kwargs)
 
     if pretrained:
         ckpt_dict = torch.load(pretrained_model_path)
