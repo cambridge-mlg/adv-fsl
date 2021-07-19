@@ -53,6 +53,8 @@ def create_attack(attack_config_path, checkpoint_dir):
                 target_loss_mode=attack_params['target_loss_mode'],
                 targeted=attack_params['targeted'],
                 targeted_labels=attack_params['targeted_labels'],
+                reduce_context_dependence=attack_params['reduce_context_dependence'],
+                shuffle_context_mode=attack_params['shuffle_context_mode'],
             )
         elif attack_params['attack'] == 'carlini_wagner':
             attack = CarliniWagnerL2(

@@ -7,6 +7,83 @@ import pickle
 import bz2
 import _pickle as cPickle
 
+class ContextSetManager:
+	def __init__(class_fraction, shot_fraction, shuffle_context='none', shuffle_context_mode):
+        self.shuffle_context = shuffle_context
+        if self.shuffle_context:
+			assert shuffle_context_mode == 'none' or shuffle_context_mode == 'partition' or shuffle_context_mode == 'random'
+		self.shuffle_context_mode = shuffle_context_mode
+		self.sub_context_size_coeff = 1.0
+		
+	# Returns 
+	def initialize_task(context_set, class_labels):
+		# Decide which images are going to be adversarial
+		self.adversarial_indices = generate_attack_indices(class_labels, self.class_fraction, self.shot_fraction)
+		# TODO: Could probably move off the gpu, if needed
+		self.clean_context_set = context_set
+		self.class_labels = class_labels
+		
+		# Clean indices = ~ adversarial indices
+		clean_indices = set(range(0:len(context_set))).difference(set(self.adversarial_indices))
+		self.clean_indices = list(clean_indices)
+		
+		num_classes = len(class_labels.unique())
+		self.class_matrix = []
+		for c in range(num_classes):
+			self.class_matrix.append(extract_class_indices(self.class_labels, c))
+			
+		#Divide up the remaining images, if appropriate
+		
+		# Count how many instances per class, that's the max number of partitions we can have
+		# Num partitions = min(num_clean_indices/len(adversarial_indices), smallest_class_size)
+		# Log partition size
+		# For each class, randomly choose from clean_indices (use choose without replacement), assigning to partitions as we go
+			
+	def get_adversarial():
+		self.adversarial_images = self.clean_context_set[adversarial_images].clone()
+		clean_images = self.clean_context_set[adversarial_indices]
+		clean_labels = self.class_labels[adversarial_indices]
+		return self.adversarial_images, clean_images, clean_labels
+		
+		
+	def get_context_set():
+		if not self.shuffle_context:
+			return self.clean_context_set[self.clean_indices], self.class_labels[self.clean_indices]
+		#elif self.shuffle_context_mode == 'partition':
+			# Randomly pick one of the partitions
+			#return self.clean_context_set[p_indices], self.class_labels[p_indices]
+		elif self.shuffle_context_mode == 'random':
+			indices = []
+			c_index = 0
+			while len(indices) < self.sub_context_size_coeff * len(self.adversarial_indices):
+				# Randomly choose one of the elements in the class
+				r_index = math.rand()
+				elem = self.class_matrix[c_index][r_index]
+				fail_count = 0
+				while (elem in indices or elem in self.adversarial_images ) and fail_count < 10:
+					r_index = math.rand()
+					elem = self.class_matrix[c_index][r_index]
+					fail_count = fail_count + 1
+				# If we managed to find a suitable image, then use it. Else just go on to the next class
+				if fail_count < 10:
+					indices.append(elem)
+				c_index = c_index + 1
+			return self.clean_context_set[r_indices], self.class_labels[r_indices]
+		else:
+			print('Unsupported shuffle_context_mode: {}'.format(self.shuffle_context_mode))
+			return
+		
+	def construct_full_poisoned_context():
+		poisoned_set = self.clean_context_set
+		for i, index in enumerate(self.adversarial_indices):
+			poisoned_set[index] = self.adversarial_images[i]
+		# Make it clear that we have mucked up the context set we had a reference to
+		# We could technically make a copy here, but we're already running out of memory
+		self.clean_context_set = None
+		return poisoned_set
+		
+	
+		
 
 def save_pickle(file_path, data, compress=False):
     if compress:

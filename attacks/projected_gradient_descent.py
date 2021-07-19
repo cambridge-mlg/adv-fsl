@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import os.path as path
 from attacks.attack_utils import convert_labels, generate_attack_indices, fix_logits, Logger
-from attacks.attack_utils import get_shifted_targeted_labels, get_random_targeted_labels
+from attacks.attack_utils import get_shifted_targeted_labels, get_random_targeted_labels, ContextSetManager
 
 
 class ProjectedGradientDescent:
@@ -24,7 +24,9 @@ class ProjectedGradientDescent:
                  normalize_perturbation=True,
                  target_loss_mode='all',
                  targeted=False,
-                 targeted_labels='random'):
+                 targeted_labels='random',
+                 shuffle_context=False,
+                 shuffle_context_mode='partition'):
         self.norm = norm
         self.epsilon = epsilon
         self.num_iterations = num_iterations
@@ -44,6 +46,7 @@ class ProjectedGradientDescent:
         if self.targeted:
             assert targeted_labels == 'exact' or targeted_labels == 'random' or targeted_labels == 'shifted'
         self.targeted_labels = targeted_labels
+		self.shuffle_context_mode = shuffle_context_mode
 
         self.loss = nn.CrossEntropyLoss()
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
@@ -176,16 +179,23 @@ class ProjectedGradientDescent:
                   }
         return result
 
-    def _generate_context(self, context_images, context_labels, target_images, target_labels, model, get_logits_fn, device, targeted_labels=None):
+    def _generate_context(self, full_context_images, full_context_labels, target_images, target_labels, model, get_logits_fn, device, targeted_labels=None):
         clip_min = target_images.min().item()
         clip_max = target_images.max().item()
         if self.normalize_perturbation:
             epsilon, epsilon_step = self.normalize_epsilon(clip_min, clip_max)
         else:
             epsilon, epsilon_step = self.epsilon, self.epsilon_step
+		
+		
+        context_set_manager = ContextSetManager(self.class_fraction, self.shot_fraction, self.shuffle_context, self.shuffle_context_mode)
 
-        adv_context_indices = generate_attack_indices(context_labels, self.class_fraction, self.shot_fraction)
-        adv_context_images = context_images.clone()
+        context_set_manager.initialize_task(full_context_images, full_context_labels)
+        # TODO: Check for references to context_labels
+        poisoned_images, clean_images, clean_labels = context_set_manager.get_adversarial()
+        context_images, context_labels = context_set_manager.get_context_set()
+        
+        num_adv_images = len(poisoned_images)
 
         if self.targeted:
             labels = targeted_labels # As in the labels we want the target set to be classified as, to be used as "targets"
@@ -193,21 +203,23 @@ class ProjectedGradientDescent:
             labels = target_labels # As in, the true/predicted labels for the target set
 
         # Initial projection step
-        size = adv_context_images.size()
+        size = poisoned_images.size()
         m = size[1] * size[2] * size[3]
-        initial_perturb = self.random_sphere(len(adv_context_indices), m, epsilon, self.norm).reshape(
-            (len(adv_context_indices), size[1], size[2], size[3])).to(device)
+        initial_perturb = self.random_sphere(num_adv_images, m, epsilon, self.norm).reshape(
+            (num_adv_images, size[1], size[2], size[3])).to(device)
 
-        for i, index in enumerate(adv_context_indices):
-            adv_context_images[index] = torch.clamp(adv_context_images[index] + initial_perturb[i], clip_min, clip_max)
+        for i, poison_image in enumerate(poisoned_images):
+            poison_image = torch.clamp(poison_image + initial_perturb[i], clip_min, clip_max)
 
         if self.verbose:
             verbose_result = ProjectedGradientDescent.make_verbose_PGD_result()
-            verbose_result['adv_images'].append(adv_context_images.clone().detach())
-
+            verbose_result['adv_images'].append(poisoned_context.clone().detach())
+	
         for i in range(0, self.num_iterations):
-            adv_context_images.requires_grad = True
-            logits = fix_logits(get_logits_fn(adv_context_images, context_labels, target_images))
+            poisoned_images.requires_grad = True
+            poisoned_context = torch.cat([poisoned_images, context_set])
+            poisoned_context_labels = torch.cat([clean_labels, context_labels])
+            logits = fix_logits(get_logits_fn(poisoned_context, poisoned_context_labels, target_images))
             if self.verbose:
                 verbose_result['target_logits'].append(logits.clone().detach())
 
@@ -228,31 +240,37 @@ class ProjectedGradientDescent:
             # compute gradients
             loss.backward()
             # Invert the gradient if the attack is targeted
-            grad = adv_context_images.grad * (1 - 2 * int(self.targeted))
+            grad = poisoned_context.grad * (1 - 2 * int(self.targeted))
 
-            adv_context_images = adv_context_images.detach()
+            poisoned_images = poisoned_images.detach()
 
             # apply norm bound
             if self.norm == 'inf':
                 perturbation = torch.sign(grad)
-
-            for index in adv_context_indices:
-                adv_context_images[index] = torch.clamp(adv_context_images[index] +
-                                                        epsilon_step * perturbation[index],
+			
+			# Poison images are always first in the context set, so this should be fine
+			#TODO: Double check that our classifier is, in fact, unbothered by ordering
+            for index, poison_images in enumerate(poison_images):
+                poison_image = torch.clamp(poison_image + epsilon_step * perturbation[index],
                                                         clip_min, clip_max)
 
-                diff = adv_context_images[index] - context_images[index]
+                diff = poison_image - clean_images[index]
                 new_perturbation = self.projection(diff, epsilon, self.norm, device)
-                adv_context_images[index] = context_images[index] + new_perturbation
+                poison_image = clean_images[index] + new_perturbation
+                
+            # Get a new context set for the next PGD iteration
+			context_images, context_labels = context_set_manager.get_context_set()
 
             if self.verbose:
-                verbose_result['adv_images'].append(adv_context_images.clone().detach())
+                verbose_result['adv_images'].append(poison_images.clone().detach())
             del logits
 
+		# TODO: Check that context set manager's reference to poison images are in fact poisoned
+		full_poisoned_context, adv_context_indices = context_set_manager.construct_full_poisoned_context()
         if self.verbose:
-            return adv_context_images, adv_context_indices, verbose_result
+            return full_poisoned_context, adv_context_indices, verbose_result
 
-        return adv_context_images, adv_context_indices
+        return full_poisoned_context, adv_context_indices
 
     def get_verbose(self):
         return self.verbose
@@ -338,8 +356,9 @@ class ProjectedGradientDescent:
         :return: The generated random sphere
         :rtype: `np.ndarray`
         """
+        '''
         if norm == 1:
-            '''
+            
             a_tmp = np.zeros(shape=(nb_points, nb_dims + 1))
             a_tmp[:, -1] = np.sqrt(np.random.uniform(0, radius ** 2, nb_points))
 
@@ -347,9 +366,7 @@ class ProjectedGradientDescent:
                 a_tmp[i, 1:-1] = np.sort(np.random.uniform(0, a_tmp[i, -1], nb_dims - 1))
 
             res = (a_tmp[:, 1:] - a_tmp[:, :-1]) * np.random.choice([-1, 1], (nb_points, nb_dims))
-            '''
         elif norm == 2:
-            '''
             # pylint: disable=E0611
             from scipy.special import gammainc
 
@@ -357,8 +374,8 @@ class ProjectedGradientDescent:
             s_2 = np.sum(a_tmp ** 2, axis=1)
             base = gammainc(nb_dims / 2.0, s_2 / 2.0) ** (1 / nb_dims) * radius / np.sqrt(s_2)
             res = a_tmp * (np.tile(base, (nb_dims, 1))).T
-            '''
-        elif norm == 'inf':
+		'''
+        if norm == 'inf':
             distr = uniform.Uniform(torch.Tensor([-radius]), torch.Tensor([radius]))
             res = distr.sample((nb_points, nb_dims))
         else:
