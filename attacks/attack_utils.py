@@ -6,32 +6,42 @@ import os
 import pickle
 import bz2
 import _pickle as cPickle
+import random
+
+def strip_tensor(indices):
+    return indices.cpu().numpy()
 
 class ContextSetManager:
-    def __init__(class_fraction, shot_fraction, shuffle_context='none', shuffle_context_mode):
+    def __init__(self, class_fraction, shot_fraction, shuffle_context=False, shuffle_context_mode='none'):
         self.shuffle_context = shuffle_context
         if self.shuffle_context:
             assert shuffle_context_mode == 'none' or shuffle_context_mode == 'partition' or shuffle_context_mode == 'random'
         self.shuffle_context_mode = shuffle_context_mode
-        self.sub_context_size_coeff = 1.0
+        self.sub_context_size_coeff = 0.5
+        self.class_fraction = class_fraction
+        self.shot_fraction = shot_fraction
         
     # Returns 
-    def initialize_task(context_set, class_labels):
+    def initialize_task(self, context_set, class_labels):
         # Decide which images are going to be adversarial
         self.adversarial_indices = generate_attack_indices(class_labels, self.class_fraction, self.shot_fraction)
         # TODO: Could probably move off the gpu, if needed
         self.clean_context_set = context_set
         self.class_labels = class_labels
+        self.adversarial_images = self.clean_context_set[self.adversarial_indices].clone()
+
         
         # Clean indices = ~ adversarial indices
-        clean_indices = set(range(0:len(context_set))).difference(set(self.adversarial_indices))
+        clean_indices = set(range(0,len(context_set))).difference(set(self.adversarial_indices))
         self.clean_indices = list(clean_indices)
         
+        # Construct the class_matrix of clean image indices, separated by class
         num_classes = len(class_labels.unique())
         self.class_matrix = []
         for c in range(num_classes):
-            self.class_matrix.append(extract_class_indices(self.class_labels, c))
-            
+            self.class_matrix.append(strip_tensor(extract_class_indices(self.class_labels, c)))
+            self.class_matrix[c] = np.setdiff1d(self.class_matrix[c], self.adversarial_indices)
+
         #Divide up the remaining images, if appropriate
         
         # Count how many instances per class, that's the max number of partitions we can have
@@ -39,14 +49,13 @@ class ContextSetManager:
         # Log partition size
         # For each class, randomly choose from clean_indices (use choose without replacement), assigning to partitions as we go
             
-    def get_adversarial():
-        self.adversarial_images = self.clean_context_set[adversarial_images].clone()
-        clean_images = self.clean_context_set[adversarial_indices]
-        clean_labels = self.class_labels[adversarial_indices]
+    def get_adversarial(self):
+        clean_images = self.clean_context_set[self.adversarial_indices]
+        clean_labels = self.class_labels[self.adversarial_indices]
         return self.adversarial_images, clean_images, clean_labels
         
         
-    def get_context_set():
+    def get_context_set(self):
         if not self.shuffle_context:
             return self.clean_context_set[self.clean_indices], self.class_labels[self.clean_indices]
         #elif self.shuffle_context_mode == 'partition':
@@ -55,32 +64,37 @@ class ContextSetManager:
         elif self.shuffle_context_mode == 'random':
             indices = []
             c_index = 0
-            while len(indices) < self.sub_context_size_coeff * len(self.adversarial_indices):
+            outer_fail_count = 0
+            while len(indices) < self.sub_context_size_coeff * len(self.adversarial_indices) and outer_fail_count < len(self.class_matrix):
                 # Randomly choose one of the elements in the class
-                r_index = math.rand()
+                r_index = random.randint(0, len(self.class_matrix[c_index])-1)
                 elem = self.class_matrix[c_index][r_index]
                 fail_count = 0
-                while (elem in indices or elem in self.adversarial_images ) and fail_count < 10:
-                    r_index = math.rand()
+                while (elem in indices or elem in self.adversarial_indices ) and fail_count < 50:
+                    r_index = random.randint(0, len(self.class_matrix[c_index])-1)
                     elem = self.class_matrix[c_index][r_index]
                     fail_count = fail_count + 1
                 # If we managed to find a suitable image, then use it. Else just go on to the next class
                 if fail_count < 10:
                     indices.append(elem)
-                c_index = c_index + 1
-            return self.clean_context_set[r_indices], self.class_labels[r_indices]
+                    outer_fail_count = 0
+                else:
+                    outer_fail_count = outer_fail_count + 1
+                c_index = (c_index + 1) % len(self.class_matrix)
+            return self.clean_context_set[indices], self.class_labels[indices]
         else:
             print('Unsupported shuffle_context_mode: {}'.format(self.shuffle_context_mode))
             return
         
-    def construct_full_poisoned_context():
-        poisoned_set = self.clean_context_set
+    def construct_full_poisoned_context(self):
+        poisoned_set = self.clean_context_set.clone()
+        self.adversarial_images.requires_grad = False
         for i, index in enumerate(self.adversarial_indices):
             poisoned_set[index] = self.adversarial_images[i]
         # Make it clear that we have mucked up the context set we had a reference to
         # We could technically make a copy here, but we're already running out of memory
         self.clean_context_set = None
-        return poisoned_set
+        return poisoned_set, self.adversarial_indices
         
     
         

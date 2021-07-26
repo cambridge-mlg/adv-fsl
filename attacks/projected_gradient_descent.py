@@ -46,6 +46,7 @@ class ProjectedGradientDescent:
         if self.targeted:
             assert targeted_labels == 'exact' or targeted_labels == 'random' or targeted_labels == 'shifted'
         self.targeted_labels = targeted_labels
+        self.shuffle_context = shuffle_context
         self.shuffle_context_mode = shuffle_context_mode
 
         self.loss = nn.CrossEntropyLoss()
@@ -187,7 +188,6 @@ class ProjectedGradientDescent:
         else:
             epsilon, epsilon_step = self.epsilon, self.epsilon_step
         
-        
         context_set_manager = ContextSetManager(self.class_fraction, self.shot_fraction, self.shuffle_context, self.shuffle_context_mode)
 
         context_set_manager.initialize_task(full_context_images, full_context_labels)
@@ -208,8 +208,8 @@ class ProjectedGradientDescent:
         initial_perturb = self.random_sphere(num_adv_images, m, epsilon, self.norm).reshape(
             (num_adv_images, size[1], size[2], size[3])).to(device)
 
-        for i, poison_image in enumerate(poisoned_images):
-            poison_image = torch.clamp(poison_image + initial_perturb[i], clip_min, clip_max)
+        for i in range(len(poisoned_images)):
+            poisoned_images[i] = torch.clamp(poisoned_images[i] + initial_perturb[i], clip_min, clip_max)
 
         if self.verbose:
             verbose_result = ProjectedGradientDescent.make_verbose_PGD_result()
@@ -217,7 +217,7 @@ class ProjectedGradientDescent:
     
         for i in range(0, self.num_iterations):
             poisoned_images.requires_grad = True
-            poisoned_context = torch.cat([poisoned_images, context_set])
+            poisoned_context = torch.cat([poisoned_images, context_images])
             poisoned_context_labels = torch.cat([clean_labels, context_labels])
             logits = fix_logits(get_logits_fn(poisoned_context, poisoned_context_labels, target_images))
             if self.verbose:
@@ -240,36 +240,34 @@ class ProjectedGradientDescent:
             # compute gradients
             loss.backward()
             # Invert the gradient if the attack is targeted
-            grad = poisoned_context.grad * (1 - 2 * int(self.targeted))
-
+            grad = poisoned_images.grad * (1 - 2 * int(self.targeted))
+            #poisoned_context = poisoned_context._detach()
             poisoned_images = poisoned_images.detach()
 
             # apply norm bound
             if self.norm == 'inf':
                 perturbation = torch.sign(grad)
-            
             # Poison images are always first in the context set, so this should be fine
             #TODO: Double check that our classifier is, in fact, unbothered by ordering
-            for index, poison_images in enumerate(poison_images):
-                poison_image = torch.clamp(poison_image + epsilon_step * perturbation[index],
+            #TODO: We can theoretically now adapt this to do sets of images at a time
+            for index in range(len(poisoned_images)):
+                poison_image = torch.clamp(poisoned_images[index] + epsilon_step * perturbation[index],
                                                         clip_min, clip_max)
-
                 diff = poison_image - clean_images[index]
                 new_perturbation = self.projection(diff, epsilon, self.norm, device)
-                poison_image = clean_images[index] + new_perturbation
-                
+                poisoned_images[index] = clean_images[index] + new_perturbation
             # Get a new context set for the next PGD iteration
             context_images, context_labels = context_set_manager.get_context_set()
 
             if self.verbose:
-                verbose_result['adv_images'].append(poison_images.clone().detach())
+                verbose_result['adv_images'].append(poisoned_images.clone().detach())
             del logits
 
-        # TODO: Check that context set manager's reference to poison images are in fact poisoned
+        # The context_set_manager keeps a reference to the poisoned images, so it can neatly put them 
+        # back into their proper places in the original context set
         full_poisoned_context, adv_context_indices = context_set_manager.construct_full_poisoned_context()
         if self.verbose:
             return full_poisoned_context, adv_context_indices, verbose_result
-
         return full_poisoned_context, adv_context_indices
 
     def get_verbose(self):
