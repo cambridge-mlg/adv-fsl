@@ -65,22 +65,30 @@ class ContextSetManager:
             indices = []
             c_index = 0
             outer_fail_count = 0
+            tmp_class_matrix = self.class_matrix.copy()
+
             while len(indices) < self.sub_context_size_coeff * len(self.adversarial_indices) and outer_fail_count < len(self.class_matrix):
-                # Randomly choose one of the elements in the class
-                r_index = random.randint(0, len(self.class_matrix[c_index])-1)
-                elem = self.class_matrix[c_index][r_index]
-                fail_count = 0
-                while (elem in indices or elem in self.adversarial_indices ) and fail_count < 50:
-                    r_index = random.randint(0, len(self.class_matrix[c_index])-1)
-                    elem = self.class_matrix[c_index][r_index]
-                    fail_count = fail_count + 1
-                # If we managed to find a suitable image, then use it. Else just go on to the next class
-                if fail_count < 10:
-                    indices.append(elem)
-                    outer_fail_count = 0
-                else:
+                # Upper bound (incl) for choosing index from class patterns
+                num_available_in_class = len(tmp_class_matrix[c_index])-1
+                # No more images available from this class
+                if num_available_in_class < 0:
                     outer_fail_count = outer_fail_count + 1
+                else:
+                    #One image left in class
+                    if num_available_in_class == 0:
+                        r_index = 0
+                    # Randomly choose one of the elements in the class
+                    else:
+                        r_index = random.randint(0, num_available_in_class)
+                    elem = tmp_class_matrix[c_index][r_index]
+                    indices.append(elem)
+                    tmp_class_matrix[c_index] = np.delete(tmp_class_matrix[c_index], [r_index]) 
+
+                    # elem can't be in self.adversarial_indices, because we removed the adversarial indices from self.class_matrix on construction
+                    # And elem can't already be chosen because we remove as we go:
+                    # If we managed to find a suitable image, then use it. Else just go on to the next class
                 c_index = (c_index + 1) % len(self.class_matrix)
+
             return self.clean_context_set[indices], self.class_labels[indices]
         else:
             print('Unsupported shuffle_context_mode: {}'.format(self.shuffle_context_mode))
