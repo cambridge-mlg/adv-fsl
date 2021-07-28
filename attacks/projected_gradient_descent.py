@@ -26,7 +26,8 @@ class ProjectedGradientDescent:
                  targeted=False,
                  targeted_labels='random',
                  shuffle_context=False,
-                 shuffle_context_mode='partition'):
+                 shuffle_context_mode='none',
+                 sub_context_size_coeff=1.0):
         self.norm = norm
         self.epsilon = epsilon
         self.num_iterations = num_iterations
@@ -48,6 +49,7 @@ class ProjectedGradientDescent:
         self.targeted_labels = targeted_labels
         self.shuffle_context = shuffle_context
         self.shuffle_context_mode = shuffle_context_mode
+        self.sub_context_size_coeff = sub_context_size_coeff
 
         self.loss = nn.CrossEntropyLoss()
         self.logger = Logger(checkpoint_dir, "pgd_logs.txt")
@@ -188,7 +190,7 @@ class ProjectedGradientDescent:
         else:
             epsilon, epsilon_step = self.epsilon, self.epsilon_step
         
-        context_set_manager = ContextSetManager(self.class_fraction, self.shot_fraction, self.shuffle_context, self.shuffle_context_mode)
+        context_set_manager = ContextSetManager(self.class_fraction, self.shot_fraction, self.shuffle_context, self.shuffle_context_mode, self.sub_context_size_coeff)
 
         context_set_manager.initialize_task(full_context_images, full_context_labels)
         # TODO: Check for references to context_labels

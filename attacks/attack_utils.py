@@ -12,12 +12,12 @@ def strip_tensor(indices):
     return indices.cpu().numpy()
 
 class ContextSetManager:
-    def __init__(self, class_fraction, shot_fraction, shuffle_context=False, shuffle_context_mode='none'):
+    def __init__(self, class_fraction, shot_fraction, shuffle_context=False, shuffle_context_mode='none', sub_context_size_coeff=1.0):
         self.shuffle_context = shuffle_context
         if self.shuffle_context:
             assert shuffle_context_mode == 'none' or shuffle_context_mode == 'partition' or shuffle_context_mode == 'random'
         self.shuffle_context_mode = shuffle_context_mode
-        self.sub_context_size_coeff = 0.5
+        self.sub_context_size_coeff = sub_context_size_coeff
         self.class_fraction = class_fraction
         self.shot_fraction = shot_fraction
         
