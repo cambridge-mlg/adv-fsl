@@ -27,6 +27,17 @@ def create_attack(attack_config_path, checkpoint_dir):
             randomize_attack_params=False
             if 'randomize' in attack_params.keys():
                 randomize_attack_params = attack_params['randomize']
+            shuffle_context = False
+            if 'shuffle_context' in attack_params.keys():
+                shuffle_context = attack_params['shuffle_context']
+
+            shuffle_context_mode = 'none'
+            if 'shuffle_context_mode' in attack_params.keys():
+                shuffle_context_mode = attack_params['shuffle_context_mode']
+                
+            sub_context_size_coeff = 1.0
+            if 'sub_context_size_coeff' in attack_params.keys():
+                sub_context_size_coeff = attack_params['sub_context_size_coeff']
 
             # create the attack
             if randomize_attack_params:
@@ -53,6 +64,9 @@ def create_attack(attack_config_path, checkpoint_dir):
                 target_loss_mode=attack_params['target_loss_mode'],
                 targeted=attack_params['targeted'],
                 targeted_labels=attack_params['targeted_labels'],
+                shuffle_context=shuffle_context,
+                shuffle_context_mode=shuffle_context_mode,
+                sub_context_size_coeff=sub_context_size_coeff
             )
         elif attack_params['attack'] == 'carlini_wagner':
             attack = CarliniWagnerL2(
