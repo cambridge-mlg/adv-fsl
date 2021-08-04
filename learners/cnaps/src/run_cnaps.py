@@ -656,7 +656,6 @@ class Learner:
                 # Track how many full eval sets we actually got
                 ave_num_eval_sets = ave_num_eval_sets + len(eval_labels)
                 '''
-
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels, target_images, target_labels, self.model, self.model, self.model.device)
                 adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels, target_images_small, target_labels_small, self.model, self.model, self.model.device)
 
