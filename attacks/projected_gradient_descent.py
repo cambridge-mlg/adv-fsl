@@ -143,29 +143,28 @@ class ProjectedGradientDescent:
             # compute gradient
             loss.backward()
             grad = adv_target_images.grad * (1 - 2 * int(self.targeted))
+            with torch.no_grad():
+                #adv_target_images = adv_target_images.detach()
+    
+                # apply norm bound
+                if self.norm == 'inf':
+                    perturbation = torch.sign(grad)
 
-            adv_target_images = adv_target_images.detach()
-
-            # apply norm bound
-            if self.norm == 'inf':
-                perturbation = torch.sign(grad)
-
-            for index in adv_target_indices:
-                adv_target_images[index] = torch.clamp(adv_target_images[index] +
+                for index in adv_target_indices:
+                    adv_target_images[index] = torch.clamp(adv_target_images[index] +
                                                         epsilon_step * perturbation[index],
                                                         clip_min, clip_max)
 
-                diff = adv_target_images[index] - target_images[index]
-                new_perturbation = self.projection(diff, epsilon, self.norm, device)
-                adv_target_images[index] = target_images[index] + new_perturbation
+                    diff = adv_target_images[index] - target_images[index]
+                    new_perturbation = self.projection(diff, epsilon, self.norm, device)
+                    adv_target_images[index] = target_images[index] + new_perturbation
 
-            if self.verbose:
-                verbose_result['adv_images'].append(adv_target_images.clone().detach())
-            del logits
+                if self.verbose:
+                    verbose_result['adv_images'].append(adv_target_images.clone())
+                del logits
 
         if self.verbose:
             return adv_target_images, adv_target_indices, verbose_result
-
         return adv_target_images, adv_target_indices
 
     @staticmethod
@@ -230,24 +229,25 @@ class ProjectedGradientDescent:
             # Invert the gradient if the attack is targeted
             grad = adv_context_images.grad * (1 - 2 * int(self.targeted))
 
-            adv_context_images = adv_context_images.detach()
+            with torch.no_grad():
+                # adv_context_images = adv_context_images.detach()
+    
+                # apply norm bound
+                if self.norm == 'inf':
+                    perturbation = torch.sign(grad)
 
-            # apply norm bound
-            if self.norm == 'inf':
-                perturbation = torch.sign(grad)
-
-            for index in adv_context_indices:
-                adv_context_images[index] = torch.clamp(adv_context_images[index] +
+                for index in adv_context_indices:
+                    adv_context_images[index] = torch.clamp(adv_context_images[index] +
                                                         epsilon_step * perturbation[index],
                                                         clip_min, clip_max)
 
-                diff = adv_context_images[index] - context_images[index]
-                new_perturbation = self.projection(diff, epsilon, self.norm, device)
-                adv_context_images[index] = context_images[index] + new_perturbation
+                    diff = adv_context_images[index] - context_images[index]
+                    new_perturbation = self.projection(diff, epsilon, self.norm, device)
+                    adv_context_images[index] = context_images[index] + new_perturbation
 
-            if self.verbose:
-                verbose_result['adv_images'].append(adv_context_images.clone().detach())
-            del logits
+                if self.verbose:
+                    verbose_result['adv_images'].append(adv_context_images.clone())
+                del logits
 
         if self.verbose:
             return adv_context_images, adv_context_indices, verbose_result
