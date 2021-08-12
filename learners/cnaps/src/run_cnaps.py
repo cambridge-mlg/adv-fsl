@@ -247,6 +247,8 @@ class Learner:
                             help="Probability of dropping out a feature")
         parser.add_argument("--gaussian_dropout", default=False,
                             help="Whether to use gaussian dropout (if feature adaptation is random)")
+        parser.add_argument("--generate_from_file", default=False,
+                            help="Only relevant when the dataset is from_file. Specifies whether to actually generate an attack on the saved task (true) or whether to just transfer the saved attack to the model")
 
 
 
@@ -309,6 +311,8 @@ class Learner:
             if self.args.dataset == "from_file":
                 if self.args.vary_swap_attack:
                     self.vary_swap_attack(self.args.test_model_path, session)
+                elif: self.args.generate_from_file:
+					self.meta_dataset_attack_swap(self.args.test_model_path, session)
                 else:
                     self.attack_from_file(self.args.test_model_path, session)
             elif not self.args.swap_attack:
@@ -378,12 +382,26 @@ class Learner:
             for item in self.test_set:
                 accuracies = []
                 for _ in range(NUM_TEST_TASKS):
-                    task_dict = self.dataset.get_test_task(item, session)
-                    context_images, target_images, context_labels, target_labels, _ = self.prepare_task(task_dict)
-                    target_logits = self.model(context_images, context_labels, target_images)
-                    accuracy = self.accuracy_fn(target_logits, target_labels)
-                    accuracies.append(accuracy.item())
-                    del target_logits
+					task_dict = self.dataset.get_test_task(item, session)
+
+					context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
+					target_images_small, target_labels_small, eval_images, eval_labels = extra_datasets	
+					target_logits = self.model(context_images, context_labels, target_images)
+					predicted_target_labels = 
+					accuracy = self.accuracy_fn(target_logits, target_labels)
+					accuracies.append(accuracy.item())
+					del target_logits
+					if self.args.save_attack:
+						adv_task_dict = make_swap_attack_task_dict(context_images, context_labels, target_images_small,
+																   target_labels_small,
+																   [], [],
+																   [], [],
+																   self.args.way, self.args.shot, self.args.query_test,
+																   eval_images, eval_labels,
+																   predicted_context_labels=predicted_context_labels, 
+																   predicted_target_labels=predicted_target_labels)
+						#if self.args.continue_from_task != 0:
+						save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t, adv_task_dict)
 
                 accuracy = np.array(accuracies).mean() * 100.0
                 accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
@@ -506,6 +524,7 @@ class Learner:
                 self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", frac_descrip)
                 self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", frac_descrip)
 
+	
     def attack_from_file(self, path, session):
         write_to_log(self.logfile, 'Attacking model {0:}: '.format(path))
         self.model = self.init_model()
@@ -627,9 +646,14 @@ class Learner:
         for item in self.test_set:
             # Accuracies for setting in which we generate attacks.
             # Useful for debugging attacks
-            gen_clean_accuracies = []
+            gen_clean_accuracies = [] #corresponds to accuracy w.r.t. target model if this is a surrogate attack
             gen_adv_context_accuracies = []
             gen_adv_target_accuracies = []
+            
+            if self.generate_from_file:
+				gen_true_accuracies = []
+				gen_true_adv_context_accuracies = []
+				gen_true_adv_target_accuracies = []
 
             # Accuracies for evaluation setting
             clean_accuracies = []
@@ -637,25 +661,26 @@ class Learner:
             adv_context_accuracies = []
             adv_target_as_context_accuracies = []
             #ave_num_eval_sets = 0.0
+            if self.generate_from_file:
+				num_tasks = min(self.dataset.get_num_tasks(), self.args.attack_tasks)
+			else:
+				num_tasks = self.args.attack_tasks - self.args.continue_from_task
+				
+            for t in tqdm(range(num_tasks), dynamic_ncols=True):
+				if self.generate_from_file:
+					context_images, true_context_labels, target_images, true_target_labels = self.dataset.get_clean_task(task, self.device)
+					context_labels, target_labels = self.dataset.get_predicted_labels(task, self.device)
+					eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
+					target_images_small, target_labels_small = target_images, target_labels
+				else:
+					task_dict = self.dataset.get_test_task(item, session)
+					if self.args.continue_from_task != 0:
+						#Skip the first one, which is deterministic
+						task_dict = self.dataset.get_test_task(item, session)
 
-            for t in tqdm(range(self.args.attack_tasks - self.args.continue_from_task), dynamic_ncols=True):
-                task_dict = self.dataset.get_test_task(item, session)
-                if self.args.continue_from_task != 0:
-                    #Skip the first one, which is deterministic
-                    task_dict = self.dataset.get_test_task(item, session)
-
-                context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
-                target_images_small, target_labels_small, eval_images, eval_labels = extra_datasets
-                '''
-                fail_count = 0
-                while len(eval_labels) == 0 and fail_count < 1000:
-                    fail_count = fail_count + 1
-                    context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
-                    target_images_small, target_labels_small, eval_images, eval_labels = extra_datasets
-                print("Fail count : {}".format(fail_count))
-                # Track how many full eval sets we actually got
-                ave_num_eval_sets = ave_num_eval_sets + len(eval_labels)
-                '''
+					context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
+					target_images_small, target_labels_small, eval_images, eval_labels = extra_datasets
+					
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels, target_images, target_labels, self.model, self.model, self.model.device)
                 adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels, target_images_small, target_labels_small, self.model, self.model, self.model.device)
 
@@ -695,6 +720,14 @@ class Learner:
                     gen_adv_target_accuracies.append(
                         self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels_small))
 
+					if self.generate_from_file:
+						gen_true_accuracies.append(
+							self.calc_accuracy(context_images, true_context_labels, target_images, true_target_labels))
+						gen_true_adv_context_accuracies.append(
+							self.calc_accuracy(adv_context_images, true_context_labels, target_images, true_target_labels))
+						gen_true_adv_target_accuracies.append(
+							self.calc_accuracy(context_images, true_context_labels, adv_target_images, true_target_labels))
+
                     # Evaluate on independent target sets
                     for k in range(len(eval_images)):
                         eval_imgs_k = eval_images[k].to(self.device)
@@ -714,13 +747,22 @@ class Learner:
 
                 del adv_target_as_context
 
-                if self.args.save_attack:
+                if self.args.save_attack: #TODO: include predicted labels below
+					if self.generate_from_file:
+						predicted_context_labels = context_labels
+						predicted_target_labels = target_labels_labels
+						context_labels = true_context_labels
+						target_labels = true_target_labels
+					else:
+						predicted_context_labels, predicted_target_labels = [], []
                     adv_task_dict = make_swap_attack_task_dict(context_images, context_labels, target_images_small,
                                                                target_labels_small,
                                                                adv_context_images, adv_context_indices,
                                                                adv_target_images, adv_target_indices,
                                                                self.args.way, self.args.shot, self.args.query_test,
-                                                               eval_images, eval_labels)
+                                                               eval_images, eval_labels, 
+                                                               predicted_context_labels=predicted_context_labels,
+                                                               predicted_target_labels=predicted_target_labels)
                     #if self.args.continue_from_task != 0:
                     save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t+self.args.continue_from_task, adv_task_dict)
 
@@ -729,11 +771,18 @@ class Learner:
             self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy", item)
             self.print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy", item)
 
+
+			if self.generate_from_file:
+				self.print_average_accuracy(gen_true_accuracies, "Gen setting: True Clean accuracy", item)
+				self.print_average_accuracy(gen_true_adv_context_accuracies, "Gen setting: True Context attack accuracy", item)
+				self.print_average_accuracy(gen_true_adv_target_accuracies, "Gen setting: True Target attack accuracy", item)
+
             self.print_average_accuracy(clean_accuracies, "Clean accuracy", item)
             self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy", item)
             self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", item)
             self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", item)
             #print_and_log(self.logfile,'Average number of eval tests over all tasks {0:3.1f}'.format(ave_num_eval_sets/float(self.args.attack_tasks)))
+            # TODO: print agreement between surrogate and target. Will require some calculation in the for loop above.
 
 
     def attack_swap(self, path, session):
