@@ -15,7 +15,7 @@ class ContextSetManager:
     def __init__(self, class_fraction, shot_fraction, shuffle_context=False, shuffle_context_mode='none', sub_context_size_coeff=1.0):
         self.shuffle_context = shuffle_context
         if self.shuffle_context:
-            assert shuffle_context_mode == 'none' or shuffle_context_mode == 'partition' or shuffle_context_mode == 'random'
+            assert shuffle_context_mode == 'none' or shuffle_context_mode == 'random'
         self.shuffle_context_mode = shuffle_context_mode
         self.sub_context_size_coeff = sub_context_size_coeff
         self.class_fraction = class_fraction
@@ -41,13 +41,6 @@ class ContextSetManager:
         for c in range(num_classes):
             self.class_matrix.append(strip_tensor(extract_class_indices(self.class_labels, c)))
             self.class_matrix[c] = np.setdiff1d(self.class_matrix[c], self.adversarial_indices)
-
-        #Divide up the remaining images, if appropriate
-        
-        # Count how many instances per class, that's the max number of partitions we can have
-        # Num partitions = min(num_clean_indices/len(adversarial_indices), smallest_class_size)
-        # Log partition size
-        # For each class, randomly choose from clean_indices (use choose without replacement), assigning to partitions as we go
             
     def get_adversarial(self):
         clean_images = self.clean_context_set[self.adversarial_indices]
@@ -58,9 +51,6 @@ class ContextSetManager:
     def get_context_set(self):
         if not self.shuffle_context:
             return self.clean_context_set[self.clean_indices], self.class_labels[self.clean_indices]
-        #elif self.shuffle_context_mode == 'partition':
-            # Randomly pick one of the partitions
-            #return self.clean_context_set[p_indices], self.class_labels[p_indices]
         elif self.shuffle_context_mode == 'random':
             indices = []
             c_index = 0
@@ -99,8 +89,6 @@ class ContextSetManager:
         self.adversarial_images.requires_grad = False
         for i, index in enumerate(self.adversarial_indices):
             poisoned_set[index] = self.adversarial_images[i]
-        # Make it clear that we have mucked up the context set we had a reference to
-        # We could technically make a copy here, but we're already running out of memory
         self.clean_context_set = None
         return poisoned_set, self.adversarial_indices
         
@@ -155,7 +143,6 @@ def load_partial_pickle(file_path):
     num_tasks = len([name for name in os.listdir(file_path) if os.path.isfile(os.path.join(file_path, name))])
     return lazy_task_list, get_task, num_tasks
 
-
 class AdversarialDataset:
     def __init__(self, pickle_file_path):
         # If path is directory, then we are loading task-by-task
@@ -173,7 +160,7 @@ class AdversarialDataset:
         self.way = task_dict_list[0]['way']
         self.query = task_dict_list[0]['query']
         mode = task_dict_list[0]['mode']
-        assert mode == 'context' or mode == 'target' or mode == 'swap'
+        assert mode == 'context' or mode == 'target' or mode == 'swap' or mode == 'clean'
         self.mode = mode
 
     def test_fancy_target_swap(self):
@@ -258,53 +245,36 @@ class AdversarialDataset:
 
             return frac_adv_context_images, context_labels.type(torch.LongTensor).to(device)
 
+	# TODO: not sure whether these need to be longtensors or not
+	def get_predicted_labels(self, task_index, device):
+		return task['predicted_context_labels'].type(torch.LongTensor).to(device), task['predicted_target_labels'].to(device)
 
     def get_adversarial_task(self, task_index, device, swap_mode=None):
+        if self.mode == 'clean':
+			print("This dataset is clean and has no adversarial attacks associated with it yet")
+			return
+        
         task = self.tasks(task_index)
-        context_labels = task['context_labels'].type(torch.LongTensor).to(device)
+		context_labels = task['context_labels'].type(torch.LongTensor).to(device)
+		target_labels = task['target_labels'].to(device)
+		
         if self.mode == 'context':
             assert swap_mode is None
-            return task['adv_images'].to(device), context_labels, task['target_images'].to(device), task['target_labels'].to(device)
+            return task['adv_images'].to(device), context_labels, task['target_images'].to(device), target_labels
         elif self.mode == 'target':
             assert swap_mode is None
-            return task['context_images'].to(device), context_labels, task['adv_images'].to(device), task['target_labels'].to(device)
+            return task['context_images'].to(device), context_labels, task['adv_images'].to(device), target_labels
         elif self.mode == 'swap':
             assert swap_mode is not None
             if swap_mode == 'context':
                 return task['adv_context_images'].to(device), context_labels, task[
-                    'target_images'].to(device), task['target_labels'].to(device)
+                    'target_images'].to(device), target_labels
             elif swap_mode == 'target':
                 return task['context_images'].to(device), context_labels, task[
-                    'adv_target_images'].to(device), task['target_labels'].to(device)
-            elif swap_mode == 'target_as_context':
-                adv_target_as_context = task['context_images'].to(device)
-                adv_target_indices = task['adv_target_indices']
-                target_labels = task['target_labels']
-
-                swap_indices_context = []
-                swap_indices_adv = []
-                failed_to_swap = 0
-
-                for index in adv_target_indices:
-                    c = target_labels[index]
-                    # Replace the first best instance of class c with the adv query point (assuming we haven't already swapped it)
-                    shot_indices = extract_class_indices(context_labels.cpu(), c)
-                    k = 0
-                    while k < len(shot_indices) and shot_indices[k] in swap_indices_context:
-                        k += 1
-                    if k == len(shot_indices):
-                        failed_to_swap += 1
-                    else:
-                        index_to_swap = shot_indices[k]
-                        swap_indices_context.append(index_to_swap)
-                        swap_indices_adv.append(index)
-                assert (len(swap_indices_context) + failed_to_swap) == len(adv_target_indices)
-
-                # First swap in the clean targets, to make sure the two clean accs are the same (debug)
-                for i, swap_i in enumerate(swap_indices_context):
-                    adv_target_as_context[swap_i] = task['adv_target_images'][swap_indices_adv[i]].to(device)
-
-                return adv_target_as_context, context_labels
+                    'adv_target_images'].to(device), target_labels
+            else:
+                print("Swap mode {} is not supported".format(swap_mode))
+                return None, None, None, None
 
     def get_eval_task(self, task_index, device):
         task = self.tasks(task_index)
@@ -322,6 +292,40 @@ class AdversarialDataset:
 
     def get_way(self):
         return self.way
+
+
+def make_adversarial_task_dict(context_images, context_labels, target_images, target_labels, adv_images, adv_indices, attack_mode, way, shot, query, split_target_images, split_target_labels):
+    adv_task_dict = {
+        'context_images': context_images.cpu(),
+        'context_labels': context_labels.cpu(),
+        'target_images': target_images.cpu(),
+        'target_labels': target_labels.cpu(),
+        'adv_images': adv_images.cpu(),
+        'adv_indices': adv_indices,
+        'mode': attack_mode,
+        'way': way,
+        'shot': shot,
+        'query': query,
+    }
+    if split_target_images is not None and split_target_labels is not None:
+        adv_task_dict['eval_images'] = []
+        adv_task_dict['eval_labels'] = []
+        for k in range(len(split_target_images)):
+            adv_task_dict['eval_images'].append(split_target_images[k].cpu())
+            adv_task_dict['eval_labels'].append(split_target_labels[k].cpu())
+    return adv_task_dict
+
+def make_swap_attack_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, adv_target_images, adv_target_indices,
+                                way, shot, query, split_target_images, split_target_labels, predicted_context_labels=[], predicted_target_labels=[]):
+    adv_task_dict = make_adversarial_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, 'context', way, shot, query, split_target_images, split_target_labels)
+    adv_task_dict['adv_target_images'] = adv_target_images.cpu()
+    adv_task_dict['adv_target_indices'] = adv_target_indices
+    adv_task_dict['adv_context_images'] = adv_task_dict['adv_images'] #This should just reference the same tensor, hopefully not make a whole copy
+    adv_task_dict['adv_context_indices'] = adv_task_dict['adv_indices']
+    adv_task_dict['mode'] = 'swap'
+    adv_task_dict['predicted_context_labels'] = predicted_context_labels
+    adv_task_dict['predicted_target_labels'] = predicted_target_labels
+    
 
 def convert_labels(predictions):
     return torch.argmax(predictions, dim=1, keepdim=False)
@@ -510,35 +514,6 @@ def save_image(image_array, save_path, scaling='neg_one_to_one'):
     im = convert_to_image(image_array, scaling)
     im.save(save_path)
 
-def make_adversarial_task_dict(context_images, context_labels, target_images, target_labels, adv_images, adv_indices, attack_mode, way, shot, query, split_target_images, split_target_labels):
-    adv_task_dict = {
-        'context_images': context_images.cpu(),
-        'context_labels': context_labels.cpu(),
-        'target_images': target_images.cpu(),
-        'target_labels': target_labels.cpu(),
-        'adv_images': adv_images.cpu(),
-        'adv_indices': adv_indices,
-        'mode': attack_mode,
-        'way': way,
-        'shot': shot,
-        'query': query,
-    }
-    if split_target_images is not None and split_target_labels is not None:
-        adv_task_dict['eval_images'] = []
-        adv_task_dict['eval_labels'] = []
-        for k in range(len(split_target_images)):
-            adv_task_dict['eval_images'].append(split_target_images[k].cpu())
-            adv_task_dict['eval_labels'].append(split_target_labels[k].cpu())
-    return adv_task_dict
-
-def make_swap_attack_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, adv_target_images, adv_target_indices,
-                                way, shot, query, split_target_images, split_target_labels):
-    adv_task_dict = make_adversarial_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, 'context', way, shot, query, split_target_images, split_target_labels)
-    adv_task_dict['adv_target_images'] = adv_target_images.cpu()
-    adv_task_dict['adv_target_indices'] = adv_target_indices
-    adv_task_dict['adv_context_images'] = adv_task_dict['adv_images'] #This should just reference the same tensor, hopefully not make a whole copy
-    adv_task_dict['adv_context_indices'] = adv_task_dict['adv_indices']
-    adv_task_dict['mode'] = 'swap'
     return adv_task_dict
 
 
