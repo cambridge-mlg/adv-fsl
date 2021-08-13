@@ -66,7 +66,6 @@ from attacks.attack_utils import AdversarialDataset
 import learners.cnaps.src.utils as utils
 
 NUM_VALIDATION_TASKS = 200
-NUM_TEST_TASKS = 600
 PRINT_FREQUENCY = 1000
 
 def save_image(image_array, save_path):
@@ -303,15 +302,14 @@ class Learner:
         if self.args.mode == 'train_test':
             self.test(self.checkpoint_path_final, session)
             self.test(self.checkpoint_path_validation, session)
-
+        import pdb; pdb.set_trace()        
         if self.args.mode == 'test':
             self.test(self.args.test_model_path, session)
-
         if self.args.mode == 'attack':
             if self.args.dataset == "from_file":
                 if self.args.vary_swap_attack:
                     self.vary_swap_attack(self.args.test_model_path, session)
-                elif: self.args.generate_from_file:
+                elif self.args.generate_from_file:
 					self.meta_dataset_attack_swap(self.args.test_model_path, session)
                 else:
                     self.attack_from_file(self.args.test_model_path, session)
@@ -381,7 +379,7 @@ class Learner:
         with torch.no_grad():
             for item in self.test_set:
                 accuracies = []
-                for _ in range(NUM_TEST_TASKS):
+                for _ in range(self.args.attack_tasks):
 					task_dict = self.dataset.get_test_task(item, session)
 
 					context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
