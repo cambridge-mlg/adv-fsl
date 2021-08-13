@@ -245,19 +245,19 @@ class AdversarialDataset:
 
             return frac_adv_context_images, context_labels.type(torch.LongTensor).to(device)
 
-	# TODO: not sure whether these need to be longtensors or not
-	def get_predicted_labels(self, task_index, device):
-		return task['predicted_context_labels'].type(torch.LongTensor).to(device), task['predicted_target_labels'].to(device)
+    # TODO: not sure whether these need to be longtensors or not
+    def get_predicted_labels(self, task_index, device):
+        return task['predicted_context_labels'].type(torch.LongTensor).to(device), task['predicted_target_labels'].to(device)
 
     def get_adversarial_task(self, task_index, device, swap_mode=None):
         if self.mode == 'clean':
-			print("This dataset is clean and has no adversarial attacks associated with it yet")
-			return
+            print("This dataset is clean and has no adversarial attacks associated with it yet")
+            return
         
         task = self.tasks(task_index)
-		context_labels = task['context_labels'].type(torch.LongTensor).to(device)
-		target_labels = task['target_labels'].to(device)
-		
+        context_labels = task['context_labels'].type(torch.LongTensor).to(device)
+        target_labels = task['target_labels'].to(device)
+        
         if self.mode == 'context':
             assert swap_mode is None
             return task['adv_images'].to(device), context_labels, task['target_images'].to(device), target_labels
