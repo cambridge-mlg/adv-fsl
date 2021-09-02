@@ -302,7 +302,6 @@ class Learner:
         if self.args.mode == 'train_test':
             self.test(self.checkpoint_path_final, session)
             self.test(self.checkpoint_path_validation, session)
-        import pdb; pdb.set_trace()        
         if self.args.mode == 'test':
             self.test(self.args.test_model_path, session)
         if self.args.mode == 'attack':
@@ -370,6 +369,9 @@ class Learner:
 
         return accuracy_dict
 
+    def get_predictions(self, logits):
+        return torch.argmax(logits, dim=-1).squeeze()
+
     def test(self, path, session):
         print_and_log(self.logfile, "")  # add a blank line
         print_and_log(self.logfile, 'Testing model {0:}: '.format(path))
@@ -379,26 +381,27 @@ class Learner:
         with torch.no_grad():
             for item in self.test_set:
                 accuracies = []
-                for _ in range(self.args.attack_tasks):
+                for t in range(self.args.attack_tasks):
                     task_dict = self.dataset.get_test_task(item, session)
 
                     context_images, target_images, context_labels, target_labels, extra_datasets = self.prepare_task(task_dict,shuffle=False)
                     target_images_small, target_labels_small, eval_images, eval_labels = extra_datasets 
                     target_logits = self.model(context_images, context_labels, target_images)
-                    predicted_target_labels = 
+                    predicted_target_labels = self.get_predictions(target_logits)
+                    predicted_context_labels = self.get_predictions(self.model(context_images, context_labels, context_images))
                     accuracy = self.accuracy_fn(target_logits, target_labels)
                     accuracies.append(accuracy.item())
                     del target_logits
                     if self.args.save_attack:
                         adv_task_dict = make_swap_attack_task_dict(context_images, context_labels, target_images_small,
                                                                    target_labels_small,
-                                                                   [], [],
-                                                                   [], [],
+                                                                   None, None,
+                                                                   None, None,
                                                                    self.args.way, self.args.shot, self.args.query_test,
                                                                    eval_images, eval_labels,
                                                                    predicted_context_labels=predicted_context_labels, 
                                                                    predicted_target_labels=predicted_target_labels)
-                        #if self.args.continue_from_task != 0:
+                        adv_task_dict['mode'] = 'clean'
                         save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t, adv_task_dict)
 
                 accuracy = np.array(accuracies).mean() * 100.0
@@ -648,7 +651,7 @@ class Learner:
             gen_adv_context_accuracies = []
             gen_adv_target_accuracies = []
             
-            if self.generate_from_file:
+            if self.args.generate_from_file:
                 gen_true_accuracies = []
                 gen_true_adv_context_accuracies = []
                 gen_true_adv_target_accuracies = []
@@ -659,16 +662,16 @@ class Learner:
             adv_context_accuracies = []
             adv_target_as_context_accuracies = []
             #ave_num_eval_sets = 0.0
-            if self.generate_from_file:
+            if self.args.generate_from_file:
                 num_tasks = min(self.dataset.get_num_tasks(), self.args.attack_tasks)
             else:
                 num_tasks = self.args.attack_tasks - self.args.continue_from_task
                 
             for t in tqdm(range(num_tasks), dynamic_ncols=True):
-                if self.generate_from_file:
-                    context_images, true_context_labels, target_images, true_target_labels = self.dataset.get_clean_task(task, self.device)
-                    context_labels, target_labels = self.dataset.get_predicted_labels(task, self.device)
-                    eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
+                if self.args.generate_from_file:
+                    context_images, true_context_labels, target_images, true_target_labels = self.dataset.get_clean_task(t, self.device)
+                    context_labels, target_labels = self.dataset.get_predicted_labels(t, self.device)
+                    eval_images, eval_labels = self.dataset.get_eval_task(t, self.device)
                     target_images_small, target_labels_small = target_images, target_labels
                 else:
                     task_dict = self.dataset.get_test_task(item, session)
@@ -718,7 +721,7 @@ class Learner:
                     gen_adv_target_accuracies.append(
                         self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels_small))
 
-                    if self.generate_from_file:
+                    if self.args.generate_from_file:
                         gen_true_accuracies.append(
                             self.calc_accuracy(context_images, true_context_labels, target_images, true_target_labels))
                         gen_true_adv_context_accuracies.append(
@@ -745,14 +748,15 @@ class Learner:
 
                 del adv_target_as_context
 
-                if self.args.save_attack: #TODO: include predicted labels below
-                    if self.generate_from_file:
+                if self.args.save_attack: #Don't accidentally overwrite the true labels when writing the task back to file
+                    if self.args.generate_from_file:
                         predicted_context_labels = context_labels
-                        predicted_target_labels = target_labels_labels
+                        predicted_target_labels = target_labels
                         context_labels = true_context_labels
                         target_labels = true_target_labels
                     else:
-                        predicted_context_labels, predicted_target_labels = [], []
+                        predicted_context_labels, predicted_target_labels = None, None
+
                     adv_task_dict = make_swap_attack_task_dict(context_images, context_labels, target_images_small,
                                                                target_labels_small,
                                                                adv_context_images, adv_context_indices,
@@ -770,7 +774,7 @@ class Learner:
             self.print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy", item)
 
 
-            if self.generate_from_file:
+            if self.args.generate_from_file:
                 self.print_average_accuracy(gen_true_accuracies, "Gen setting: True Clean accuracy", item)
                 self.print_average_accuracy(gen_true_adv_context_accuracies, "Gen setting: True Context attack accuracy", item)
                 self.print_average_accuracy(gen_true_adv_target_accuracies, "Gen setting: True Target attack accuracy", item)

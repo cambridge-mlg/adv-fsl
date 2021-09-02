@@ -151,11 +151,9 @@ class AdversarialDataset:
         # Else if path is to an actual file, we just load the whole file
         else:
             task_dict_list, get_task, num_tasks = load_pickle(pickle_file_path)
-
         assert len(task_dict_list) > 0
         self.num_tasks = num_tasks
         self.tasks = get_task
-
         self.shot = task_dict_list[0]['shot']
         self.way = task_dict_list[0]['way']
         self.query = task_dict_list[0]['query']
@@ -247,6 +245,7 @@ class AdversarialDataset:
 
     # TODO: not sure whether these need to be longtensors or not
     def get_predicted_labels(self, task_index, device):
+        task = self.tasks(task_index)
         return task['predicted_context_labels'].type(torch.LongTensor).to(device), task['predicted_target_labels'].to(device)
 
     def get_adversarial_task(self, task_index, device, swap_mode=None):
@@ -295,18 +294,31 @@ class AdversarialDataset:
 
 
 def make_adversarial_task_dict(context_images, context_labels, target_images, target_labels, adv_images, adv_indices, attack_mode, way, shot, query, split_target_images, split_target_labels):
+    if context_images is not None:
+        context_images = context_images.cpu()
+    if context_labels is not None:
+        context_labels = context_labels.cpu()
+    if target_images is not None:
+        target_images = target_images.cpu()
+    if target_labels is not None:
+        target_labels = target_labels.cpu()
+    if adv_images is not None:
+        adv_images = adv_images.cpu()
+
     adv_task_dict = {
-        'context_images': context_images.cpu(),
-        'context_labels': context_labels.cpu(),
-        'target_images': target_images.cpu(),
-        'target_labels': target_labels.cpu(),
-        'adv_images': adv_images.cpu(),
+        'context_images': context_images,
+        'context_labels': context_labels,
+        'target_images': target_images,
+        'target_labels': target_labels,
+        'adv_images': adv_images,
         'adv_indices': adv_indices,
         'mode': attack_mode,
         'way': way,
         'shot': shot,
         'query': query,
     }
+    #print("Context images: {}".format(context_images.shape))
+    #print("Context_labels: {}".format(context_labels.unique()))
     if split_target_images is not None and split_target_labels is not None:
         adv_task_dict['eval_images'] = []
         adv_task_dict['eval_labels'] = []
@@ -316,16 +328,23 @@ def make_adversarial_task_dict(context_images, context_labels, target_images, ta
     return adv_task_dict
 
 def make_swap_attack_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, adv_target_images, adv_target_indices,
-                                way, shot, query, split_target_images, split_target_labels, predicted_context_labels=[], predicted_target_labels=[]):
+                                way, shot, query, split_target_images, split_target_labels, predicted_context_labels=None, predicted_target_labels=None):
     adv_task_dict = make_adversarial_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, 'context', way, shot, query, split_target_images, split_target_labels)
-    adv_task_dict['adv_target_images'] = adv_target_images.cpu()
+    if adv_target_images is not None:
+        adv_target_images = adv_target_images.cpu()
+    if predicted_context_labels is not None:
+        predicted_context_labels = predicted_context_labels.cpu()
+    if predicted_target_labels is not None:
+        predicted_target_labels = predicted_target_labels.cpu()
+
+    adv_task_dict['adv_target_images'] = adv_target_images
     adv_task_dict['adv_target_indices'] = adv_target_indices
     adv_task_dict['adv_context_images'] = adv_task_dict['adv_images'] #This should just reference the same tensor, hopefully not make a whole copy
     adv_task_dict['adv_context_indices'] = adv_task_dict['adv_indices']
     adv_task_dict['mode'] = 'swap'
     adv_task_dict['predicted_context_labels'] = predicted_context_labels
     adv_task_dict['predicted_target_labels'] = predicted_target_labels
-    
+    return adv_task_dict
 
 def convert_labels(predictions):
     return torch.argmax(predictions, dim=1, keepdim=False)
