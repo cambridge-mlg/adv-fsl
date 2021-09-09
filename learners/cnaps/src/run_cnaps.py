@@ -664,10 +664,11 @@ class Learner:
             #ave_num_eval_sets = 0.0
             if self.args.generate_from_file:
                 num_tasks = min(self.dataset.get_num_tasks(), self.args.attack_tasks)
+                assert num_tasks > 0
             else:
-                num_tasks = self.args.attack_tasks - self.args.continue_from_task
+                num_tasks = self.args.attack_tasks
                 
-            for t in tqdm(range(num_tasks), dynamic_ncols=True):
+            for t in tqdm(range(self.args.continue_from_task, num_tasks), dynamic_ncols=True):
                 if self.args.generate_from_file:
                     context_images, true_context_labels, target_images, true_target_labels = self.dataset.get_clean_task(t, self.device)
                     context_labels, target_labels = self.dataset.get_predicted_labels(t, self.device)
@@ -683,6 +684,7 @@ class Learner:
                     target_images_small, target_labels_small, eval_images, eval_labels = extra_datasets
                     
                 adv_context_images, adv_context_indices = context_attack.generate(context_images, context_labels, target_images, target_labels, self.model, self.model, self.model.device)
+                # Might make more sense to use true target labels here, if generating from file?
                 adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels, target_images_small, target_labels_small, self.model, self.model, self.model.device)
 
                 adv_target_as_context = context_images.clone()
@@ -753,7 +755,7 @@ class Learner:
                         predicted_context_labels = context_labels
                         predicted_target_labels = target_labels
                         context_labels = true_context_labels
-                        target_labels = true_target_labels
+                        target_labels = target_labels_small = true_target_labels
                     else:
                         predicted_context_labels, predicted_target_labels = None, None
 
@@ -766,7 +768,7 @@ class Learner:
                                                                predicted_context_labels=predicted_context_labels,
                                                                predicted_target_labels=predicted_target_labels)
                     #if self.args.continue_from_task != 0:
-                    save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t+self.args.continue_from_task, adv_task_dict)
+                    save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t, adv_task_dict)
 
                 del adv_context_images, adv_target_images
             self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", item)
