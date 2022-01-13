@@ -39,6 +39,13 @@ def create_attack(attack_config_path, checkpoint_dir):
             if 'sub_context_size_coeff' in attack_params.keys():
                 sub_context_size_coeff = attack_params['sub_context_size_coeff']
 
+            hot_start = False
+            hot_start_location = ""
+            if "hot_start" in attack_params.keys():
+                hot_start = True
+            assert "hot_start_location" in attack_params.keys()
+            hot_start_location = attack_params["hot_start_location"]
+
             # create the attack
             if randomize_attack_params:
                 epsilon = np.random.uniform(0.025, 0.055)
@@ -66,7 +73,9 @@ def create_attack(attack_config_path, checkpoint_dir):
                 targeted_labels=attack_params['targeted_labels'],
                 shuffle_context=shuffle_context,
                 shuffle_context_mode=shuffle_context_mode,
-                sub_context_size_coeff=sub_context_size_coeff
+                sub_context_size_coeff=sub_context_size_coeff,
+                hot_start=hot_start,
+                hot_start_location=hot_start_location
             )
         elif attack_params['attack'] == 'carlini_wagner':
             attack = CarliniWagnerL2(
