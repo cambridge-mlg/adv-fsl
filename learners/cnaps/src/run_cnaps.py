@@ -248,6 +248,8 @@ class Learner:
                             help="Whether to use gaussian dropout (if feature adaptation is random)")
         parser.add_argument("--generate_from_file", default=False,
                             help="Only relevant when the dataset is from_file. Specifies whether to actually generate an attack on the saved task (true) or whether to just transfer the saved attack to the model")
+        parser.add_argument("--hot_start", default=False,
+                            help="Whether to hot start attack with target attack")
 
 
 
@@ -311,13 +313,17 @@ class Learner:
                 elif self.args.generate_from_file:
                     self.meta_dataset_attack_swap(self.args.test_model_path, session)
                 else:
-                    self.attack_from_file(self.args.test_model_path, session)
+                    self.attack_from_file(self.args.test_model_path, session) # This is what we want to edit to support hot start stats
             elif not self.args.swap_attack:
                 self.attack_homebrew(self.args.test_model_path, session)
-            elif self.args.dataset == "meta-dataset":
-                self.meta_dataset_attack_swap(self.args.test_model_path, session)
             else:
-                self.attack_swap(self.args.test_model_path, session)
+                if self.args.dataset == "meta-dataset":
+                    if self.args.hot_start:
+                        self.meta_dataset_hot_start(self.args.test_model_path, session)
+                    else:
+                        self.meta_dataset_attack_swap(self.args.test_model_path, session)
+                else:
+                    self.attack_swap(self.args.test_model_path, session)
 
         self.logfile.close()
 
@@ -537,6 +543,11 @@ class Learner:
             clean_accuracies = []
             adv_accuracies = []
             indep_adv_acuracies = []
+            
+            if self.args.hot_start:
+                halfway_accuracies = []
+                hot_start_accuracies = []
+            
             num_tasks = min(self.dataset.get_num_tasks(), self.args.attack_tasks)
             for task in tqdm(range(num_tasks), dynamic_ncols=True):
                 with torch.no_grad():
@@ -545,6 +556,11 @@ class Learner:
                     # Either the context images or the target images will be adversarial here, depending on the dataset
                     adv_context_images, context_labels, adv_target_images, target_labels = self.dataset.get_adversarial_task(task, self.device)
                     adv_accuracies.append(self.calc_accuracy(adv_context_images, context_labels, adv_target_images, target_labels))
+                    
+                    if self.args.hot_start:
+                        hot_start_images_complete, hot_start_images_halfway = self.dataset.get_hot_start_images(task, device)
+                        halfway_accuracies.append(self.calc_accuracy(hot_start_images_halfway, context_labels, target_images, target_labels))
+                        hot_start_accuracies.append(self.calc_accuracy(hot_start_images_complete, context_labels, target_images, target_labels))
 
                     eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
             
@@ -558,9 +574,16 @@ class Learner:
                         elif self.dataset.mode == "context":
                             indep_adv_acuracies.append(self.calc_accuracy(adv_context_images, context_labels, eval_imgs_k, eval_labels_k))
                             
+                        if self.args.hot_start:
+                            halfway_accuracies.append(self.calc_accuracy(hot_start_images_halfway, context_labels, eval_imgs_k, eval_labels_k))
+                            hot_start_accuracies.append(self.calc_accuracy(hot_start_images_complete, context_labels, eval_imgs_k, eval_labels_k))
+                            
             self.print_average_accuracy(clean_accuracies, "Clean accuracy", "")
             self.print_average_accuracy(adv_accuracies, "{} attack accuracy".format(self.dataset.mode), "from_file")
             self.print_average_accuracy(indep_adv_acuracies, "Indep {} attack accuracy".format(self.dataset.mode), "from_file")
+            if self.args.hot_start:
+                self.print_average_accuracy(hot_start_accuracies, "Hot start complete attack accuracy", "from_file")
+                self.print_average_accuracy(halfway_accuracies, "Hot start halfway attack accuracy", "from_file")
             
             return
             
