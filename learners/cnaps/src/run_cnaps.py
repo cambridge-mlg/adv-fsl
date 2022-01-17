@@ -61,7 +61,7 @@ import sys
 # sys.path.append(os.path.abspath('attacks'))
 from attacks.attack_helpers import create_attack
 from attacks.attack_utils import split_target_set, make_adversarial_task_dict, make_swap_attack_task_dict, infer_num_shots
-from attacks.attack_utils import AdversarialDataset, save_partial_pickle
+from attacks.attack_utils import AdversarialDataset, save_partial_pickle, make_hot_start_task_dict
 from attacks.attack_utils import AdversarialDataset
 import learners.cnaps.src.utils as utils
 
@@ -800,44 +800,24 @@ class Learner:
                 del adv_target_as_context
 
                 if self.args.save_attack: #Don't accidentally overwrite the true labels when writing the task back to file
-                    print("Error, save attack not yet supported")
-                    '''
+
                     predicted_context_labels, predicted_target_labels = None, None
 
-                    adv_task_dict = make_swap_attack_task_dict(context_images, context_labels, target_images_small,
+                    adv_task_dict = make_hot_start_task_dict(context_images, context_labels, target_images_small,
                                                                target_labels_small,
                                                                adv_context_images, adv_context_indices,
                                                                adv_target_images, adv_target_indices,
+                                                               hot_start_images_2,
+                                                               hot_start_images_1, hot_start_indices_1,
                                                                self.args.way, self.args.shot, self.args.query_test,
                                                                eval_images, eval_labels, 
                                                                predicted_context_labels=predicted_context_labels,
                                                                predicted_target_labels=predicted_target_labels)
                     #if self.args.continue_from_task != 0:
                     save_partial_pickle(os.path.join(self.args.checkpoint_dir, "adv_task"), t, adv_task_dict)
-                    '''
 
                 del adv_context_images, adv_target_images
-                
-                
-                 gen_hot_start_target_accuracies = []
-            # Accuracy of swapped target attack when stopped
-            gen_hot_start_target_swap_accuracies = []
-            # Accuracy of context attack (hot started) on gen set
-            gen_hot_start_context_accuracies = []
-            # Accuracy of the swapped adv context set
-            gen_hot_start_context_swap_accuracies = []
-            
-            # Accuracies for evaluation setting
-            clean_accuracies = []
-            adv_context_accuracies = []
-            adv_target_as_context_accuracies = []
-            adv_hot_start_accuracies = []
-            adv_hot_start_swap_accuracies = []
-            # Debug accs 
-            adv_hot_start_target_acc = []
-            adv_hot_start_target_swap_acc = []
-                
-                
+                                
             self.print_average_accuracy(gen_clean_accuracies, "Gen setting: Clean accuracy", item)
             self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy", item)
             self.print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy", item)

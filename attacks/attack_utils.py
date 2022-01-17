@@ -274,6 +274,12 @@ class AdversarialDataset:
             else:
                 print("Swap mode {} is not supported".format(swap_mode))
                 return None, None, None, None
+                
+    def get_hot_start_images(self, task_index, device, swap_mode=None):
+        task = self.tasks(task_index)
+        assert 'hot_start' in task and task['hot_start']
+        
+        return task['hot_start_images_complete'], task['hot_start_images_target']
 
     def get_eval_task(self, task_index, device):
         task = self.tasks(task_index)
@@ -345,6 +351,21 @@ def make_swap_attack_task_dict(context_images, context_labels, target_images, ta
     adv_task_dict['predicted_context_labels'] = predicted_context_labels
     adv_task_dict['predicted_target_labels'] = predicted_target_labels
     return adv_task_dict
+
+def make_hot_start_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, adv_target_images, adv_target_indices,
+                                hot_start_images_complete, hot_start_images_target, hot_start_indices,
+                                way, shot, query, split_target_images, split_target_labels, predicted_context_labels=None, predicted_target_labels=None):
+    adv_task_dict = make_swap_attack_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, adv_target_images, adv_target_indices, 'context', way, shot, query, split_target_images, split_target_labels)
+    if hot_start_images_complete is not None:
+        hot_start_images_complete = hot_start_images_complete.cpu()
+    if hot_start_images_target is not None:
+        hot_start_images_target = hot_start_images_target.cpu()
+
+    adv_task_dict['hot_start_images_complete'] = hot_start_images_complete
+    adv_task_dict['hot_start_images_target'] = hot_start_images_target
+    adv_task_dict['hot_start_indices'] = hot_start_indices
+    adv_task_dict['mode'] = 'swap'
+    adv_task_dict['hot_start'] = True
 
 def convert_labels(predictions):
     return torch.argmax(predictions, dim=1, keepdim=False)
