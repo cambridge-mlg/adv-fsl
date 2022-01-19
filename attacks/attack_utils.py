@@ -355,7 +355,8 @@ def make_swap_attack_task_dict(context_images, context_labels, target_images, ta
 def make_hot_start_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, adv_target_images, adv_target_indices,
                                 hot_start_images_complete, hot_start_images_target, hot_start_indices,
                                 way, shot, query, split_target_images, split_target_labels, predicted_context_labels=None, predicted_target_labels=None):
-    adv_task_dict = make_swap_attack_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, adv_target_images, adv_target_indices, 'context', way, shot, query, split_target_images, split_target_labels)
+    adv_task_dict = make_swap_attack_task_dict(context_images, context_labels, target_images, target_labels, adv_context_images, adv_context_indices, adv_target_images, 
+                                                    adv_target_indices, way, shot, query, split_target_images, split_target_labels)
     if hot_start_images_complete is not None:
         hot_start_images_complete = hot_start_images_complete.cpu()
     if hot_start_images_target is not None:
@@ -366,6 +367,7 @@ def make_hot_start_task_dict(context_images, context_labels, target_images, targ
     adv_task_dict['hot_start_indices'] = hot_start_indices
     adv_task_dict['mode'] = 'swap'
     adv_task_dict['hot_start'] = True
+    return adv_task_dict
 
 def convert_labels(predictions):
     return torch.argmax(predictions, dim=1, keepdim=False)
