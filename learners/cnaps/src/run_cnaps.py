@@ -591,6 +591,11 @@ class Learner:
             gen_clean_accuracies = []
             clean_accuracies = []
             clean_target_as_context_accuracies = []
+
+            if self.args.hot_start:
+                halfway_accuracies = []
+                hot_start_accuracies = []
+
             # num_tasks = min(2, self.dataset.get_num_tasks())
             num_tasks = min(self.dataset.get_num_tasks(), self.args.attack_tasks)
             for task in tqdm(range(num_tasks), dynamic_ncols=True):
@@ -655,15 +660,17 @@ class Learner:
         
     def calculate_propotional_swap_indices(self, target_labels, adv_target_indices, context_labels):
         context_labels = context_labels.cpu()
+        target_labels = target_labels.cpu()
         # Parallel array to keep track of where we actually put the adv_target_images
         # Since not all of them might have room to get swapped
         swap_indices_context = []
         swap_indices_adv = []
-        target_labels_int = target_labels.type(torch.IntTensor)
+        if context_labels.type() != target_labels.type():
+            target_labels = target_labels.type(context_labels.type())
         failed_to_swap = 0
 
         for index in adv_target_indices:
-            c = target_labels_int[index]
+            c = target_labels[index]
             # Replace the first best instance of class c with the adv query point (assuming we haven't already swapped it)
             shot_indices = extract_class_indices(context_labels, c)
             k = 0
@@ -712,7 +719,6 @@ class Learner:
         
         target_attack_hot = create_attack(self.args.attack_config_path, self.checkpoint_dir)
         target_attack_hot.set_attack_mode('target')
-        target_attack_hot.
         
         target_attack_hot.epsilon = base_epsilon*hot_start_budget
         target_attack_hot.epsilon_step = base_epsilon_step*hot_start_budget
@@ -745,7 +751,6 @@ class Learner:
             adv_hot_start_target_swap_acc = []
             
             num_tasks = self.args.attack_tasks
-                
             for t in tqdm(range(self.args.continue_from_task, num_tasks), dynamic_ncols=True):
                 task_dict = self.dataset.get_test_task(item, session)
                 if self.args.continue_from_task != 0:
@@ -761,13 +766,15 @@ class Learner:
                 # Swap role of target/context for the hot start part.
                 #TODO: Issue if we randomly choose what to perturb?
                 #TODO: Issue if we choose different target classes?
+
                 hot_start_images_1, hot_start_indices_1 = target_attack_hot.generate(target_images_small, target_labels_small, context_images, context_labels, 
                                                                 self.model, self.model, self.model.device)
+                hot_start_images_1 = hot_start_images_1.detach()
                 hot_start_images_2, hot_start_indices_2 = context_attack_hot.generate(hot_start_images_1, context_labels, target_images, target_labels, 
                                                                 self.model, self.model, self.model.device)
                 assert hot_start_indices_1 == hot_start_indices_2
 
-                swap_indices_context, swap_indices_adv = self.calculate_propotional_swap_indices(target_labels, adv_target_indices, context_labels):
+                swap_indices_context, swap_indices_adv = self.calculate_propotional_swap_indices(target_labels, adv_target_indices, context_labels)
                 adv_target_as_context = context_images.clone()
                 
                 # First swap in the clean targets, to make sure the two clean accs are the same (debug)
@@ -798,7 +805,6 @@ class Learner:
                         eval_labels_k = eval_labels[k].to(self.device)
                         clean_accuracies.append(self.calc_accuracy(context_images, context_labels, eval_imgs_k, eval_labels_k))
                         # Below "adv_target_as_context" confusingly contains the clean target points, just swapped in for debug purposes
-                        clean_target_as_context_accuracies.append(self.calc_accuracy(adv_target_as_context, context_labels, eval_imgs_k, eval_labels_k))
                     
                     for k in range(len(eval_images)):
                         eval_imgs_k = eval_images[k].to(self.device)
@@ -812,7 +818,7 @@ class Learner:
                         # Use in plain target attack style, but with roles reversed. I.e. does the original intention of the target attack generalize?
                         adv_hot_start_target_acc.append(self.calc_accuracy(eval_imgs_k, eval_labels_k, hot_start_images_1, context_labels))
                         # How does the swapped target attack do, even with half budget?
-                        adv_hot_start_target_swap_acc.append(self.calc_accuracy(hot_start_images_1, contedt_labels, eval_imgs_k, eval_labels_k))
+                        adv_hot_start_target_swap_acc.append(self.calc_accuracy(hot_start_images_1, context_labels, eval_imgs_k, eval_labels_k))
                         
                         
                         # Now swap in the adv targets
@@ -851,14 +857,13 @@ class Learner:
             self.print_average_accuracy(gen_hot_start_target_swap_accuracies, "Gen settingHot-start, 1st half target swap accuracy", item)
 
             self.print_average_accuracy(clean_accuracies, "Clean accuracy", item)
-            self.print_average_accuracy(clean_target_as_context_accuracies, "Clean Target as Context accuracy", item)
             self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", item)
             self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", item)
             
             self.print_average_accuracy(adv_hot_start_accuracies, "Hot-start Context accuracy", item)
             self.print_average_accuracy(adv_hot_start_swap_accuracies, "Hot-start Context as Target accuracy", item)
-            self.print_average_accuracy(adv_hot_start_target_acc, "Hot-start, 1st Half Target accuracy", item)
-            self.print_average_accuracy(adv_hot_start_target_swap_acc, "Hot-start, 1st Half Target Swap accuracy", item)
+            self.print_average_accuracy(adv_hot_start_target_acc, "Hot-start, 1st Half Target (as Target) accuracy", item)
+            self.print_average_accuracy(adv_hot_start_target_swap_acc, "Hot-start, 1st Half Target (as Context Init)  accuracy", item)
     
 
     def meta_dataset_attack_swap(self, path, session):
@@ -918,7 +923,7 @@ class Learner:
                 # Might make more sense to use true target labels here, if generating from file?
                 adv_target_images, adv_target_indices = target_attack.generate(context_images, context_labels, target_images_small, target_labels_small, self.model, self.model, self.model.device)
 
-                swap_indices_context, swap_indices_adv = self.calculate_propotional_swap_indices(target_labels, adv_target_indices, context_labels):
+                swap_indices_context, swap_indices_adv = self.calculate_propotional_swap_indices(target_labels, adv_target_indices, context_labels)
                 adv_target_as_context = context_images.clone()
 
                 # First swap in the clean targets, to make sure the two clean accs are the same (debug)
@@ -1178,6 +1183,7 @@ class Learner:
             context_images_np, context_labels_np = self.shuffle(context_images_np, context_labels_np)
         context_images = torch.from_numpy(context_images_np)
         context_labels = torch.from_numpy(context_labels_np)
+        context_labels = context_labels.type(torch.LongTensor)
 
         all_target_images_np = all_target_images_np.transpose([0, 3, 1, 2])
         if shuffle:
