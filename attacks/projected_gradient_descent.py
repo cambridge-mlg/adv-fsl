@@ -83,10 +83,10 @@ class ProjectedGradientDescent:
                 assert targeted_labels is not None
             elif self.targeted_labels == 'shifted':
                 self.logger.log("Generating shifted labels for targeted attack")
-                targeted_labels = get_shifted_targeted_labels(true_target_labels, device)
+                targeted_labels = get_shifted_targeted_labels(labels, device)
             else: #random labels
                 self.logger.print_and_log("Generating random labels for targeted attack")
-                targeted_labels = get_random_targeted_labels(true_target_labels, device)
+                targeted_labels = get_random_targeted_labels(labels, device)
 
         self.logger.log("Performing PGD attack on {} set. Settings = (norm={}, epsilon={}, epsilon_step={}, "
                         "num_iterations={}, use_true_labels={},target_loss_mode={})"
