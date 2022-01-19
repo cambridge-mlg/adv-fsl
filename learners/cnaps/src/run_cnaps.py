@@ -537,16 +537,19 @@ class Learner:
         self.model = self.init_model()
         self.model.load_state_dict(torch.load(path), strict=False)
 
+    
+        if self.args.hot_start:
+            halfway_accuracies = []
+            hot_start_accuracies = []
+            gen_setting_halfway_accuracies = []
+            gen_setting_hot_start_accuracies = []
+
         if not self.args.swap_attack:
             if self.dataset.mode != "target" and self.dataset.mode != "context":
                 print("Error: The saved attack is a swap attack, but it is not being used as such. Unclear how to proceed")
             clean_accuracies = []
             adv_accuracies = []
             indep_adv_acuracies = []
-            
-            if self.args.hot_start:
-                halfway_accuracies = []
-                hot_start_accuracies = []
             
             num_tasks = min(self.dataset.get_num_tasks(), self.args.attack_tasks)
             for task in tqdm(range(num_tasks), dynamic_ncols=True):
@@ -559,8 +562,8 @@ class Learner:
                     
                     if self.args.hot_start:
                         hot_start_images_complete, hot_start_images_halfway = self.dataset.get_hot_start_images(task, device)
-                        halfway_accuracies.append(self.calc_accuracy(hot_start_images_halfway, context_labels, target_images, target_labels))
-                        hot_start_accuracies.append(self.calc_accuracy(hot_start_images_complete, context_labels, target_images, target_labels))
+                        gen_setting_halfway_accuracies.append(self.calc_accuracy(hot_start_images_halfway, context_labels, target_images, target_labels))
+                        gen_setting_hot_start_accuracies.append(self.calc_accuracy(hot_start_images_complete, context_labels, target_images, target_labels))
 
                     eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
             
@@ -591,18 +594,14 @@ class Learner:
             gen_clean_accuracies = []
             clean_accuracies = []
             clean_target_as_context_accuracies = []
-
-            if self.args.hot_start:
-                halfway_accuracies = []
-                hot_start_accuracies = []
-
+            
+            # Clean evals
             # num_tasks = min(2, self.dataset.get_num_tasks())
             num_tasks = min(self.dataset.get_num_tasks(), self.args.attack_tasks)
             for task in tqdm(range(num_tasks), dynamic_ncols=True):
                 with torch.no_grad():
                     context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
                     gen_clean_accuracies.append(self.calc_accuracy(context_images, context_labels, target_images, target_labels))
-
 
                     eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
                     # Evaluate on independent target sets
@@ -624,7 +623,7 @@ class Learner:
 
             gen_adv_context_accuracies = []
             gen_adv_target_accuracies = []
-
+            
             for task in tqdm(range(num_tasks), dynamic_ncols=True):
                 with torch.no_grad():
                     context_images, context_labels, target_images, target_labels = self.dataset.get_clean_task(task, self.device)
@@ -635,6 +634,11 @@ class Learner:
                     # Doesn't account for collusion
                     gen_adv_context_accuracies.append(self.calc_accuracy(adv_context_images, context_labels, target_images, target_labels))
                     gen_adv_target_accuracies.append(self.calc_accuracy(context_images, context_labels, adv_target_images, target_labels))
+
+                    if self.args.hot_start:
+                        hot_start_images_complete, hot_start_images_halfway = self.dataset.get_hot_start_images(task, device)
+                        gen_setting_halfway_accuracies.append(self.calc_accuracy(hot_start_images_halfway, context_labels, target_images, target_labels))
+                        gen_setting_hot_start_accuracies.append(self.calc_accuracy(hot_start_images_complete, context_labels, target_images, target_labels))
 
                     eval_images, eval_labels = self.dataset.get_eval_task(task, self.device)
 
@@ -648,14 +652,24 @@ class Learner:
 
                         adv_target_as_context_accuracies.append(self.calc_accuracy(adv_target_images, target_labels, eval_imgs_k, eval_labels_k))
                         adv_context_as_target_accuracies.append(self.calc_accuracy(eval_imgs_k, eval_labels_k, adv_context_images, context_labels))
+                        
+                        if self.args.hot_start:
+                            halfway_accuracies.append(self.calc_accuracy(hot_start_images_halfway, context_labels, eval_imgs_k, eval_labels_k))
+                            hot_start_accuracies.append(self.calc_accuracy(hot_start_images_complete, context_labels, eval_imgs_k, eval_labels_k))
 
             self.print_average_accuracy(gen_adv_context_accuracies, "Gen setting: Context attack accuracy", "from_file")
             self.print_average_accuracy(gen_adv_target_accuracies, "Gen setting: Target attack accuracy", "from_file")
+            if self.args.hot_start:
+                self.print_average_accuracy(gen_setting_hot_start_accuracies, "Gen settings: Hot start complete attack accuracy", "from_file")
+                self.print_average_accuracy(gen_setting_halfway_accuracies, "Gen settings: Hot start halfway attack accuracy", "from_file")
 
             self.print_average_accuracy(adv_context_accuracies, "Context attack accuracy", "from_file")
             self.print_average_accuracy(adv_target_as_context_accuracies, "Adv Target as Context accuracy", "from_file")
             self.print_average_accuracy(adv_target_accuracies, "Target attack accuracy", "from_file")
             self.print_average_accuracy(adv_context_as_target_accuracies, "Adv Context as Target", "from_file")
+            if self.args.hot_start:
+                self.print_average_accuracy(hot_start_accuracies, "Hot start complete attack accuracy", "from_file")
+                self.print_average_accuracy(halfway_accuracies, "Hot start halfway attack accuracy", "from_file")
         
         
     def calculate_propotional_swap_indices(self, target_labels, adv_target_indices, context_labels):
